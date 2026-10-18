@@ -67,7 +67,8 @@ describe('evaluarDiagnostico', () => {
 
   it('@DIAG-2.2 un objetivo con ítems sin responder no tiene acierto ni queda dominado', () => {
     const resultado = evaluar({ respuestas: new Map(acertar(O1.items.slice(0, 3), 3)) });
-    expect(resultado.aciertoPorObjetivo).toEqual({});
+    // `toStrictEqual`, porque `toEqual` también daría por bueno `{ O1: undefined }`.
+    expect(resultado.aciertoPorObjetivo).toStrictEqual({});
     expect(resultado.ruta).toEqual(['O1', 'O2']);
   });
 
@@ -108,7 +109,8 @@ describe('evaluarDiagnostico', () => {
   });
 
   it('@DIAG-3.1 sin problemas intercalables no informa de su acierto', () => {
-    expect(evaluar({}).aciertoProblemasSinPista).toBeUndefined();
+    // El campo no existe, ni siquiera con valor `undefined`.
+    expect(evaluar({})).not.toHaveProperty('aciertoProblemasSinPista');
   });
 });
 
