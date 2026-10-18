@@ -1,6 +1,11 @@
 import { ultimoIntentoPorItem } from '../dominio/acierto.ts';
 import type { EntradaDiagnostico } from '../dominio/diagnostico.ts';
-import { evaluarDiagnostico, pasosRetiradosIniciales, problemasIntercalables } from '../dominio/diagnostico.ts';
+import {
+  evaluarDiagnostico,
+  intercalarPorTurnos,
+  pasosRetiradosIniciales,
+  problemasIntercalables,
+} from '../dominio/diagnostico.ts';
 import type { ContenidoDominio, ItemContenido } from './contenido.ts';
 import type { AperturaDominio, ResultadoDiagnostico } from './dominio.ts';
 import type { Entorno, EstadoDominio, Situacion } from './estado.ts';
@@ -18,12 +23,17 @@ function itemsDeDiagnostico(contenido: ContenidoDominio): readonly ItemContenido
   return contenido.items.filter((item) => item.diagnostico);
 }
 
-/** Solo ítems, sin ejemplos resueltos ni preguntas sobre lo que la persona cree saber (@DIAG-1.2). */
+/**
+ * Solo ítems, sin ejemplos resueltos ni preguntas sobre lo que la persona cree saber (@DIAG-1.2), y
+ * mezclados por turnos entre objetivos para que el orden no delate el tipo de problema (@DIAG-1.3).
+ */
 function sesionDeDiagnostico(contenido: ContenidoDominio): Sesion {
+  const items = itemsDeDiagnostico(contenido);
+  const porObjetivo = contenido.objetivos.map((objetivo) => items.filter((item) => item.objetivo === objetivo.id));
   return {
     tipo: 'diagnostico',
     intercalada: false,
-    elementos: itemsDeDiagnostico(contenido).map((item) => ({ tipo: 'item', item: presentar(item) })),
+    elementos: intercalarPorTurnos(porObjetivo).map((item) => ({ tipo: 'item', item: presentar(item) })),
   };
 }
 
