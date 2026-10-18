@@ -89,7 +89,8 @@ function resultadoDelDiagnostico(): ResultadoDiagnostico {
 
 // --- Qué responde la persona --------------------------------------------------------------------
 
-Given('que la persona no ha empezado el dominio {texto}', () => {
+Given('que la persona no ha empezado el dominio {texto}', (dominio: string) => {
+  mundo().dominio = dominio;
   mundo().diagnosticoPrevio = false;
 });
 
@@ -112,10 +113,13 @@ Given(
   },
 );
 
-// «acierta 10 de los 20 ítems de O2 y 10 de los 20 ítems de O3»: son seis datos, más de los tres que
-// admite el lint por función, así que el paso lee los grupos de la expresión regular a mano.
-Given(/^acierta (\d+) de los (\d+) ítems de (O\d+) y (\d+) de los (\d+) ítems de (O\d+)$/, (...grupos: string[]) => {
-  for (const [aciertos = '', total = '', objetivo = ''] of [grupos.slice(0, 3), grupos.slice(3, 6)]) {
+// «acierta 10 de los 20 ítems de O2 y 10 de los 20 ítems de O3». Cucumber pasa un argumento por cada
+// grupo de la expresión y el lint admite tres parámetros, así que se captura la frase en un solo grupo
+// y el paso la parte en sus dos objetivos.
+const ACIERTOS_DE_UN_OBJETIVO = /(\d+) de los (\d+) ítems de (O\d+)/g;
+
+Given(/^acierta (\d+ de los \d+ ítems de O\d+ y \d+ de los \d+ ítems de O\d+)$/, (frase: string) => {
+  for (const [, aciertos = '', total = '', objetivo = ''] of frase.matchAll(ACIERTOS_DE_UN_OBJETIVO)) {
     assert.equal(
       itemsDe(mundo(), objetivo).length,
       Number(total),
@@ -158,8 +162,13 @@ function hacerElDiagnosticoDeLaPersona(): void {
   actual.diagnostico = hacerDiagnostico(actual, { persona: 0, confianza: actual.confianza });
 }
 
-When('la persona hace el diagnóstico del dominio {texto}', hacerElDiagnosticoDeLaPersona);
-When('la persona termina el diagnóstico del dominio {texto}', hacerElDiagnosticoDeLaPersona);
+function hacerElDiagnosticoDelDominio(dominio: string): void {
+  mundo().dominio = dominio;
+  hacerElDiagnosticoDeLaPersona();
+}
+
+When('la persona hace el diagnóstico del dominio {texto}', hacerElDiagnosticoDelDominio);
+When('la persona termina el diagnóstico del dominio {texto}', hacerElDiagnosticoDelDominio);
 When('termina el diagnóstico', hacerElDiagnosticoDeLaPersona);
 
 // --- Lo que ve la persona ------------------------------------------------------------------------
