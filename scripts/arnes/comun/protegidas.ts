@@ -1,0 +1,75 @@
+// Lectura de .claude/protegidas.txt y decisión de si una ruta está bloqueada.
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+
+export const RUTA_PROTEGIDAS = '.claude/protegidas.txt';
+export const RUTA_SUMAS = '.claude/sumas.sha256';
+
+/**
+ * Fase de trabajo de la sesión, fijada al lanzarla con ARNES_FASE.
+ * - specs: etapa 2, se pueden escribir features/ y config/parametros.json.
+ * - aceptacion: etapa 3, se pueden escribir los steps de tests/aceptacion/.
+ * - impl: resto del tiempo; todo lo protegido está bloqueado.
+ */
+const FASES = ['specs', 'aceptacion', 'impl'] as const;
+export type Fase = (typeof FASES)[number];
+
+export interface EntradaProtegida {
+  /** Ruta relativa a la raíz. Termina en «/» si protege un directorio entero. */
+  readonly ruta: string;
+  /** Fase en la que la ruta se puede editar (anotación «@fase»), si la tiene. */
+  readonly desbloqueadaEn: Fase | undefined;
+}
+
+function esFase(valor: string): valor is Fase {
+  return (FASES as readonly string[]).includes(valor);
+}
+
+export function faseDeEntorno(entorno: NodeJS.ProcessEnv): Fase {
+  const valor = entorno['ARNES_FASE'] ?? 'impl';
+  if (!esFase(valor)) {
+    throw new Error(`ARNES_FASE=${valor} no es válida. Usa specs, aceptacion o impl.`);
+  }
+  return valor;
+}
+
+export function parsearProtegidas(texto: string): EntradaProtegida[] {
+  const entradas: EntradaProtegida[] = [];
+  for (const lineaBruta of texto.split('\n')) {
+    const linea = lineaBruta.replace(/#.*$/, '').trim();
+    if (linea === '') continue;
+    const [ruta = '', anotacion] = linea.split(/\s+/);
+    entradas.push({ ruta, desbloqueadaEn: parsearAnotacion(anotacion, linea) });
+  }
+  return entradas;
+}
+
+function parsearAnotacion(anotacion: string | undefined, linea: string): Fase | undefined {
+  if (anotacion === undefined) return undefined;
+  const fase = anotacion.slice(1);
+  if (!anotacion.startsWith('@') || !esFase(fase)) {
+    throw new Error(`${RUTA_PROTEGIDAS}: anotación no válida en «${linea}». Usa @specs o @aceptacion.`);
+  }
+  return fase;
+}
+
+export function leerProtegidas(raiz: string): EntradaProtegida[] {
+  return parsearProtegidas(readFileSync(path.join(raiz, RUTA_PROTEGIDAS), 'utf8'));
+}
+
+/** ¿La entrada cubre la ruta? La ruta va relativa a la raíz y con «/» como separador. */
+export function cubre(entrada: EntradaProtegida, rutaRelativa: string): boolean {
+  if (entrada.ruta.endsWith('/')) {
+    return rutaRelativa === entrada.ruta.slice(0, -1) || rutaRelativa.startsWith(entrada.ruta);
+  }
+  return rutaRelativa === entrada.ruta;
+}
+
+/** Primera entrada que bloquea la ruta en esta fase, o undefined si se puede tocar. */
+export function entradaQueBloquea(
+  rutaRelativa: string,
+  entradas: readonly EntradaProtegida[],
+  fase: Fase,
+): EntradaProtegida | undefined {
+  return entradas.find((entrada) => cubre(entrada, rutaRelativa) && entrada.desbloqueadaEn !== fase);
+}

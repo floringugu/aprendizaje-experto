@@ -1,0 +1,3 @@
+#!/bin/sh
+# Reglas de commit del proyecto: ver scripts/arnes/regla-commits.ts.
+exec node scripts/arnes/regla-commits.ts

@@ -1,0 +1,8 @@
+{
+  "minTokens": 50,
+  "minLines": 5,
+  "threshold": 1,
+  "format": ["typescript", "javascript"],
+  "ignore": ["**/node_modules/**", "**/reports/**", "**/.stryker-tmp/**", "**/docs/**", "**/features/**"],
+  "reporters": ["console"]
+}

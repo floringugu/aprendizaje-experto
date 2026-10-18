@@ -1,0 +1,106 @@
+{
+  "secuencia_fases": {
+    "descripcion": "Orden de las fases por las que avanza la persona en un dominio.",
+    "valor": ["diagnostico", "novato", "intermedio", "avanzado_experto"],
+    "seccion": ["4"],
+    "nivel_evidencia": "extrapolación del autor",
+    "extrapolacion": true,
+    "nota": "Sección 4, «Qué es extrapolación del autor»: la secuencia completa de fases como sistema no está probada directamente."
+  },
+  "umbral_dominio": {
+    "descripcion": "Acierto mínimo sin ayuda en pruebas de recuperación para dar un objetivo por dominado y avanzar.",
+    "valor": 0.85,
+    "seccion": ["4", "3", "2.3"],
+    "nivel_evidencia": "bien establecido",
+    "extrapolacion": true,
+    "nota": "El mastery learning está bien establecido en aula (secciones 2.3 y 3), y la sección 3 da un criterio de ~80–90 %. El valor de ~85 % es de la Fase 1 (sección 4), que lo declara extrapolación. Kulik et al. (1990), que sostiene la cifra del mastery learning, está marcado (†) en la bibliografía."
+  },
+  "umbral_retirada_ayuda": {
+    "descripcion": "Acierto sin ayuda a partir del cual se reduce la guía (ejemplos resueltos, pistas).",
+    "valor": 0.85,
+    "seccion": ["4", "2.3"],
+    "nivel_evidencia": "bien establecido",
+    "extrapolacion": true,
+    "nota": "El efecto de inversión de la pericia está bien establecido (sección 2.3). La Fase 2 dice «reducción de la guía cuando el rendimiento sin ayuda supera el umbral» sin dar cifra; usar el mismo umbral que el de dominio es una interpretación pendiente de aprobación."
+  },
+  "fase_intercalado": {
+    "descripcion": "Única fase en la que se intercalan categorías parecidas.",
+    "valor": "intermedio",
+    "seccion": ["3", "4", "2.2"],
+    "nivel_evidencia": "bien establecido",
+    "extrapolacion": true,
+    "nota": "El intercalado está «bien establecido con límites» (sección 3): solo para discriminar categorías parecidas y después de un aprendizaje inicial por bloques. Asignarlo a la Fase 2 forma parte de la secuencia de fases, que es extrapolación."
+  },
+  "combinar_ejemplos_resueltos_y_autoexplicacion": {
+    "descripcion": "Si por defecto se piden autoexplicaciones mientras se estudian ejemplos resueltos.",
+    "valor": false,
+    "seccion": ["2.2", "4"],
+    "nivel_evidencia": "bien establecido",
+    "extrapolacion": false,
+    "nota": "Barbieri et al. (2023), dentro de la evidencia sobre ejemplos resueltos (bien establecido para novatos): añadir instrucciones de autoexplicación redujo el beneficio. El informe no clasifica esta interacción por separado."
+  },
+  "intervalo_repaso_fraccion_horizonte": {
+    "descripcion": "Intervalo entre repasos como fracción del horizonte de retención buscado.",
+    "valor": { "minimo": 0.1, "maximo": 0.2 },
+    "seccion": ["3", "2.2"],
+    "nivel_evidencia": "bien establecido",
+    "extrapolacion": true,
+    "nota": "La sección 3 da ≈10–20 % del horizonte, con una fuente divulgativa [71]. Cepeda et al. (2008, sección 2.2) muestran que la fracción óptima baja al crecer el horizonte: 20–40 % para 1 semana y 5–10 % para 1 año. Un rango fijo simplifica esa relación no lineal."
+  },
+  "planificador_algoritmo": {
+    "descripcion": "Algoritmo de repetición espaciada para hechos y vocabulario, y su alternativa.",
+    "valor": { "principal": "fsrs", "alternativa": "sm2" },
+    "seccion": ["4", "2.5", "6"],
+    "nivel_evidencia": "prometedor",
+    "extrapolacion": true,
+    "nota": "La sección 4 propone «un SRS (FSRS o SM-2)». La sección 2.5 no verificó ensayos que comparen FSRS con SM-2 en resultados de aprendizaje. Que FSRS sea el principal es una decisión de producto, no de evidencia."
+  },
+  "retencion_diferida_semanas": {
+    "descripcion": "Semanas tras el aprendizaje en las que se mide la retención diferida.",
+    "valor": [1, 4],
+    "seccion": ["4"],
+    "nivel_evidencia": "extrapolación del autor",
+    "extrapolacion": true,
+    "nota": "Métrica de la Fase 1 en la propuesta de framework (sección 4). Los plazos de 1 y 4 semanas no salen de un estudio citado."
+  },
+  "escala_confianza": {
+    "descripcion": "Escala en la que la persona declara su confianza en cada respuesta. Solo sirve para calibrar.",
+    "valor": { "minimo": 0, "maximo": 100, "unidad": "%" },
+    "seccion": ["4", "2.5"],
+    "nivel_evidencia": "extrapolación del autor",
+    "extrapolacion": true,
+    "nota": "Instrumento de la sección 4 («escalas de confianza de 0 a 100 % por ítem»). La sección 2.5 justifica medir con pruebas y no con autoevaluación: la confianza nunca mide el progreso."
+  },
+  "periodicidad_bucle_dias": {
+    "descripcion": "Cada cuántos días se ejecuta el bucle de retroalimentación (medir, calibrar, ajustar ayuda, reprogramar, revisar).",
+    "valor": 7,
+    "seccion": ["4"],
+    "nivel_evidencia": "extrapolación del autor",
+    "extrapolacion": true,
+    "nota": "El bucle «cada semana» es parte de la propuesta de framework (sección 4). El entrenamiento en aprendizaje autorregulado está bien establecido (sección 2.5), pero la periodicidad semanal no está probada."
+  },
+  "percentil_experto": {
+    "descripcion": "Percentil de una muestra de profesionales acreditados en el que hay que rendir para el nivel experto.",
+    "valor": { "minimo": 80, "maximo": 90 },
+    "seccion": ["4"],
+    "nivel_evidencia": "extrapolación del autor",
+    "extrapolacion": true,
+    "nota": "Criterio (i) de la definición operativa de nivel experto. El informe dice que es «una convención propuesta, no un estándar validado». Pendiente de decidir cómo se usa el rango (¿el mínimo basta?)."
+  },
+  "evaluaciones_experto_requeridas": {
+    "descripcion": "Número de evaluaciones externas en las que hay que mantener el rendimiento de nivel experto.",
+    "valor": 2,
+    "seccion": ["4"],
+    "nivel_evidencia": "extrapolación del autor",
+    "extrapolacion": true,
+    "nota": "Criterio (ii) de la definición operativa de nivel experto (sección 4): convención propuesta."
+  },
+  "separacion_minima_evaluaciones_experto_meses": {
+    "descripcion": "Separación mínima, en meses, entre las evaluaciones externas de nivel experto.",
+    "valor": 3,
+    "seccion": ["4"],
+    "nivel_evidencia": "extrapolación del autor",
+    "extrapolacion": true,
+    "nota": "Criterio (ii) de la definición operativa de nivel experto (sección 4): «al menos 3 meses». Convención propuesta."
+  }
+}

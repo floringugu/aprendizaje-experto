@@ -1,0 +1,41 @@
+# Rutas que Claude Code no puede modificar (hook .claude/hooks/proteger-rutas.ts).
+# Una ruta terminada en «/» protege el directorio entero.
+# «@specs» o «@aceptacion» la desbloquea solo en una sesión lanzada con ARNES_FASE=specs
+# o ARNES_FASE=aceptacion (etapas 2 y 3). Sin anotación, solo la cambia el dueño, a mano.
+# Después de cambiar un fichero protegido, el dueño ejecuta «make sumas» y commitea.
+
+# Fuentes
+docs/investigacion.md
+docs/arnes.md
+docs/arnes-verificacion.md
+docs/plan.md
+
+# Especificaciones y parámetros
+features/ @specs
+config/parametros.json @specs
+config/alcance.json
+tests/aceptacion/ @aceptacion
+
+# Configuración de las herramientas
+eslint.config.js
+.jscpd.json
+knip.json
+.dependency-cruiser.cjs
+stryker.config.json
+cucumber.js
+vitest.config.ts
+tsconfig.json
+.prettierrc.json
+.prettierignore
+.gitignore
+package.json
+package-lock.json
+Makefile
+
+# El arnés
+.githooks/
+scripts/arnes/
+tests/arnes/
+.claude/
+.claude/protegidas.txt
+.claude/sumas.sha256

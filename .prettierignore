@@ -1,0 +1,5 @@
+docs/
+features/
+reports/
+.stryker-tmp/
+package-lock.json
