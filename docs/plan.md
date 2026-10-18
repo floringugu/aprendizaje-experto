@@ -1,6 +1,6 @@
 # Plan del proyecto: aplicación de aprendizaje de novato a experto
 
-Estado: **etapa 1 terminada.** Todas las decisiones del §14 y las preguntas del §15 están aprobadas (18-10-2026).
+Estado: **etapa 2 terminada.** Las decisiones de la etapa 2 están aprobadas (18-10-2026) y añadidas al §0.
 
 Este documento es el plan de ingeniería. No es una fuente pedagógica:
 
@@ -30,6 +30,20 @@ El dueño aprobó el 18-10-2026 todas las decisiones del §14 y todas las propue
 | Etapa 3 (§14.14) | Casos de uso vacíos en `src/aplicacion/` que lanzan «Sin implementar», en un commit de código aparte del de los steps. | Etapa 3 |
 | Plan protegido (§14.15) | `docs/plan.md` entra en `.claude/protegidas.txt`, sin fase que lo desbloquee. | Ya aplicado |
 | `npm audit` (§14.18) | Se ignoran por ahora los 2 avisos de `qs` (solo afectan al desarrollo); se revisan cuando salga una versión nueva de Stryker. | — |
+| Formato del contenido (etapa 2) | <ul><li>JSON, un fichero por dominio en `contenido/<dominio>.json`, validado por la aplicación y sin dependencias.</li><li>Campos: `dominio`, `objetivos` (en orden de avance, con `instruccion` y `ejemplos_resueltos` con sus `pasos`), `categorias` (con `grupo_parecidas`), `items` (`objetivo`, `categoria`, `tipo` «hecho» o «problema», `diagnostico`, `enunciado`, `respuesta` con `opciones` + `correcta` o con `aceptadas`, y `feedback`) y `tareas` (con `rubrica`: criterios con sus niveles, y cada nivel con su descriptor).</li><li>La corrección siempre es automática; nunca hay autoevaluación.</li><li>Las tareas no llevan `diagnostico`: las «tareas simples» del diagnóstico son ítems de tipo «problema».</li></ul> | Etapas 3 y 4 |
+| Una persona por instalación (etapa 2) | Sin cuentas ni perfiles; varios dominios por instalación. | Toda la aplicación |
+| Diagnóstico (etapa 2) | <ul><li>Solo los ítems marcados `diagnostico`, sin ayuda y sin pista del tipo.</li><li>Un objetivo con acierto ≥ umbral de dominio queda dominado y empieza sin ejemplos resueltos.</li><li>Puede situar directamente en «intermedio» o en «avanzado_experto», con la misma métrica que `MAST` (problemas de categorías intercalables sin pista del tipo).</li></ul> | `DIAG` |
+| Acierto sin ayuda de un objetivo (etapa 2) | <ul><li>Fracción de sus ítems cuyo último intento fue correcto. Solo se evalúa cuando todos sus ítems tienen un intento.</li><li>Un intento es «sin ayuda» si, mientras se responde, no se ve ningún ejemplo resuelto ni la respuesta, aunque se haya estudiado un ejemplo justo antes (decisión del autor).</li><li>Un objetivo puede dejar de estar dominado si baja del umbral: vuelve a la cola de práctica, pero la fase no retrocede.</li></ul> | `MAST` |
+| Fases (etapa 2) | <ul><li>De «novato» a «intermedio» cuando todos los objetivos están dominados.</li><li>De «intermedio» a «avanzado_experto» con un acierto ≥ `umbral_paso_a_avanzado` (0,85, extrapolación) en problemas intercalados sin pista del tipo.</li><li>El nivel experto lo deciden solo las evaluaciones externas.</li></ul> | `MAST`, `TARE` |
+| Ayuda adaptativa (etapa 2) | <ul><li>Por objetivo: se alternan ejemplo resuelto y problema.</li><li>En el bucle semanal, con un acierto en problemas ≥ 0,85, se retira un paso más (se ocultan los últimos); por debajo, se devuelve uno; sin intentos, no cambia. Parámetro `pasos_retirados_por_ajuste` = 1 (extrapolación).</li></ul> | `AYUD`, `BUCL` |
+| Planificador (etapa 2) | <ul><li>Los hechos los programa FSRS con las calificaciones Again/Good según la corrección; nunca Hard/Easy ni calificación de la persona.</li><li>Los problemas se repasan cada «fracción × horizonte»: la persona elige 1 semana o 1 año y se usa el punto medio del rango de Cepeda (30 % y 7,5 %), sin interpolar.</li><li>SM-2 se implementa con código propio en `src/dominio`, sin dependencias.</li></ul> | `PLAN` |
+| ts-fsrs (etapa 2) | <ul><li>Aprobada: MIT, sin dependencias, unos 7,2 kB con gzip, un solo mantenedor activo.</li><li>La versión exacta se fija al instalarla en la etapa 4: la 6.0.x si lleva 2 semanas publicada y, si no, la 5.4.2.</li></ul> | Etapa 4 |
+| Recuperación y feedback (etapa 2) | Después de cada respuesta, acierte o falle, se muestran si ha acertado, la respuesta correcta y el `feedback` del autor; nada dirigido a la persona. | `RECU` |
+| Calibración (etapa 2) | Confianza 0–100 en cada ítem antes del feedback; el bucle muestra la diferencia media entre confianza y acierto; nunca afecta al progreso. | `CALI`, `BUCL` |
+| Evaluación externa (etapa 2) | <ul><li>Se registran la fecha, la tarea, el nivel por criterio de la rúbrica, el percentil que da el evaluador y si fue a ciegas. Cada nivel de la rúbrica lleva un descriptor, que se muestra junto al nivel.</li><li>Para el nivel experto solo cuentan las evaluaciones a ciegas de tareas no practicadas en la aplicación; cada evaluación es de una tarea (el informe habla de una «batería»).</li><li>El resultado se presenta como «cumple la definición operativa», que es una convención propuesta.</li></ul> | `TARE` |
+| Bucle semanal (etapa 2) | <ul><li>Se ejecuta en la primera sesión tras 7 días o más, sin bucles atrasados.</li><li>Paso 5: la persona escribe o confirma una intención «si X, entonces Y» y ve el recordatorio de no recortar sueño.</li></ul> | `BUCL` |
+| Horas (etapa 2) | Registro manual de fecha y minutos de práctica focalizada; sin metas; nunca miden el progreso. | `HORA` |
+| Instrumentación (etapa 2) | Un CSV por tipo de evento, con columnas fijas: `respuestas`, `cambios_ayuda`, `objetivos_dominados`, `cambios_fase`, `evaluaciones_externas` y `horas`. La columna `tras_ejemplo` de `respuestas` indica si la sesión mostró un ejemplo resuelto justo antes del ítem. | `INST` |
 
 ---
 

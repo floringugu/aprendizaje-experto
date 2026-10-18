@@ -21,7 +21,23 @@
     "seccion": ["4", "2.3"],
     "nivel_evidencia": "bien establecido",
     "extrapolacion": true,
-    "nota": "El efecto de inversión de la pericia está bien establecido (sección 2.3). La Fase 2 dice «reducción de la guía cuando el rendimiento sin ayuda supera el umbral» sin dar cifra; usar el mismo umbral que el de dominio es una interpretación pendiente de aprobación."
+    "nota": "El efecto de inversión de la pericia está bien establecido, sobre todo en laboratorio (sección 2.3 y tabla de la sección 3). La Fase 2 dice «reducción de la guía cuando el rendimiento sin ayuda supera el umbral» sin dar cifra, y el bucle semanal dice «si cae, reintroducirla». Usar el mismo umbral que el de dominio para retirar y para reintroducir la ayuda es una decisión aprobada del autor, sin evidencia propia."
+  },
+  "pasos_retirados_por_ajuste": {
+    "descripcion": "Pasos que pierden (o recuperan) los ejemplos resueltos de un objetivo en cada ajuste semanal de la ayuda.",
+    "valor": 1,
+    "seccion": ["3", "2.3", "4"],
+    "nivel_evidencia": "extrapolación del autor",
+    "extrapolacion": true,
+    "nota": "La sección 3 dice «retirar pasos a medida que sube el rendimiento» y el bucle semanal de la sección 4 dice «si el acierto sin ayuda es alto, retirar ayuda; si cae, reintroducirla», sin dar ritmo. Retirar o devolver un paso por semana, empezando por los últimos, es decisión del autor."
+  },
+  "umbral_paso_a_avanzado": {
+    "descripcion": "Acierto sin ayuda en problemas intercalados sin pista del tipo a partir del cual se pasa de la fase intermedia a la avanzada-experta.",
+    "valor": 0.85,
+    "seccion": ["4"],
+    "nivel_evidencia": "extrapolación del autor",
+    "extrapolacion": true,
+    "nota": "La sección 4 da tres métricas para la Fase 2: el «rendimiento en problemas mezclados sin pista del tipo», la transferencia a casos nuevos y la calibración. El paso de fase usa solo la primera; la transferencia la cubren las evaluaciones externas (TARE) y la calibración se muestra sin afectar al progreso (CALI). La sección 4 declara extrapolación «los umbrales de transición (85 %, percentil 80–90)». Aplicar el 85 % a esa métrica es decisión del autor."
   },
   "fase_intercalado": {
     "descripcion": "Única fase en la que se intercalan categorías parecidas.",
@@ -36,20 +52,46 @@
     "valor": false,
     "seccion": ["2.2", "4"],
     "nivel_evidencia": "bien establecido",
-    "extrapolacion": false,
-    "nota": "Barbieri et al. (2023), dentro de la evidencia sobre ejemplos resueltos (bien establecido para novatos): añadir instrucciones de autoexplicación redujo el beneficio. El informe no clasifica esta interacción por separado."
+    "extrapolacion": true,
+    "nota": "Barbieri et al. (2023), dentro de la evidencia sobre ejemplos resueltos (bien establecido para novatos): añadir instrucciones de autoexplicación redujo el beneficio. Los 55 estudios son de matemáticas; aplicarlo a otros dominios es extrapolación (sección 4: «la aplicación a dominios no estudiados»). El informe no clasifica esta interacción por separado."
   },
-  "intervalo_repaso_fraccion_horizonte": {
-    "descripcion": "Intervalo entre repasos como fracción del horizonte de retención buscado.",
-    "valor": { "minimo": 0.1, "maximo": 0.2 },
-    "seccion": ["3", "2.2"],
+  "intervalo_repaso_por_horizonte": {
+    "descripcion": "Intervalo entre repasos de los ítems de tipo «problema», como fracción del horizonte de retención que elige la persona. Los ítems de tipo «hecho» los programa el algoritmo de repetición espaciada.",
+    "valor": [
+      {
+        "horizonte": "1 semana",
+        "horizonte_dias": 7,
+        "fraccion_minima": 0.2,
+        "fraccion_maxima": 0.4,
+        "fraccion_usada": 0.3
+      },
+      {
+        "horizonte": "1 año",
+        "horizonte_dias": 365,
+        "fraccion_minima": 0.05,
+        "fraccion_maxima": 0.1,
+        "fraccion_usada": 0.075
+      }
+    ],
+    "seccion": ["2.2", "3"],
     "nivel_evidencia": "bien establecido",
     "extrapolacion": true,
-    "nota": "La sección 3 da ≈10–20 % del horizonte, con una fuente divulgativa [71]. Cepeda et al. (2008, sección 2.2) muestran que la fracción óptima baja al crecer el horizonte: 20–40 % para 1 semana y 5–10 % para 1 año. Un rango fijo simplifica esa relación no lineal."
+    "nota": "Cepeda et al. (2008, sección 2.2): el intervalo óptimo fue el 20–40 % de una retención de 1 semana y el 5–10 % para 1 año; «la regla del ratio es empírica y no lineal» y el material eran hechos triviales. Son decisiones del autor: usar el punto medio de cada rango, aplicarlo a problemas, repetir el mismo intervalo en cada repaso, contar 1 año como 365 días y no interpolar otros horizontes. Se aparta del ≈10–20 % de la tabla de la sección 3, que no coincide con las cifras de Cepeda et al. de la sección 2.2."
+  },
+  "retencion_objetivo_fsrs": {
+    "descripcion": "Probabilidad de recordar un hecho que busca el algoritmo FSRS al programar su siguiente repaso.",
+    "valor": 0.9,
+    "seccion": ["2.5", "4"],
+    "nivel_evidencia": "extrapolación del autor",
+    "extrapolacion": true,
+    "nota": "El informe no trata este parámetro: solo propone «un SRS (FSRS o SM-2) para hechos» (sección 4) y no verificó ensayos de FSRS (sección 2.5). Por eso se clasifica como extrapolación del autor. El valor es el que trae por defecto la librería ts-fsrs."
   },
   "planificador_algoritmo": {
     "descripcion": "Algoritmo de repetición espaciada para hechos y vocabulario, y su alternativa.",
-    "valor": { "principal": "fsrs", "alternativa": "sm2" },
+    "valor": {
+      "principal": "fsrs",
+      "alternativa": "sm2"
+    },
     "seccion": ["4", "2.5", "6"],
     "nivel_evidencia": "prometedor",
     "extrapolacion": true,
@@ -65,7 +107,11 @@
   },
   "escala_confianza": {
     "descripcion": "Escala en la que la persona declara su confianza en cada respuesta. Solo sirve para calibrar.",
-    "valor": { "minimo": 0, "maximo": 100, "unidad": "%" },
+    "valor": {
+      "minimo": 0,
+      "maximo": 100,
+      "unidad": "%"
+    },
     "seccion": ["4", "2.5"],
     "nivel_evidencia": "extrapolación del autor",
     "extrapolacion": true,
@@ -80,12 +126,12 @@
     "nota": "El bucle «cada semana» es parte de la propuesta de framework (sección 4). El entrenamiento en aprendizaje autorregulado está bien establecido (sección 2.5), pero la periodicidad semanal no está probada."
   },
   "percentil_experto": {
-    "descripcion": "Percentil de una muestra de profesionales acreditados en el que hay que rendir para el nivel experto.",
-    "valor": { "minimo": 80, "maximo": 90 },
+    "descripcion": "Percentil mínimo, respecto a una muestra de profesionales acreditados, que debe dar el evaluador externo para que una evaluación cuente para el nivel experto. La aplicación no calcula percentiles: registra el que da el evaluador.",
+    "valor": 80,
     "seccion": ["4"],
     "nivel_evidencia": "extrapolación del autor",
     "extrapolacion": true,
-    "nota": "Criterio (i) de la definición operativa de nivel experto. El informe dice que es «una convención propuesta, no un estándar validado». Pendiente de decidir cómo se usa el rango (¿el mínimo basta?)."
+    "nota": "Criterio (i) de la definición operativa de nivel experto: «en o por encima del percentil 80–90». El informe dice que es «una convención propuesta, no un estándar validado». Usar el mínimo del rango es decisión del autor."
   },
   "evaluaciones_experto_requeridas": {
     "descripcion": "Número de evaluaciones externas en las que hay que mantener el rendimiento de nivel experto.",
