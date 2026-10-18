@@ -7,3 +7,12 @@
  */
 export type Resultado<T> =
   { readonly ok: true; readonly valor: T } | { readonly ok: false; readonly motivo: string; readonly campo?: string };
+
+export function aceptar<T>(valor: T): Resultado<T> {
+  return { ok: true, valor };
+}
+
+/** `motivo` es la frase que verá la persona: explica por qué no se puede hacer lo que pidió. */
+export function rechazar(motivo: string): Resultado<never> {
+  return { ok: false, motivo };
+}

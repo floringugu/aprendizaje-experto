@@ -1,8 +1,14 @@
 import type { CasosDeBucle } from './bucle.ts';
 import type { Dependencias } from './dependencias.ts';
+import { abrirDominio, terminarDiagnostico } from './diagnostico.ts';
 import type { CasosDeDominio } from './dominio.ts';
+import type { Entorno } from './estado.ts';
+import { EstadoPersona } from './estado.ts';
 import type { CasosDeExportacion } from './exportacion.ts';
 import type { CasosDeHoras } from './horas.ts';
+import { iniciarSesion } from './practica.ts';
+import { consultarProgreso } from './progreso.ts';
+import { declararConfianza, presentarItem, responderItem } from './respuestas.ts';
 import { sinImplementar } from './sin-implementar.ts';
 import type { CasosDeSesiones } from './sesiones.ts';
 import type { CasosDeTareas } from './tareas.ts';
@@ -19,34 +25,37 @@ export type Aplicacion = CasosDeDominio &
   CasosDeExportacion;
 
 /**
- * Etapa 3: los casos de uso están vacíos y lanzan «Sin implementar», para que los escenarios de
- * aceptación fallen de verdad. La etapa 4 los implementa área por área.
+ * La etapa 4 implementa los casos de uso área por área. Los de las áreas que faltan lanzan «Sin
+ * implementar», para que sus escenarios de aceptación fallen de verdad.
  */
-export const crearAplicacion: (dependencias: Dependencias) => Aplicacion = () => ({
-  abrirDominio: sinImplementar,
-  terminarDiagnostico: sinImplementar,
-  consultarProgreso: sinImplementar,
-  consultarObjetivo: sinImplementar,
-  evaluarObjetivo: sinImplementar,
-  evaluarFase: sinImplementar,
-  iniciarSesion: sinImplementar,
-  presentarItem: sinImplementar,
-  estudiarEjemplo: sinImplementar,
-  responderItem: sinImplementar,
-  declararConfianza: sinImplementar,
-  consultarRepasos: sinImplementar,
-  consultarHorizontes: sinImplementar,
-  elegirHorizonte: sinImplementar,
-  abrirSesion: sinImplementar,
-  ejecutarBucle: sinImplementar,
-  terminarBucle: sinImplementar,
-  registrarHoras: sinImplementar,
-  consultarHoras: sinImplementar,
-  pedirTarea: sinImplementar,
-  consultarTareas: sinImplementar,
-  registrarEvaluacionExterna: sinImplementar,
-  consultarEvaluacionTarea: sinImplementar,
-  evaluarNivelExperto: sinImplementar,
-  exportarCsv: sinImplementar,
-  listarExportaciones: sinImplementar,
-});
+export const crearAplicacion: (dependencias: Dependencias) => Aplicacion = (dependencias) => {
+  const entorno: Entorno = { dependencias, persona: new EstadoPersona() };
+  return {
+    abrirDominio: (peticion) => abrirDominio(entorno, peticion),
+    terminarDiagnostico: (peticion) => terminarDiagnostico(entorno, peticion),
+    consultarProgreso: (peticion) => consultarProgreso(entorno, peticion),
+    consultarObjetivo: sinImplementar,
+    evaluarObjetivo: sinImplementar,
+    evaluarFase: sinImplementar,
+    iniciarSesion: (peticion) => iniciarSesion(entorno, peticion),
+    presentarItem: (peticion) => presentarItem(entorno, peticion),
+    estudiarEjemplo: sinImplementar,
+    responderItem: (peticion) => responderItem(entorno, peticion),
+    declararConfianza: (peticion) => declararConfianza(entorno, peticion),
+    consultarRepasos: sinImplementar,
+    consultarHorizontes: sinImplementar,
+    elegirHorizonte: sinImplementar,
+    abrirSesion: sinImplementar,
+    ejecutarBucle: sinImplementar,
+    terminarBucle: sinImplementar,
+    registrarHoras: sinImplementar,
+    consultarHoras: sinImplementar,
+    pedirTarea: sinImplementar,
+    consultarTareas: sinImplementar,
+    registrarEvaluacionExterna: sinImplementar,
+    consultarEvaluacionTarea: sinImplementar,
+    evaluarNivelExperto: sinImplementar,
+    exportarCsv: sinImplementar,
+    listarExportaciones: sinImplementar,
+  };
+};
