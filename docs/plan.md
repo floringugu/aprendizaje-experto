@@ -1,6 +1,6 @@
 # Plan del proyecto: aplicación de aprendizaje de novato a experto
 
-Estado: **etapa 2 terminada.** Las decisiones de la etapa 2 están aprobadas (18-10-2026) y añadidas al §0.
+Estado: **etapa 4 en curso** (DIAG terminada). Las decisiones de la etapa 2 (18-10-2026) y las de la interfaz y MATE (20-10-2026) están aprobadas y resumidas en el §0.
 
 Este documento es el plan de ingeniería. No es una fuente pedagógica:
 
@@ -44,6 +44,12 @@ El dueño aprobó el 18-10-2026 todas las decisiones del §14 y todas las propue
 | Bucle semanal (etapa 2) | <ul><li>Se ejecuta en la primera sesión tras 7 días o más, sin bucles atrasados.</li><li>Paso 5: la persona escribe o confirma una intención «si X, entonces Y» y ve el recordatorio de no recortar sueño.</li></ul> | `BUCL` |
 | Horas (etapa 2) | Registro manual de fecha y minutos de práctica focalizada; sin metas; nunca miden el progreso. | `HORA` |
 | Instrumentación (etapa 2) | Un CSV por tipo de evento, con columnas fijas: `respuestas`, `cambios_ayuda`, `objetivos_dominados`, `cambios_fase`, `evaluaciones_externas` y `horas`. La columna `tras_ejemplo` de `respuestas` indica si la sesión mostró un ejemplo resuelto justo antes del ítem. | `INST` |
+| Área `MATE` (20-10-2026) | Prefijo nuevo para el material del dominio y los borradores que redacta una IA (§17.6). | `features/` (fase specs) |
+| Orden de la etapa 4 (20-10-2026) | Tras DIAG: RECU → MAST → MATE → PLAN → AYUD → INTE → CALI y HORA → TARE → BUCL → INST. | Etapa 4 |
+| Borradores (20-10-2026) | <ul><li>Van en un fichero aparte, `contenido/borradores/<dominio>.json`, con el formato del contenido.</li><li>El motor solo lee `contenido/<dominio>.json`, así que un borrador nunca llega a una sesión.</li><li>Los ids no se repiten entre los dos ficheros.</li></ul> | `MATE` |
+| Campo `fuente` (20-10-2026) | <ul><li>Opcional en ítems, ejemplos resueltos y tareas. Se conserva al aprobar, para que «Ver fuente» siga disponible.</li><li>Forma: `{documento, lugar, fragmento}`. `lugar` es la página, la diapositiva o el apartado, y `fragmento`, el texto citado tal cual.</li><li>El contenido escrito a mano no lo lleva.</li></ul> | Formato del contenido, `MATE` |
+| Interfaz (20-10-2026) | Solo móvil; tema claro, oscuro o automático; Selawik; movimiento con muelles; vibración con interruptor; emparejamiento por QR (§17). | `src/interfaz/` |
+| Inicio de sesión de Claude Code (20-10-2026) | Botón en Ajustes. Corta a los 5 minutos y tiene «Cancelar». La aplicación nunca guarda, registra ni muestra credenciales (§17.6). | `MATE` |
 
 ---
 
@@ -55,7 +61,7 @@ El dueño aprobó el 18-10-2026 todas las decisiones del §14 y todas las propue
 | 2. Las extrapolaciones viven en `config/parametros.json`, cada una con su valor, su sección, su nivel de evidencia y la marca `extrapolacion`. | <ul><li>`cobertura-ids` valida el fichero.</li><li>ESLint prohíbe los números sueltos en `src/` (salvo 0 y 1) y obliga a leer los umbrales del fichero de parámetros.</li><li>El fichero está protegido: solo se edita en la fase `specs`.</li></ul> |
 | 3. No se implementa nada de la sección «Mitos» (§5 del informe). | `revisor-evidencia` tiene la lista de los 11 mitos, incluidas sus versiones disfrazadas, como las metas de horas o adaptar la enseñanza al «tipo de aprendiz». |
 | 4. El progreso se mide solo por el rendimiento observado; la confianza declarada sirve solo para calibrar. | <ul><li>`revisor-evidencia`.</li><li>Escenarios negativos en la etapa 2: declarar mucha confianza no hace avanzar.</li></ul> |
-| 5. La aplicación no genera contenido del dominio; lo aporta un autor. | <ul><li>`revisor-evidencia` y `revisor-codigo`.</li><li>El dominio de prueba es ficticio y se carga como datos.</li></ul> |
+| 5. La aplicación no inventa contenido del dominio. Lo aporta la persona: lo escribe ella o lo extrae una IA de su propio material, siempre citando de dónde sale, y nada entra en la práctica sin que la persona lo apruebe. | <ul><li>`revisor-evidencia` y `revisor-codigo`.</li><li>El dominio de prueba es ficticio y se carga como datos.</li><li>Los borradores viven en un fichero aparte y el motor solo lee el contenido aprobado.</li><li>La aplicación comprueba que cada cita aparece tal cual en su documento; si no, marca la pieza y no deja aprobarla en bloque.</li><li>Un escenario negativo de `MATE` comprueba que un borrador nunca aparece en una sesión.</li></ul> |
 | 6. Las reglas se hacen cumplir con hooks, tests e integración continua. | <ul><li>Este documento.</li><li>No hay repositorio remoto, así que la integración continua es local por ahora (§14, decisión 16).</li></ul> |
 
 ---
@@ -85,6 +91,9 @@ Todas son dependencias de desarrollo. La aplicación todavía no tiene dependenc
 config/
   parametros.json        extrapolaciones y umbrales, con su sección del informe (protegido, fase specs)
   alcance.json           áreas que aún no se implementan (protegido, solo el dueño)
+contenido/
+  <dominio>.json         contenido aprobado: lo único que lee el motor
+  borradores/            borradores de MATE pendientes de revisar, un fichero por dominio
 docs/
   investigacion.md       la única fuente pedagógica (protegido)
   arnes.md, arnes-verificacion.md   guía de ingeniería (protegidos)
@@ -454,7 +463,7 @@ Todas aprobadas por el dueño el 18-10-2026, tal como se proponen en la tabla.
 | 3 | Stryker | Umbrales 80 / 60, falla por debajo del 60 %. | Más alto al principio: frenaría sin ayudar; se puede subir cuando el dominio esté estable. |
 | 4 | Capas de `src/` | <ul><li>Las 4 capas del §3.</li><li>`src/dominio/unidades.ts` como único sitio para constantes técnicas.</li></ul> | Menos capas: se perdería la separación entre lo que se puede probar sin base de datos y lo que no. |
 | 5 | Entrada de la interfaz | `src/interfaz/servidor.ts`, declarada en knip. | — |
-| 6 | Prefijos de los IDs | <ul><li>`DIAG`: diagnóstico.</li><li>`PLAN`: planificador de repasos.</li><li>`RECU`: recuperación con feedback.</li><li>`MAST`: criterio de dominio.</li><li>`AYUD`: ayuda adaptativa y su retirada.</li><li>`INTE`: intercalado.</li><li>`CALI`: calibración.</li><li>`TARE`: tareas representativas.</li><li>`BUCL`: bucle semanal.</li><li>`HORA`: registro de horas.</li><li>`INST`: instrumentación y exportación a CSV.</li></ul> | IDs numéricos sin prefijo: son menos legibles en el código. |
+| 6 | Prefijos de los IDs | <ul><li>`DIAG`: diagnóstico.</li><li>`PLAN`: planificador de repasos.</li><li>`RECU`: recuperación con feedback.</li><li>`MAST`: criterio de dominio.</li><li>`AYUD`: ayuda adaptativa y su retirada.</li><li>`INTE`: intercalado.</li><li>`CALI`: calibración.</li><li>`TARE`: tareas representativas.</li><li>`BUCL`: bucle semanal.</li><li>`HORA`: registro de horas.</li><li>`INST`: instrumentación y exportación a CSV.</li><li>`MATE`: material del dominio y borradores redactados por IA.</li></ul> | IDs numéricos sin prefijo: son menos legibles en el código. |
 | 7 | `config/alcance.json` | Para avanzar área por área, como describe el §8. | — |
 | 8 | Marca `[DECISIÓN PENDIENTE]` | Que Claude pueda parar para preguntarte sin pasar `make check`, y que tú lo veas. | Sin la marca, Claude no podría preguntarte con el check en rojo, y se vería empujado a decidir por su cuenta. |
 | 9 | Matcher de ConfigChange | La configuración del usuario, la del proyecto y la local. | Incluir también skills y políticas: sería innecesario. |
@@ -571,7 +580,15 @@ Sesión con `ARNES_FASE=aceptacion claude`.
 
 ### Etapa 4: implementación
 
-Sesión con `claude`, área por área. El MVP es DIAG, PLAN, RECU y MAST, con un dominio ficticio pequeño. Para cada área:
+Sesión con `claude`, área por área. El MVP es DIAG, PLAN, RECU y MAST, con un dominio ficticio pequeño. Tras DIAG, el orden es RECU → MAST → MATE → PLAN → AYUD → INTE → CALI y HORA → TARE → BUCL → INST.
+
+`MATE` aún no tiene feature. Antes de implementarla pasa por una sesión de etapa 2 (su feature) y otra de etapa 3 (sus steps):
+
+- Sus elementos llevan `@extrapolacion`, porque el informe no trata de dónde sale el contenido, salvo los que se apoyen en una sección concreta.
+- Desde que exista su feature hasta que toque implementarla, `MATE` está en `areas_fuera_de_alcance`.
+- En la etapa 3, `estado-aceptacion` exige que todo lo que está en alcance falle en rojo, pero DIAG, RECU y MAST ya pasan. Durante esa sesión, `config/alcance.json` deja en alcance solo `MATE`.
+
+Para cada área:
 
 1. Sacas el área de `config/alcance.json`.
 2. Escribo `src/dominio` y sus tests unitarios, que citan el `@ID`.
@@ -589,3 +606,95 @@ El README explicará:
 - qué tiene respaldo en el informe;
 - qué es extrapolación configurable;
 - qué no se debe prometer: ni tiempo hasta la pericia ni eficacia (§2.6 y §6 del informe).
+
+---
+
+## 17. Interfaz y material
+
+Aprobado el 20-10-2026, con la maqueta de las pantallas Hoy, Sesión de práctica y Revisión del material en modo claro y oscuro: https://claude.ai/artifact/KP2bHeFvWSabDSKHpVaDK7
+
+### 17.1 Forma
+
+- **Solo móvil.** En el PC se ven las mismas pantallas, en una columna centrada del ancho de un móvil. No hay diseño de escritorio.
+- **Servidor.** `src/interfaz/servidor.ts` (`node:http`) corre en el PC y el móvil entra por la wifi de casa. HTML, CSS y JS sin framework (§2 y decisión 17).
+- **Estilo.** Limpio y fácil de entender de un vistazo, como una app de iPhone, con el aire Frutiger Aero de principios de los 2000 (Windows Vista): cristal, brillos suaves y degradados de cielo.
+- **Tema.** En Ajustes: automático (sigue al sistema; es el valor por defecto), claro u oscuro. Los colores son variables CSS, con un juego para cada modo.
+- **Accesibilidad:**
+  - contraste del texto de al menos 4,5:1;
+  - zonas táctiles de al menos 44 px;
+  - respeta «reducir movimiento», «reducir transparencia» y «más contraste» del sistema.
+
+### 17.2 Tipografía
+
+- **Selawik**, de Microsoft, con licencia SIL OFL 1.1 y el nombre «Selawik» reservado. Pesos 350, 400, 600 y 700.
+- La sirve el propio servidor, sin CDN. Se descarga del repositorio oficial al empezar la interfaz y su `LICENSE.txt` va junto a los ficheros de la fuente.
+- No se recorta ni se modifica: por el nombre reservado, una versión modificada no podría llamarse Selawik.
+- **Respaldo:** Segoe UI, Roboto y `system-ui`. Selawik no tiene los signos −, → y ≈, que salen de la fuente de respaldo (Roboto en Android).
+
+### 17.3 Movimiento
+
+- **Al pulsar,** el control encoge a 0,97 y vuelve con un muelle.
+- **Las hojas** (por ejemplo, «Ver fuente») se arrastran con el dedo y se pueden interrumpir a mitad de animación:
+  - el arrastre empieza tras 10 px;
+  - hacia arriba hay resistencia elástica (factor 0,55);
+  - al soltar, se proyecta dónde acabaría con la velocidad de los últimos 100 ms (deceleración 0,998). Si pasa de la mitad, se cierra (amortiguamiento 0,8, respuesta 0,3 s); si no, vuelve a su sitio;
+  - al tocar el velo, «Cerrar» o Escape, se cierra con amortiguamiento 1 y respuesta 0,35 s, y el foco vuelve al botón que la abrió.
+- **El feedback** aparece con una transición breve.
+- **Con «reducir movimiento»,** fundidos cortos en lugar de muelles.
+
+### 17.4 Vibración
+
+- Un toque de 15 ms (`navigator.vibrate`) al pulsar «Comprobar», y en la revisión al aprobar, descartar o aprobar en bloque.
+- Es el mismo toque si se acierta que si se falla: la vibración no adelanta el resultado ni funciona como elogio (RECU-2).
+- Interruptor «Vibración» en Ajustes, encendido por defecto.
+- Si el navegador no admite la vibración, no pasa nada.
+
+### 17.5 Emparejamiento por QR
+
+- El PC muestra un QR con la dirección del servidor y una clave de un solo uso. El móvil lo escanea con la cámara y queda emparejado.
+- Sin emparejar, nadie más en la wifi puede entrar.
+- **Límite:** sin HTTPS, el tráfico va sin cifrar por la wifi de casa. Basta para un uso personal en casa; el servidor no se abre fuera de ella.
+
+### 17.6 MATE: material y borradores
+
+Es para uso personal.
+
+- **Material:** PDF, PPTX, DOCX y URL.
+  - PPTX y DOCX se convierten a PDF con LibreOffice, instalado en el PC (es un programa aparte, no una dependencia de npm).
+  - Las fuentes de NotebookLM entran como ficheros o como URL.
+- **Borradores.** Una IA lee el material y redacta objetivos, ejemplos resueltos, ítems y tareas con rúbrica, en el formato del contenido y cada pieza con su `fuente`. Puede ser la API de Claude, la suscripción de Claude Code o un modelo local.
+- **Marcas.** Las pone la aplicación, no la IA:
+  - «No está en tu material»: la pieza no trae fuente;
+  - «Cita no encontrada»: el fragmento no aparece tal cual en el documento.
+- **Revisión** (pantalla «Revisión del material»), por objetivo:
+  - filtros: Pendientes, No está en tu material y Cita no encontrada;
+  - «Ver fuente» abre una hoja con el fragmento en su contexto;
+  - cada pieza se aprueba, se corrige o se descarta, y lo último se puede deshacer;
+  - «Aprobar las N sin marca» aprueba en bloque solo las piezas sin marca; las marcadas se revisan una a una.
+- **Al aprobar,** la pieza pasa de `contenido/borradores/<dominio>.json` a `contenido/<dominio>.json`, con su `fuente`. Al descartarla, sale del borrador.
+- **Inicio de sesión de Claude Code.** Un botón en Ajustes lanza el inicio de sesión en el PC y muestra en el móvil lo que pida (el enlace y, si hace falta, la casilla para el código).
+  - Corta a los 5 minutos y tiene «Cancelar».
+  - La aplicación nunca guarda, registra ni muestra credenciales: solo dice si hay una sesión iniciada.
+
+### 17.7 Reglas de las pantallas
+
+Las fijan las features. Se recuerdan aquí porque son fáciles de romper al diseñar:
+
+- Nunca se ve la respuesta antes de responder, ni hay un botón de «ya me lo sé» (RECU-1.1 y RECU-1.2).
+- Tras responder, acierte o falle, se muestran si ha acertado, la respuesta correcta y el `feedback` del autor, sin elogios (RECU-2).
+- La aplicación nunca pregunta si la persona cree que ha acertado: nunca hay autoevaluación (§0, formato del contenido).
+- La confianza (0–100 %) se declara antes del feedback (CALI-1.1). El deslizador empieza vacío, para no sugerir un valor, y la confianza nunca se muestra como progreso.
+- No se muestra ningún plazo ni fecha de fin (§15.4).
+- En la sesión intercalada no se ven ni el objetivo ni la categoría del ítem.
+- `revisor-evidencia` revisa los textos de la interfaz.
+
+### 17.8 Por decidir
+
+Se deciden con el dueño antes de escribir el código, con opciones y una recomendación:
+
+1. Cómo se saca el texto de un PDF para comprobar las citas.
+2. Qué proveedor de IA se usa por defecto y qué pasa si no hay ninguno configurado.
+3. Dónde se guardan los ficheros subidos.
+4. Cómo se genera el QR: con código propio o con una dependencia, presentada con su licencia y su tamaño.
+5. Cómo se escribe el código que corre en el navegador (JS o TS) y cómo entra en el lint, en knip y en las reglas de capas.
+6. Dónde se guardan los ajustes (tema y vibración).
