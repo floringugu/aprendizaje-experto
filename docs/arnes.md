@@ -21,6 +21,7 @@ Puntos clave:
 - **Herramienta.** De los frameworks SDD, OpenSpec es el que mejor encaja con un desarrollador solo. Es ligero, pensado para código existente y trabaja con *delta specs* (ADDED/MODIFIED/REMOVED) que se archivan en `openspec/specs/`, la fuente de verdad. Ya usa escenarios GIVEN/WHEN/THEN, y hay esquemas de la comunidad que meten Gherkin ejecutable en las specs. Spec Kit, Kiro y BMAD resultan más pesados para una sola persona.
 - **Qué hacer.** Adopta el bucle *proponer (OpenSpec + Gherkin) → aprobar → tests de aceptación primero → implementar → sensores automáticos → revisor independiente → revisión humana ligera → archivar*. Hazlo cumplir con hooks y CI, no con instrucciones en markdown. Mide la calidad de los tests con mutation testing en lugar de pedir TDD estricto al agente.
 - **YAML y lenguajes (nuevo).** YAML se usa sobre todo para *orquestar* el bucle (Archon, GitHub Agentic Workflows), no para escenarios ejecutables. De las specs en YAML conviene copiar los IDs estables por requisito, que en Gherkin ya existen como etiquetas. En lenguajes, pesa la rapidez del bucle de feedback: Go destaca para backend, TypeScript es inevitable en web y Python tiene un bucle más lento.
+- **Diseño de módulos (nuevo).** De *A Philosophy of Software Design* (Ousterhout, 2018) conviene adoptar las señales de alarma como lista del revisor, no como hooks. Sus «pequeñas inversiones continuas» en el diseño las hace el humano al escribir cada nueva `.feature`: decide qué deuda anotada por el revisor se paga con ella, y el agente no sale de su alcance.
 
 ## Hallazgos clave
 
@@ -238,6 +239,49 @@ Si el agente cita `WD-1.1` en los step definitions y tests unitarios, un script 
 
 Los datos de McKinney, TypeScript y Rust vienen de un [artículo de yage.ai](https://yage.ai/share/ai-language-choice-en-20260528.html) que se declara 100 % generado por IA; úsalo como resumen de fuentes primarias, no como evidencia propia. Por encima de todo, elige un lenguaje que **sepas revisar**, porque en tu flujo la última palabra es tuya.
 
+## 6. Diseño de módulos según *A Philosophy of Software Design*
+
+Del libro de Ousterhout conviene adoptar sobre todo criterio para el revisor y para el humano, no hooks: casi todas sus señales de alarma exigen juicio.
+
+**El libro.** John Ousterhout, catedrático en Stanford y creador de Tcl, publicó *A Philosophy of Software Design* en 2018, a partir de su asignatura CS 190. Su tesis es que el enemigo es la complejidad y que esta es incremental: no la causa una sola decisión, sino la acumulación de decenas o cientos de pequeñas concesiones. Lo cierra con dos listas: 15 principios de diseño y 14 señales de alarma (*red flags*). El propio autor lo presenta como un libro de opinión, basado en su experiencia.
+
+### 6.1 Qué adoptar y en qué forma
+
+| Idea del libro | Forma en el arnés | Por qué esa forma |
+| --- | --- | --- |
+| Las 14 señales de alarma: módulo superficial, fuga de información, descomposición temporal, sobreexposición, método que solo pasa la llamada (*pass-through*), repetición, mezcla de código general y específico, métodos siameses (*conjoined*), comentario que repite el código, detalles de implementación en la documentación de la interfaz, nombre vago, nombre difícil de elegir, difícil de describir y código no obvio | Lista de comprobación del subagente revisor | Son síntomas que hay que juzgar: un linter no sabe si un método solo pasa la llamada o si añade algo |
+| «Elimina los errores y los casos especiales por definición» y «baja la complejidad hacia dentro» (*pull complexity downwards*) | Dos preguntas más del revisor: ¿podría no existir este error? ¿Hace quien llama un trabajo que el módulo debería esconder? | Igual que la fila anterior |
+| Escribir los comentarios primero: el comentario de la interfaz y las firmas antes que los cuerpos | Paso de la guía de diseño para cada módulo nuevo, antes de sus tests unitarios | Si el comentario de una interfaz sale largo, la abstracción es mala, y se ve antes de escribir el código |
+| Diseñarlo dos veces (*design it twice*): esbozar al menos dos interfaces radicalmente distintas y comparar sus pros y contras | Paso de la guía de diseño, en la misma sesión; basta con esbozar los métodos principales | Para una clase, Ousterhout calcula una o dos horas. No hace falta lanzar subagentes |
+| Nombre vago | La única regla dura barata: `id-denylist` de ESLint con nombres genéricos (`data`, `info`, `tmp`, `aux`…). Opcional: una comprobación en `make check` que rechace ficheros cajón de sastre como `utils.ts` o `helpers.ts` | Es la única señal que se detecta sin juicio, y solo en parte: la regla compara nombres exactos |
+
+### 6.2 Por qué no hooks
+
+- **Las señales de alarma son juicios.** Un hook con un criterio difuso bloquearía cambios correctos o se esquivaría con cambios cosméticos.
+- **Lo mecánico ya está cubierto.** La repetición la detecta jscpd; las fugas entre capas, dependency-cruiser; el código muerto, knip.
+- **Lo que se engancha es el revisor.** Ya forma parte del paso 5 del bucle; la lista solo amplía lo que mira.
+
+### 6.3 Tres tensiones con el resto del arnés
+
+1. **Los límites de longitud.** La sección 4 recomienda limitar la longitud de las funciones y el número de argumentos. Ousterhout escribe que «length by itself is rarely a good reason for splitting up a method»: partir un método añade interfaces, y si después hay que saltar del padre al hijo para entender cualquiera de los dos, es la señal de los métodos siameses. Conviene mantener los límites, que son la contramedida determinista contra el código ilegible, y que el revisor señale las divisiones que solo existen para cumplirlos.
+2. **El TDD.** Ousterhout defiende los tests unitarios, pero no el TDD. Lo llama «tactical programming pure and simple», porque centra la atención en hacer pasar el siguiente test y no deja un momento claro para diseñar. Coincide con el experimento de Böckeler (hallazgo 3) y choca con Krishnan (sección 2), que pide TDD para el interior. Una síntesis: diseñar la interfaz completa del módulo, con los comentarios primero, antes de escribir sus tests unitarios, y medir esos tests con mutation testing.
+3. **Las inversiones continuas frente al alcance cerrado.** Ousterhout pide «make continual small investments to improve system design»: dedicar en torno al 10-20 % del tiempo a mejorar el diseño y arreglar cada problema en cuanto aparece. Un agente que implementa solo lo que pide su tarea no hace esas inversiones, y tampoco conviene que las haga por su cuenta: un refactor que nadie ha pedido agranda el diff que revisas y mezcla diseño con comportamiento.
+
+### 6.4 Las inversiones las hace el humano, con cada nueva `.feature`
+
+La tercera tensión se resuelve repartiendo el trabajo: las pequeñas inversiones continuas las hace el humano cada vez que escribe una nueva `.feature`.
+
+- **El agente** no sale del alcance de su tarea. Si ve un problema de diseño fuera de él, lo anota; no lo arregla.
+- **El revisor** cierra su informe con una lista de deuda de diseño: cada partida con su señal de alarma, el fichero y una propuesta.
+- **El humano**, al preparar la siguiente `.feature`, repasa esa lista y decide qué partidas se pagan con ella. Las mete en el cambio (en `design.md` o en las tasks), de modo que el agente las hace dentro de su alcance. Si una partida es grande, va antes como cambio aparte de solo refactor (en OpenSpec, `skip_specs: true`), para no mezclarla con el comportamiento nuevo.
+
+Encaja con el libro. Ousterhout propone avanzar por incrementos que añaden unas pocas abstracciones nuevas y «refactors existing abstractions based on experience». También admite aplazar una abstracción hasta que una funcionalidad la necesite; llegado ese momento, hay que invertir el tiempo en diseñarla bien. La nueva `.feature` es justo ese momento.
+
+Dos cautelas:
+
+- **Aplazar es una pendiente resbaladiza.** Ousterhout avisa de que, en cuanto se empiezan a aplazar las mejoras de diseño, «it's easy for the delays to become permanent». Para que la lista no crezca sin fin, cada nueva `.feature` paga al menos una partida o deja escrito por qué no. Su 10-20 % sirve de referencia para el esfuerzo.
+- **La inversión es la mejora del diseño, no la funcionalidad.** La nueva `.feature` es la ocasión de invertir; lo que se invierte es el tiempo dedicado a mejorar las abstracciones que ya existen.
+
 ## Recomendaciones: flujo para un desarrollador solo
 
 Monta el arnés una vez (medio día) y luego repite el mismo bucle por cada funcionalidad.
@@ -258,7 +302,7 @@ Monta el arnés una vez (medio día) y luego repite el mismo bucle por cada func
    - `PostToolUse` que formatea y lintea cada edición;
    - `PreToolUse` que bloquea editar `features/`, `steps/`, configuraciones de linter y `.env` durante la implementación;
    - `Stop` que no deja terminar hasta que `make check` pasa.
-5. Dos subagentes en `.claude/agents/`: `reviewer` (duplicación, modularidad y simplicidad frente a la spec) y `security-reviewer`.
+5. Dos subagentes en `.claude/agents/`: `reviewer` (duplicación, modularidad y simplicidad frente a la spec, con las señales de alarma de Ousterhout y una lista de deuda de diseño; sección 6) y `security-reviewer`.
 6. CI que repite `make check` y añade mutation testing incremental en los módulos de dominio, cada noche o en cada PR.
 7. Opcional: define el bucle como workflow YAML en un orquestador como Archon, con la aprobación humana como paso explícito.
 
@@ -267,7 +311,7 @@ Monta el arnés una vez (medio día) y luego repite el mismo bucle por cada func
 | Paso | Quién | Qué ocurre | Revisión humana |
 | --- | --- | --- | --- |
 | 1. Explorar | Agente (plan mode) | `/opsx:explore`: lee el código y te entrevista | Respondes preguntas |
-| 2. Proponer | Agente | `/opsx:propose`: proposal, Gherkin con fronteras y casos negativos, `design.md` y tasks | **Sí, la principal:** escenarios y `Then` observables; `design.md`/ADR si toca arquitectura, datos, seguridad o dependencias |
+| 2. Proponer | Agente | `/opsx:propose`: proposal, Gherkin con fronteras y casos negativos, `design.md` y tasks | **Sí, la principal:** escenarios y `Then` observables; `design.md`/ADR si toca arquitectura, datos, seguridad o dependencias; qué partidas de la deuda de diseño se pagan con este cambio (sección 6) |
 | 3. Tests de aceptación | Agente, sesión nueva | Step definitions *finos* contra la capa de aplicación; comprueba que fallan (rojo) | **Sí, 5 minutos:** que cada `Then` afirme algo real. Después se congelan con el hook |
 | 4. Implementar | Agente | `/opsx:apply` por tareas, con TDD unitario opcional; sensores en cada edición | No |
 | 5. Verificar | Hooks + subagentes | `make check` en verde, informe del revisor, mutation testing en el dominio | Lees el **resumen** del revisor y los mutantes supervivientes |
@@ -291,6 +335,7 @@ La evidencia comparativa todavía es escasa, así que trata estas recomendacione
 - **Las fuentes sobre YAML y lenguajes son experiencias individuales.** Specsmaxxing y su crítica son casos de una persona, el autor de acai.sh vende la herramienta, y el artículo de yage.ai sobre lenguajes está generado por IA.
 - **Las herramientas cambian rápido.** OpenSpec publicó la v1.14 en 2026 y Spec Kit está en la 1.x. Revisa las versiones antes de copiar comandos.
 - **El mutation testing es caro en recursos.** Úsalo de forma incremental y solo en el código de dominio.
+- **El libro de Ousterhout es de opinión.** Él mismo lo presenta así: sale de su experiencia y de su asignatura en Stanford, no mide sus principios y es anterior a los agentes de programación. El reparto de las inversiones entre revisor y humano (sección 6.4) es una adaptación de este informe, no del libro.
 
 ## Fuentes
 
@@ -329,3 +374,7 @@ La evidencia comparativa todavía es escasa, así que trata estas recomendacione
 - [acai.sh: Specsmaxxing](https://acai.sh/blog/specsmaxxing), [crítica de Juan Torchia](https://dev.to/jtorchia/specsmaxxing-escribi-mis-specs-en-yaml-para-mis-agentes-y-esto-cambio-y-esto-no-5fj6) y [hilo de Hacker News](https://news.ycombinator.com/item?id=47995586)
 - [Archon](https://github.com/coleam00/archon), [GitHub Agentic Workflows](https://pkg.go.dev/github.com/github/gh-aw@v0.87.7) y [pi-ralph](https://github.com/samfoy/pi-ralph)
 - [Ronacher: Agentic Coding Recommendations](https://lucumr.pocoo.org/2025/6/12/agentic-coding) y [yage.ai: lenguajes y bucle de feedback](https://yage.ai/share/ai-language-choice-en-20260528.html)
+
+**Diseño de software**
+
+- John Ousterhout, *A Philosophy of Software Design*, Yaknyam Press, 2018 (primera edición, v1.01): resúmenes de principios y de señales de alarma, y capítulos 3, 9, 11, 15 y 19.
