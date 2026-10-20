@@ -9,6 +9,7 @@ docs/investigacion.md
 docs/arnes.md
 docs/arnes-verificacion.md
 docs/plan.md
+docs/deuda-diseno.md
 
 # Especificaciones y parámetros
 features/ @specs

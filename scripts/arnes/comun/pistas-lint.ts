@@ -33,6 +33,10 @@ const PISTAS: Readonly<Record<string, string>> = {
     'Comentario que desactiva una herramienta del arnés (jscpd, Stryker, cobertura, knip). Arregla la causa: ' +
     'duplicación, mutante superviviente o código muerto.',
   'no-console': 'Nada de console en src/. Devuelve el dato y deja que la capa de interfaz lo muestre.',
+  'id-denylist':
+    'Nombre vago (datos, info, aux, tmp…): no dice qué contiene. Usa un nombre que diga qué es, con las ' +
+    'palabras del dominio (p. ej. itemsDelObjetivo, aciertoSinAyuda). Si no encuentras uno preciso, ' +
+    'quizá la variable o la función hace más de una cosa.',
   '@typescript-eslint/ban-ts-comment':
     'No silencies al compilador (@ts-ignore, @ts-expect-error, @ts-nocheck). Corrige el tipo.',
   '@typescript-eslint/no-explicit-any':

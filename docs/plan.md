@@ -1,6 +1,6 @@
 # Plan del proyecto: aplicación de aprendizaje de novato a experto
 
-Estado: **etapa 4 en curso** (DIAG terminada). Las decisiones de la etapa 2 (18-10-2026) y las de la interfaz y MATE (20-10-2026) están aprobadas y resumidas en el §0.
+Estado: **etapa 4 en curso** (DIAG terminada). Las decisiones de la etapa 2 (18-10-2026) y las de la interfaz, MATE y el diseño de módulos (20-10-2026) están aprobadas y resumidas en el §0.
 
 Este documento es el plan de ingeniería. No es una fuente pedagógica:
 
@@ -50,6 +50,7 @@ El dueño aprobó el 18-10-2026 todas las decisiones del §14 y todas las propue
 | Campo `fuente` (20-10-2026) | <ul><li>Opcional en ítems, ejemplos resueltos y tareas. Se conserva al aprobar, para que «Ver fuente» siga disponible.</li><li>Forma: `{documento, lugar, fragmento}`. `lugar` es la página, la diapositiva o el apartado, y `fragmento`, el texto citado tal cual.</li><li>El contenido escrito a mano no lo lleva.</li></ul> | Formato del contenido, `MATE` |
 | Interfaz (20-10-2026) | Solo móvil; tema claro, oscuro o automático; Selawik; movimiento con muelles; vibración con interruptor; emparejamiento por QR (§17). | `src/interfaz/` |
 | Inicio de sesión de Claude Code (20-10-2026) | Botón en Ajustes. Corta a los 5 minutos y tiene «Cancelar». La aplicación nunca guarda, registra ni muestra credenciales (§17.6). | `MATE` |
+| Diseño de módulos (20-10-2026) | <ul><li>Antes del código de cada fichero nuevo de `src/`: el comentario de su interfaz y sus firmas, y al menos otra interfaz radicalmente distinta (*A Philosophy of Software Design*; `docs/arnes.md`, §6).</li><li>`revisor-codigo` busca además las 14 señales de alarma de Ousterhout y anota la deuda de diseño del código de áreas anteriores.</li><li>Esa deuda vive en `docs/deuda-diseno.md` (protegido). Al abrir cada área, el dueño elige qué partidas se pagan: al menos una o una línea con el porqué. Se pagan antes que el área, en un cambio que solo refactoriza.</li><li>ESLint prohíbe en `src/` una lista de nombres vagos (`id-denylist`).</li></ul> | Etapa 4, §7 y ESLint |
 
 ---
 
@@ -98,6 +99,7 @@ docs/
   investigacion.md       la única fuente pedagógica (protegido)
   arnes.md, arnes-verificacion.md   guía de ingeniería (protegidos)
   plan.md                este documento (protegido)
+  deuda-diseno.md        deuda de diseño pendiente, que se paga al abrir cada área (protegido)
 features/                Gherkin en español (etapa 2; protegido, fase specs)
 src/
   dominio/               lógica pura: planificador, criterio de dominio, fases, ayuda, calibración
@@ -155,7 +157,8 @@ Los pasos se ejecutan en este orden. La ejecución se para en el primero que fal
 - **En `src/`:**
   - no se permiten números sueltos, salvo 0 y 1;
   - los umbrales pedagógicos se leen de `config/parametros.json` y las constantes técnicas (los milisegundos de un día, por ejemplo) van en `src/dominio/unidades.ts`;
-  - no se permite `console`.
+  - no se permite `console`;
+  - no se permiten los nombres vagos de una lista (`datos`, `info`, `aux`, `tmp`, `objeto`…); la regla compara el nombre exacto, y el resto los señala `revisor-codigo`.
 - **En los tests:** no se permite saltarse tests (`.skip`, `.only`, `.todo`, `.fails`, `.skipIf`, `.runIf`), y un step de Cucumber no puede devolver `"pending"` ni `"skipped"`.
 
 En `tests/` no se aplica el límite de longitud por función, porque un `describe` agrupa muchos casos.
@@ -263,7 +266,7 @@ Impide que se cambie la configuración de Claude Code (la del usuario, la del pr
 
 **Rutas** (`.claude/protegidas.txt`):
 
-- los cuatro documentos de `docs/`, incluido este plan;
+- los cinco documentos de `docs/`, incluidos este plan y la deuda de diseño;
 - `features/` (fase `specs`);
 - `config/parametros.json` (fase `specs`);
 - `config/alcance.json`;
@@ -314,9 +317,9 @@ Los dos son de solo lectura: solo tienen Read, Grep y Glob.
 
 **`revisor-codigo`**
 
-- **Qué señala:** duplicación que jscpd no ve, modularidad, simplicidad, código muerto o especulativo, sobreingeniería, tests débiles y valores escritos a mano.
-- **Contexto que tiene en cuenta:** las cuatro capas y que el dueño está aprendiendo TypeScript.
-- **Qué entrega:** una tabla con prioridad alta, media o baja. Sin comentarios de estilo y sin proponer dependencias nuevas.
+- **Qué señala:** duplicación que jscpd no ve, modularidad, simplicidad, código muerto o especulativo, sobreingeniería, tests débiles, valores escritos a mano y las 14 señales de alarma de *A Philosophy of Software Design* (`docs/arnes.md`, §6). Pregunta además si un error o un caso especial podría no existir, si quien llama hace un trabajo que el módulo debería esconder y si alguna división solo existe para cumplir los límites de ESLint.
+- **Contexto que tiene en cuenta:** las cuatro capas, que el dueño está aprendiendo TypeScript y la deuda ya anotada en `docs/deuda-diseno.md`.
+- **Qué entrega:** una tabla con prioridad alta, media o baja para el código del área y, al final, la deuda de diseño del código de áreas anteriores, con su señal de alarma, dónde está, una propuesta y su tamaño. Sin comentarios de estilo y sin proponer dependencias nuevas.
 
 **Cuándo se ejecutan:**
 
@@ -590,12 +593,19 @@ Sesión con `claude`, área por área. El MVP es DIAG, PLAN, RECU y MAST, con un
 
 Para cada área:
 
-1. Sacas el área de `config/alcance.json`.
+1. Sacas el área de `config/alcance.json` y eliges qué partidas de `docs/deuda-diseno.md` se pagan con ella: al menos una o, si no, una línea que diga por qué ninguna. Las pago primero, sin comportamiento nuevo y con `make check` en verde, y paro para que las commitees aparte (`refactor: …`).
 2. Escribo `src/dominio` y sus tests unitarios, que citan el `@ID`.
 3. Escribo la aplicación y la infraestructura necesarias.
 4. Dejo `make check` en verde.
 5. Ejecuto los dos revisores y `make mutacion`.
-6. Te doy un resumen breve.
+6. Te doy un resumen breve, con:
+   - una línea por cada módulo nuevo con la interfaz descartada y por qué;
+   - el texto para `docs/deuda-diseno.md`: las partidas nuevas del revisor, las pagadas y la línea del área.
+
+Antes del código de cada fichero nuevo de `src/`, de cualquier capa (`docs/arnes.md`, §6, y skill `codebase-design`):
+
+- escribo el comentario de su interfaz y sus firmas; si el comentario sale largo, la abstracción es mala y la cambio antes de seguir;
+- esbozo al menos otra interfaz radicalmente distinta, solo con sus métodos principales, y me quedo con la más profunda.
 
 Sin dependencias nuevas sin tu aprobación. Si un escenario o un parámetro parece mal, paro y propongo un commit que solo toque la especificación.
 

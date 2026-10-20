@@ -22,6 +22,26 @@ const SALTARSE_TESTS = {
   message: 'Prohibido saltarse o aislar tests (.skip, .only, .todo, .fails, .skipIf, .runIf).',
 };
 
+// Nombres vagos: no dicen qué contienen (Ousterhout, «Vague Name»; docs/arnes.md, §6).
+// La regla compara el nombre exacto (`datosDelItem` pasa); el resto los señala revisor-codigo.
+const NOMBRES_VAGOS = [
+  'datos',
+  'data',
+  'info',
+  'informacion',
+  'aux',
+  'auxiliar',
+  'tmp',
+  'temp',
+  'cosa',
+  'cosas',
+  'objeto',
+  'obj',
+  'elem',
+  'foo',
+  'bar',
+];
+
 export default defineConfig(
   { ignores: ['node_modules/', 'reports/', '.stryker-tmp/'] },
   {
@@ -67,6 +87,10 @@ export default defineConfig(
   {
     files: ['src/dominio/unidades.ts'],
     rules: { 'no-console': 'error' },
+  },
+  {
+    files: ['src/**/*.ts'],
+    rules: { 'id-denylist': ['error', ...NOMBRES_VAGOS] },
   },
   {
     files: ['tests/unidad/**/*.ts', 'tests/arnes/**/*.ts'],
