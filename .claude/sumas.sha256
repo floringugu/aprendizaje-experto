@@ -1,5 +1,5 @@
-e2ab40886e82fd025060b40f8863bd03066e6ae04b3b2d1c71c38f2f3f40c542  .claude/agents/revisor-codigo.md
-fdb792b73078fa67ee09c737578a1fdf77da3e2dfe10c0b22ee2267a3306aea4  .claude/agents/revisor-evidencia.md
+b30c1b2da26949a9cdf17fd081a124869502e82eb89dc025ed6d9bcf2c562dce  .claude/agents/revisor-codigo.md
+228a5da2b6ee05c569f0c939ff4209755d9fd13f8280a7be873ab06a800d916c  .claude/agents/revisor-evidencia.md
 0d88d6da3d2e40a0bd3eac8615378cf2e50b1e155cfecd8ad5d623fd7fc5b4a3  .claude/hooks/bloquear-config.ts
 65ed5eec493e57c45f25a60a7c9048240d43044328f9626c9a1bd2fe44a9a490  .claude/hooks/exigir-check.ts
 55546dc5082b24edd07835b543e8f1b0a18b72929a857eee75abe440a48ce5b8  .claude/hooks/formatear-y-lintear.ts
