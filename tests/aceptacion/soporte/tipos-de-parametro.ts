@@ -87,11 +87,22 @@ defineParameterType({
   transformer: (nombre: string) => (nombre === 'FSRS' ? 'fsrs' : 'sm2'),
 });
 
-// «la correcta «b» y el feedback «Porque…»» → las dos cosas juntas, para no pasar de tres parámetros.
+/** Las opciones de un ítem y cómo se corrige: «a», «b» y «c», la correcta «b» y el feedback «Porque…». */
+export interface OpcionesCorregidas {
+  readonly opciones: readonly string[];
+  readonly correcta: string;
+  readonly feedback: string;
+}
+
+// Un solo parámetro (sin grupos de captura, así que el transformer recibe la frase entera) para que
+// el paso no pase de tres parámetros (max-params).
 defineParameterType({
-  name: 'correccion',
-  regexp: /la correcta «([^»]*)» y el feedback «([^»]*)»/,
-  transformer: (correcta: string, feedback: string) => ({ correcta, feedback }),
+  name: 'opciones_corregidas',
+  regexp: /«[^»]*»(?:(?:, | y )«[^»]*»)*, la correcta «[^»]*» y el feedback «[^»]*»/,
+  transformer: (frase: string): OpcionesCorregidas => {
+    const [correcta = '', feedback = ''] = textosEntreComillas(frase.slice(frase.lastIndexOf(', la correcta ')));
+    return { opciones: textosEntreComillas(frase.slice(0, frase.lastIndexOf(', la correcta '))), correcta, feedback };
+  },
 });
 
 /** Una evaluación externa descrita en una frase: «T2 del 2026-01-15, a ciegas, con el percentil 85». */

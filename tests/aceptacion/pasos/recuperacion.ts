@@ -4,6 +4,7 @@ import type { ContextoRespuesta } from '../../../src/aplicacion/sesiones.ts';
 import { responder, responderTexto } from '../soporte/acciones.ts';
 import { presente } from '../soporte/comprobar.ts';
 import { aceptado, mundo } from '../soporte/mundo.ts';
+import type { OpcionesCorregidas } from '../soporte/tipos-de-parametro.ts';
 
 // Pasos de la práctica de recuperación con feedback correctivo (RECU).
 
@@ -13,9 +14,6 @@ const ACCIONES_PROHIBIDAS = /(ver|mostrar|revelar).*respuesta|sab|conoc|salt|dom
 /** Lo único que dice el feedback: si acertó, cuál era la respuesta y por qué (RECU-2.2). */
 const CLAVES_DEL_FEEDBACK = ['correcta', 'explicacion', 'respuestaCorrecta'];
 const CONTEXTOS_DE_RECU_4: readonly ContextoRespuesta[] = ['practica', 'repaso', 'retencion'];
-
-/** El orden de los datos de «con las opciones …, la correcta … y el feedback …». */
-type DatosDeOpciones = [opciones: readonly string[], correccion: { correcta: string; feedback: string }];
 
 /** Presenta el ítem a la persona en el contexto indicado y recuerda lo que ve. */
 function presentar(item: string, contexto: ContextoRespuesta): void {
@@ -41,9 +39,8 @@ function comprobarCorreccion(corregida: string): void {
 // --- Contenido -----------------------------------------------------------------------------------
 
 Given(
-  'que {objetivo} tiene el ítem {item} con las opciones {textos}, {correccion}',
-  (objetivo: string, item: string, ...datos: DatosDeOpciones) => {
-    const [opciones, { correcta, feedback }] = datos;
+  'que {objetivo} tiene el ítem {item} con las opciones {opciones_corregidas}',
+  (objetivo: string, item: string, { opciones, correcta, feedback }: OpcionesCorregidas) => {
     mundo().contenido().agregarItem({ id: item, objetivo, respuesta: { opciones, correcta }, feedback });
   },
 );
