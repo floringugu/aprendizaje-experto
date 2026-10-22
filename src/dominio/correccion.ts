@@ -8,9 +8,19 @@ export function respuestasAceptadas(esperada: RespuestaEsperada): readonly strin
 }
 
 /**
+ * Deja la respuesta en una forma comparable: sin espacios en los extremos, con los espacios repetidos
+ * reducidos a uno y en minúsculas (@RECU-3.1, @RECU-3.2). Los acentos se conservan: ninguna regla pide
+ * ignorarlos, así que «proporcion» no cuenta como «proporción».
+ */
+function normalizar(texto: string): string {
+  return texto.trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+/**
  * La corrección es siempre automática: la respuesta se compara con las que da por buenas el contenido
- * del autor, y nunca se pregunta a la persona si cree que ha acertado (@DIAG-1.2).
+ * del autor, y nunca se pregunta a la persona si cree que ha acertado (@DIAG-1.2, @RECU-3.3).
  */
 export function esCorrecta(respuesta: string, esperada: RespuestaEsperada): boolean {
-  return respuestasAceptadas(esperada).includes(respuesta);
+  const respuestaNormalizada = normalizar(respuesta);
+  return respuestasAceptadas(esperada).some((aceptada) => normalizar(aceptada) === respuestaNormalizada);
 }
