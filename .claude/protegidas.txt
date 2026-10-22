@@ -1,8 +1,9 @@
 # Rutas que Claude Code no puede modificar (hook .claude/hooks/proteger-rutas.ts).
 # Una ruta terminada en «/» protege el directorio entero.
-# «@specs» o «@aceptacion» la desbloquea solo en una sesión lanzada con ARNES_FASE=specs
-# o ARNES_FASE=aceptacion (etapas 2 y 3). Sin anotación, solo la cambia el dueño, a mano.
-# Después de cambiar un fichero protegido, el dueño ejecuta «make sumas» y commitea.
+# «@specs» o «@aceptacion» la desbloquea solo en una conversación con esa fase (etapas 2 y 3).
+# La fase la elige el dueño antes de abrirla: «make fase F=…» o la tarea de VS Code.
+# Sin anotación, la cambia el dueño aplicando una propuesta de Claude (reports/propuestas/*.patch,
+# con «git apply --3way»). Después ejecuta «make sumas» y commitea.
 
 # Fuentes
 docs/investigacion.md
@@ -40,3 +41,5 @@ tests/arnes/
 .claude/
 .claude/protegidas.txt
 .claude/sumas.sha256
+.vscode/tasks.json
+CLAUDE.md

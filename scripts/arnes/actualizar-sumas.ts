@@ -1,4 +1,5 @@
-// make sumas: recalcula .claude/sumas.sha256. Solo lo ejecuta el dueño, a mano, desde su terminal.
+// make sumas: recalcula .claude/sumas.sha256. Solo lo ejecuta el dueño, desde su terminal o con la
+// tarea de VS Code «Arnés: actualizar sumas» (.vscode/tasks.json).
 //
 // Se niega a ejecutarse dentro de Claude Code (variable CLAUDECODE) o sin un terminal
 // interactivo, que es como Claude Code lanza los comandos. No es infalible: por eso
@@ -18,7 +19,9 @@ import {
 
 function principal(): number {
   if (process.env['CLAUDECODE'] !== undefined || !process.stdin.isTTY) {
-    console.error('Las sumas solo las actualiza el dueño, a mano, desde su propio terminal (no desde Claude Code).');
+    console.error(
+      'Las sumas solo las actualiza el dueño, desde su terminal o la tarea de VS Code (no desde Claude Code).',
+    );
     return 1;
   }
   const rutaSumas = path.join(RAIZ, RUTA_SUMAS);

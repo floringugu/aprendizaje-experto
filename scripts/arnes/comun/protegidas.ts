@@ -6,12 +6,13 @@ export const RUTA_PROTEGIDAS = '.claude/protegidas.txt';
 export const RUTA_SUMAS = '.claude/sumas.sha256';
 
 /**
- * Fase de trabajo de la sesión, fijada al lanzarla con ARNES_FASE.
+ * Fase de trabajo de la conversación, en la variable ARNES_FASE. El dueño la fija antes de
+ * abrirla con «make fase» (scripts/arnes/fijar-fase.ts), que la guarda en .claude/settings.local.json.
  * - specs: etapa 2, se pueden escribir features/ y config/parametros.json.
  * - aceptacion: etapa 3, se pueden escribir los steps de tests/aceptacion/.
  * - impl: resto del tiempo; todo lo protegido está bloqueado.
  */
-const FASES = ['specs', 'aceptacion', 'impl'] as const;
+export const FASES = ['specs', 'aceptacion', 'impl'] as const;
 export type Fase = (typeof FASES)[number];
 
 export interface EntradaProtegida {
@@ -21,7 +22,7 @@ export interface EntradaProtegida {
   readonly desbloqueadaEn: Fase | undefined;
 }
 
-function esFase(valor: string): valor is Fase {
+export function esFase(valor: string): valor is Fase {
   return (FASES as readonly string[]).includes(valor);
 }
 

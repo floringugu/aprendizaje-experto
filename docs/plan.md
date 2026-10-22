@@ -7,7 +7,7 @@ Este documento es el plan de ingeniería. No es una fuente pedagógica:
 - **Pedagogía.** Todo lo pedagógico sale de `docs/investigacion.md` (en adelante, «el informe»), y solo de ahí.
 - **Ingeniería.** `docs/arnes.md` y `docs/arnes-verificacion.md` orientan cómo se construye el proyecto, pero nunca respaldan una decisión pedagógica.
 
-**Está protegido.** Solo lo cambia el dueño, a mano, para que el plan siga siendo el contrato y no se reescriba para encajar con el código. Cuando el dueño aprueba algo nuevo, recibe el texto, lo pega aquí y ejecuta `make sumas`.
+**Está protegido.** Solo lo cambia el dueño, para que el plan siga siendo el contrato y no se reescriba para encajar con el código. Cuando el dueño aprueba algo nuevo, Claude le prepara una propuesta (un parche en `reports/propuestas/`, §6) y le da los comandos para aplicarla, revisarla y ejecutar `make sumas`.
 
 ---
 
@@ -100,6 +100,8 @@ docs/
   arnes.md, arnes-verificacion.md   guía de ingeniería (protegidos)
   plan.md                este documento (protegido)
   deuda-diseno.md        deuda de diseño pendiente, que se paga al abrir cada área (protegido)
+  areas/                 archivo de cada área de la etapa 4: mecanismo, interfaces descartadas,
+                         deuda pagada, mutación y bloqueos (plantilla.md)
 features/                Gherkin en español (etapa 2; protegido, fase specs)
 src/
   dominio/               lógica pura: planificador, criterio de dominio, fases, ayuda, calibración
@@ -109,15 +111,19 @@ src/
 tests/
   aceptacion/            steps de Cucumber (etapa 3; protegido, fase aceptacion)
   unidad/                tests del dominio; cada uno cita el @ID que cubre
-  arnes/                 tests del propio arnés (104 tests; protegido)
+  arnes/                 tests del propio arnés (153 tests; protegido)
 scripts/arnes/           scripts de make check, del pre-commit y de las sumas (protegido)
 .claude/
   settings.json          hooks de Claude Code
+  settings.local.json    fase de la próxima conversación (make fase; fuera de git)
   hooks/                 código de los hooks
   agents/                subagentes revisor-evidencia y revisor-codigo
   protegidas.txt         rutas protegidas
   sumas.sha256           sumas de las rutas protegidas (las generas tú)
+  registro-stop.jsonl    una línea por parada del hook Stop (fuera de git)
 .githooks/pre-commit     reglas de los commits
+.vscode/tasks.json       tareas del dueño: fase de la próxima conversación y sumas (protegido)
+CLAUDE.md                reglas de trabajo de Claude, entre ellas las propuestas (protegido)
 ```
 
 Las carpetas `src/`, `features/`, `tests/aceptacion/` y `tests/unidad/` aún no existen. Se crean en las etapas 2 a 4.
@@ -178,14 +184,18 @@ En `tests/` no se aplica el límite de longitud por función, porque un `describ
 | Objetivo | Fase | Pasos |
 |---|---|---|
 | `make check` | impl (por defecto) | Los 9 de la tabla |
-| `make check-specs` | specs (etapa 2) | Del 1 al 6, `specs` (valida `features/` y los parámetros) e `integridad` |
+| `make check-specs` | specs (etapa 2) | Del 1 al 6, `specs` (valida `features/`, sus frases vagas y los parámetros; §8) e `integridad` |
 | `make check-aceptacion` | aceptacion (etapa 3) | Del 1 al 6, `specs`, `estado-aceptacion` (todos los escenarios en alcance deben fallar en rojo: ni pasar, ni quedar pendientes, ni tener pasos sin definir) e `integridad` |
 
-Fuera de `make check` hay tres objetivos más:
+Fuera de `make check` hay cinco objetivos más:
 
 - `make mutacion` (§9);
 - `make sumas` (§6), que solo puedes ejecutar tú;
+- `make fase F=<fase>` (§6), que también es solo tuyo: fija la fase de la próxima conversación;
+- `make bloqueos A=<ÁREA>` (§5), que resume las paradas del hook Stop de un área para su archivo;
 - `make formatear`.
+
+`make fase` y `make sumas` también se lanzan desde VS Code, con las tareas de `.vscode/tasks.json` (Ctrl+Shift+P → «Tasks: Run Task»).
 
 ---
 
@@ -197,6 +207,11 @@ Están en `.claude/settings.json`:
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [{ "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/anunciar-fase.ts\"", "timeout": 30 }]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "Edit|Write|MultiEdit|NotebookEdit|Bash",
@@ -224,6 +239,13 @@ Están en `.claude/settings.json`:
 }
 ```
 
+### SessionStart: `anunciar-fase.ts`
+
+Al empezar cada conversación (y al reanudarla, limpiarla o compactarla), dice en qué fase está:
+
+- **A ti**, con un aviso de una línea: la fase, la comprobación que exigirá el hook Stop y las áreas en alcance. Así compruebas que la fase que elegiste con `make fase` ha llegado a los hooks.
+- **A Claude**, como contexto: además, para qué sirve la fase y qué rutas protegidas desbloquea.
+
 ### PreToolUse: `proteger-rutas.ts`
 
 **En Edit, Write, MultiEdit y NotebookEdit,** resuelve la ruta real del fichero (siguiendo los enlaces simbólicos, también a directorios, y los `..`) y la bloquea si cae en:
@@ -241,8 +263,11 @@ Están en `.claude/settings.json`:
   - tocar la variable `CLAUDECODE` (`env -u`, `env -i`, `CLAUDECODE=`);
   - fijar `ARNES_FASE`;
   - `disableAllHooks`;
+  - aplicar un parche (`git apply`, `git am`, `patch`): las propuestas las aplicas tú (§6);
   - instalar o quitar dependencias (`npm|pnpm|yarn install/i/add/remove/update…`);
   - nombrar `.git/`.
+
+El mensaje de bloqueo de una ruta protegida le recuerda a Claude cómo se cambia: con una propuesta y tus comandos, nunca pidiéndote que la edites a mano.
 
 ### PostToolUse: `formatear-y-lintear.ts`
 
@@ -254,9 +279,18 @@ Ejecuta la comprobación de la fase (`check`, `check-specs` o `check-aceptacion`
 
 Hay una excepción: si el último mensaje de Claude contiene `[DECISIÓN PENDIENTE]`, puede parar para preguntarte. Entonces ves el aviso «la comprobación no se ha ejecutado».
 
+El mensaje del bloqueo cambia según el fallo (`scripts/arnes/comun/freno-stop.ts`):
+
+- **Error del entorno.** Si la salida contiene `EADDRINUSE` (puerto ocupado), `EACCES` (permisos), `ENOSPC` (disco lleno o límite de ficheros vigilados) o «command not found», le dice que no es su código: que no lo toque, te dé el comando que lo arreglaría y pare con `[DECISIÓN PENDIENTE]`.
+- **Falla `integridad`.** Las sumas son tuyas: para y te da los comandos.
+- **Freno.** En el tercer bloqueo seguido del mismo paso en la misma conversación, le pide que deje de probar arreglos y escriba en una frase el mecanismo exacto del fallo. Si la causa está en la especificación, el arnés o el entorno, para con `[DECISIÓN PENDIENTE]`.
+- **Cualquier otro fallo:** que arregle la causa, no la comprobación.
+
+Cada parada queda en `.claude/registro-stop.jsonl` (fuera de git): la conversación (`session_id`), la fase, el resultado, el paso que falla y las áreas fuera de alcance en ese momento. De ahí salen la cuenta del freno y `make bloqueos A=<ÁREA>`, que resume las paradas de la fase impl mientras el área estaba en curso.
+
 ### ConfigChange: `bloquear-config.ts`
 
-Impide que se cambie la configuración de Claude Code (la del usuario, la del proyecto o la local) durante la sesión, para que nadie pueda desactivar los hooks en caliente.
+Impide que se cambie la configuración de Claude Code (la del usuario, la del proyecto o la local) durante la conversación, para que nadie pueda desactivar los hooks en caliente. Por eso `make fase` solo afecta a las conversaciones que abras después.
 
 **Si un hook falla** por un error propio, lo trata como un bloqueo (código de salida 2); nunca deja pasar.
 
@@ -272,15 +306,21 @@ Impide que se cambie la configuración de Claude Code (la del usuario, la del pr
 - `config/alcance.json`;
 - `tests/aceptacion/` (fase `aceptacion`);
 - la configuración de todas las herramientas (ESLint, jscpd, knip, dependency-cruiser, Stryker, Cucumber, Vitest, TypeScript, Prettier), además de `.gitignore`, `package.json`, `package-lock.json` y `Makefile`;
-- el arnés: `.githooks/`, `scripts/arnes/`, `tests/arnes/` y `.claude/`.
+- el arnés: `.githooks/`, `scripts/arnes/`, `tests/arnes/`, `.claude/`, `.vscode/tasks.json` y `CLAUDE.md`.
 
-**Fases.** Las eliges tú al lanzar la sesión; Claude no puede cambiarlas:
+**Fases.** Las eliges tú antes de abrir la conversación; Claude no puede cambiarlas:
 
-| Lanzas | Fase | Desbloquea | Comprobación en Stop |
-|---|---|---|---|
-| `claude` | impl | — | `make check` |
-| `ARNES_FASE=specs claude` | specs | `features/` y `config/parametros.json` | `make check-specs` |
-| `ARNES_FASE=aceptacion claude` | aceptacion | `tests/aceptacion/` | `make check-aceptacion` |
+1. En VS Code, Ctrl+Shift+P → «Tasks: Run Task» → «Arnés: fase de la próxima conversación», y eliges la fase. Desde un terminal es lo mismo: `make fase F=specs`.
+2. La fase se guarda en `.claude/settings.local.json` (`env.ARNES_FASE`), que está fuera de git. Claude Code pasa esa variable a los hooks.
+3. Abres una conversación nueva de Claude Code. El aviso de `anunciar-fase.ts` te confirma la fase al empezar. Las conversaciones que ya estaban abiertas siguen en la suya.
+
+| Fase | Desbloquea | Comprobación en Stop |
+|---|---|---|
+| impl (por defecto) | — | `make check` |
+| specs | `features/` y `config/parametros.json` | `make check-specs` |
+| aceptacion | `tests/aceptacion/` | `make check-aceptacion` |
+
+Al terminar una etapa 2 o 3, vuelve a `impl` antes de abrir la siguiente conversación.
 
 **Sumas**
 
@@ -288,17 +328,47 @@ Impide que se cambie la configuración de Claude Code (la del usuario, la del pr
 - El paso `integridad` falla si un fichero ha cambiado o falta, si hay un fichero protegido nuevo sin suma, o si el propio fichero de sumas difiere del último commit.
 - En las fases `specs` y `aceptacion` no se vigila lo que esa fase desbloquea.
 
-**Cómo actualizas las sumas.** Como dijiste, «Solo yo actualizo las sumas, a mano»:
+**Cómo actualizas las sumas.** Como dijiste, «Solo yo actualizo las sumas»:
 
-1. Cambias un fichero protegido, o revisas lo que ha escrito Claude en una fase.
-2. Desde tu terminal, no desde Claude Code, ejecutas `make sumas`. El script se niega a ejecutarse si detecta Claude Code (`CLAUDECODE`) o si no hay un terminal interactivo. Te muestra qué ha cambiado.
+1. Aplicas una propuesta que cambia un fichero protegido, o revisas lo que ha escrito Claude en una fase.
+2. Desde tu terminal o la tarea «Arnés: actualizar sumas», no desde Claude Code, ejecutas `make sumas`. El script se niega a ejecutarse si detecta Claude Code (`CLAUDECODE`) o si no hay un terminal interactivo. Te muestra qué ha cambiado.
 3. Commiteas el cambio y las sumas juntos. El pre-commit comprueba que coinciden.
+
+**Propuestas.** Regla dura (`CLAUDE.md`): cuando hay que cambiar algo que Claude no puede tocar (una ruta protegida, las sumas, la fase, un commit), Claude no te pide que lo edites a mano. Te da los comandos exactos, listos para copiar. Si el cambio es de ficheros protegidos:
+
+1. Claude clona el repositorio fuera de él (en su directorio temporal), hace allí los cambios y comprueba lo que pueda.
+2. Guarda el parche en `reports/propuestas/<AAAA-MM-DD>-<tema>.patch` (fuera de git) y para con `[DECISIÓN PENDIENTE]`.
+3. Tú lo aplicas. `--3way` deja los cambios preparados («Cambios preparados» en el panel de control de código fuente de VS Code), y ahí los revisas:
+
+   ```sh
+   git apply --3way reports/propuestas/<AAAA-MM-DD>-<tema>.patch
+   ```
+
+4. Si te convence, actualizas las sumas, commiteas con el mensaje que te propone Claude y compruebas. `make check` va después del commit porque `integridad` compara las sumas con las del último commit:
+
+   ```sh
+   make sumas
+   git add .claude/sumas.sha256
+   git commit -m "<mensaje que propone Claude>"
+   make check
+   ```
+
+5. Si no te convence, lo deshaces. Antes del commit:
+
+   ```sh
+   git apply -R --index reports/propuestas/<AAAA-MM-DD>-<tema>.patch
+   git restore --source=HEAD --staged --worktree .claude/sumas.sha256
+   ```
+
+   Después del commit: `git revert --no-edit HEAD`.
+
+Claude no puede aplicar el parche él mismo: la guardia bloquea `git apply`, `git am` y `patch` (§5).
 
 ---
 
 ## 7. Subagentes
 
-Los dos son de solo lectura: solo tienen Read, Grep y Glob.
+Los dos son de solo lectura: solo tienen Read, Grep y Glob. Usan Sonnet con esfuerzo alto (`effort: high`), porque su trabajo es leer mucho y razonar sobre lo que no ven las herramientas.
 
 **`revisor-evidencia`**
 
@@ -356,7 +426,8 @@ Las normas:
 - un escenario en alcance no pasa en Cucumber; lo lee de `reports/cucumber.ndjson`, un Scenario Outline toma el peor estado de sus ejemplos y los reintentos se ignoran;
 - un escenario en alcance no tiene implementación;
 - el código o los tests citan un ID que no existe;
-- `config/parametros.json` no es válido: falta la sección, el nivel de evidencia o la marca `extrapolacion`, o hay un campo desconocido.
+- `config/parametros.json` no es válido: falta la sección, el nivel de evidencia o la marca `extrapolacion`, o hay un campo desconocido;
+- un paso de resultado (`Entonces`, y los `Y` o `Pero` que lo siguen) usa una frase vaga: «correctamente», «funciona», «como se espera», «adecuado», «sin errores», «rápido», «etc.», «y/o», «los datos»… La lista, con el porqué de cada una, está en `scripts/arnes/comun/frases-vagas.ts`. Los `Dado` y los `Cuando` no se miran, porque ahí la misma palabra describe la situación, no lo que se comprueba. Esta norma también la aplica el paso `specs`.
 
 **Qué muestra:** una tabla con las columnas `ID | TIPO | PROCEDENCIA | ESTADO | CITAS`.
 
@@ -394,7 +465,7 @@ Se activa con `npm ci`: el script `prepare` ejecuta `git config core.hooksPath .
 
 **Capas, de la primera a la última:**
 
-1. **Guardia textual de Bash.** Bloquea los comandos que nombran rutas protegidas o atajos para saltarse el arnés.
+1. **Guardia textual de Bash.** Bloquea los comandos que nombran rutas protegidas o atajos para saltarse el arnés, también aplicar un parche: las propuestas las aplicas tú.
 2. **Guardia de ficheros.** Resuelve la ruta real, así que los enlaces simbólicos y los `..` no sirven para colarse.
 3. **Sumas sha256** de todo lo protegido, en cada `make check`.
 4. **Comparación del fichero de sumas con el último commit.** Recalcular las sumas no basta para ocultar un cambio.
@@ -408,7 +479,10 @@ Se activa con `npm ci`: el script `prepare` ejecuta `git config core.hooksPath .
 - **La guardia de Bash es textual.** Un comando ofuscado (una ruta construida por partes, en base64 o en variables) puede pasar. Por eso existen las capas 3, 4 y 8: lo que no se bloquea, se detecta.
 - **`npx <paquete>` puede descargar y ejecutar un paquete** que no está en el lockfile. No cambia `package.json`, pero se ejecuta.
 - **La comprobación del terminal de `make sumas` se puede engañar** simulando uno (por ejemplo, con `script`). Si ocurriera, la capa 4 lo detectaría, porque las sumas ya no coincidirían con el último commit, y también tu revisión.
-- **ConfigChange también te bloquea a ti** si cambias la configuración con `/config` durante una sesión. Edita la configuración fuera de Claude Code y abre una sesión nueva.
+- **ConfigChange también te bloquea a ti** si cambias la configuración con `/config` durante una conversación. Edita la configuración fuera de Claude Code y abre una conversación nueva. `make fase` también cambia la configuración local, así que las conversaciones abiertas pueden mostrarte ese bloqueo: es lo esperado, y siguen en su fase.
+- **La fase vive en un fichero local** (`.claude/settings.local.json`), fuera de git y de las sumas. Claude no puede editarlo, porque está dentro de `.claude/`; tú sí. Si lo cambias a mano, el aviso de `anunciar-fase.ts` te muestra la fase con la que empieza cada conversación.
+- **Los errores del entorno se reconocen por el texto** de la salida. Un test que imprima `EACCES` a propósito daría un falso aviso; solo le pide a Claude que pare y pregunte.
+- **El freno cuenta bloqueos seguidos del mismo paso.** Si Claude alterna dos pasos que fallan, la racha empieza de cero cada vez. Lo verás en `make bloqueos`.
 - **En Bash no se pueden nombrar las rutas protegidas ni para leerlas.** Es incómodo, pero Read, Grep y Glob cubren la lectura.
 - **Los hooks solo vigilan a Claude Code.** A ti no te frenan, a propósito.
 - **Los subagentes son un LLM:** su informe orienta, pero no demuestra nada.
@@ -422,11 +496,11 @@ Se activa con `npm ci`: el script `prepare` ejecuta `git config core.hooksPath .
 
 - **Edit sobre `docs/investigacion.md`** → la respuesta es `permissionDecision: "deny"`, con el motivo:
 
-  > «docs/investigacion.md» está protegida (regla «docs/investigacion.md» de .claude/protegidas.txt). La cambia el dueño, a mano. Si crees que hay que cambiarla, para y propónselo.
+  > «docs/investigacion.md» está protegida (regla «docs/investigacion.md» de .claude/protegidas.txt). Si hay que cambiarla, prepara una propuesta (CLAUDE.md, «Propuestas»): edítala en un clon fuera del repositorio, guarda el parche en reports/propuestas/, dale al dueño los comandos exactos para aplicarlo y para con [DECISIÓN PENDIENTE]. No le pidas que la edite a mano.
 
 - **Bash `echo PRUEBA >> docs/investigacion.md`** → la respuesta es `deny`, con el motivo:
 
-  > El comando menciona la ruta protegida «docs/investigacion.md» (.claude/protegidas.txt). En Bash no se puede nombrar una ruta protegida, ni siquiera para leerla: usa las herramientas Read, Grep o Glob para leer, y los objetivos de make (make check, make specs…) para verificar.
+  > El comando menciona la ruta protegida «docs/investigacion.md» (.claude/protegidas.txt). En Bash no se puede nombrar una ruta protegida, ni siquiera para leerla: usa las herramientas Read, Grep o Glob para leer, y los objetivos de make (make check, make specs…) para verificar. Si hay que cambiarla, prepara una propuesta (…).
 
 - **Write sobre `src/dominio/criterio.ts`** → no hay respuesta, es decir, el hook lo permite.
 
@@ -451,7 +525,7 @@ Se activa con `npm ci`: el script `prepare` ejecuta `git config core.hooksPath .
 4. `make check`. Debe quedar todo en verde, con el aviso de que aún no hay commits.
 5. Commitea todo junto. Está permitido porque todavía no hay código en `src/`: `git add -A && git commit -m "chore: arnés de desarrollo (etapa 1)"`.
 6. `make check` otra vez. Ahora también compara las sumas con el último commit.
-7. Para la etapa 2, abre la sesión con `ARNES_FASE=specs claude`.
+7. Para la etapa 2, elige la fase `specs` con la tarea de VS Code (§6) y abre una conversación nueva.
 
 ---
 
@@ -546,9 +620,11 @@ Resueltas el 18-10-2026: el dueño aprobó cada propuesta (la opción b en la 5,
 
 ## 16. Etapas 2 a 5
 
+Cada etapa, y cada área de la etapa 4, empieza en una conversación nueva de Claude Code en VS Code. Antes de abrirla eliges su fase con la tarea «Arnés: fase de la próxima conversación» (§6), y el aviso del principio te la confirma. Lo que Claude no puede hacer (aplicar una propuesta, actualizar las sumas, cambiar la fase, commitear) te lo deja en comandos exactos, listos para copiar.
+
 ### Etapa 2: especificación
 
-Sesión con `ARNES_FASE=specs claude`.
+Conversación nueva en la fase `specs`.
 
 - **Features.** Una feature por área, en `features/<área>.feature`:
   - en español (`# language: es`);
@@ -574,40 +650,46 @@ Sesión con `ARNES_FASE=specs claude`.
 
 ### Etapa 3: steps de aceptación
 
-Sesión con `ARNES_FASE=aceptacion claude`.
+Conversación nueva en la fase `aceptacion`.
 
 - **Steps.** En `tests/aceptacion/`, contra `src/aplicacion` y con las funciones vacías de la decisión 14.
 - **Estado.** Todo en rojo, sin skip, pending ni xfail. `make check-aceptacion` en verde.
-- **Commits.** Dos, que haces tú: los steps y las funciones vacías por separado.
+- **Commits.** Dos, que haces tú con los comandos que te doy: los steps y las funciones vacías por separado.
 - **Cierre.** **PARA.**
 
 ### Etapa 4: implementación
 
-Sesión con `claude`, área por área. El MVP es DIAG, PLAN, RECU y MAST, con un dominio ficticio pequeño. Tras DIAG, el orden es RECU → MAST → MATE → PLAN → AYUD → INTE → CALI y HORA → TARE → BUCL → INST.
+Una conversación nueva en la fase `impl` por cada área. El MVP es DIAG, PLAN, RECU y MAST, con un dominio ficticio pequeño. Tras DIAG, el orden es RECU → MAST → MATE → PLAN → AYUD → INTE → CALI y HORA → TARE → BUCL → INST.
 
 `MATE` aún no tiene feature. Antes de implementarla pasa por una sesión de etapa 2 (su feature) y otra de etapa 3 (sus steps):
 
 - Sus elementos llevan `@extrapolacion`, porque el informe no trata de dónde sale el contenido, salvo los que se apoyen en una sección concreta.
 - Desde que exista su feature hasta que toque implementarla, `MATE` está en `areas_fuera_de_alcance`.
-- En la etapa 3, `estado-aceptacion` exige que todo lo que está en alcance falle en rojo, pero DIAG, RECU y MAST ya pasan. Durante esa sesión, `config/alcance.json` deja en alcance solo `MATE`.
+- En la etapa 3, `estado-aceptacion` exige que todo lo que está en alcance falle en rojo, pero DIAG, RECU y MAST ya pasan. Durante esa conversación, `config/alcance.json` deja en alcance solo `MATE`.
 
 Para cada área:
 
-1. Sacas el área de `config/alcance.json` y eliges qué partidas de `docs/deuda-diseno.md` se pagan con ella: al menos una o, si no, una línea que diga por qué ninguna. Las pago primero, sin comportamiento nuevo y con `make check` en verde, y paro para que las commitees aparte (`refactor: …`).
-2. Escribo `src/dominio` y sus tests unitarios, que citan el `@ID`.
-3. Escribo la aplicación y la infraestructura necesarias.
-4. Dejo `make check` en verde.
-5. Ejecuto los dos revisores y `make mutacion`.
-6. Te doy un resumen breve, con:
-   - una línea por cada módulo nuevo con la interfaz descartada y por qué;
-   - el texto para `docs/deuda-diseno.md`: las partidas nuevas del revisor, las pagadas y la línea del área.
+1. Abro su archivo, `docs/areas/<ÁREA>.md`, copiando `docs/areas/plantilla.md`. Te preparo la propuesta que saca el área de `config/alcance.json` (§6) y te propongo qué partidas de `docs/deuda-diseno.md` se pagan con ella: al menos una o, si no, una línea que diga por qué ninguna. Tú aplicas la propuesta y eliges. Pago las partidas primero, sin comportamiento nuevo y con `make check` en verde, y paro para que las commitees aparte (`refactor: …`), con los comandos que te doy.
+2. **Mecanismo.** Solo en las áreas con arquitectura: MATE, PLAN (`ts-fsrs`) y las que añaden una pantalla nueva a la interfaz. Antes de escribir nada en `src/`:
+   - explico en prosa cómo funcionará por dentro: qué datos entran, qué módulo hace qué y qué queda guardado;
+   - esbozo dos interfaces radicalmente distintas para su módulo central, con sus pros y contras;
+   - lo dejo en la sección «Mecanismo» del archivo del área y paro con `[DECISIÓN PENDIENTE]` hasta que lo apruebes.
+
+   Las áreas de dominio puro se saltan este paso y lo dicen en su archivo.
+3. Escribo `src/dominio` y sus tests unitarios, que citan el `@ID`.
+4. Escribo la aplicación y la infraestructura necesarias.
+5. Dejo `make check` en verde.
+6. Ejecuto los dos revisores, `make mutacion` y `make bloqueos A=<ÁREA>`.
+7. Completo el archivo del área: mecanismo, interfaces descartadas y por qué, deuda pagada, puntuación de mutación y bloqueos del hook Stop.
+8. Te doy un resumen breve, con la propuesta para `docs/deuda-diseno.md` (las partidas nuevas del revisor, las pagadas y la línea del área) y los comandos para aplicarla y commitear el área.
 
 Antes del código de cada fichero nuevo de `src/`, de cualquier capa (`docs/arnes.md`, §6, y skill `codebase-design`):
 
 - escribo el comentario de su interfaz y sus firmas; si el comentario sale largo, la abstracción es mala y la cambio antes de seguir;
-- esbozo al menos otra interfaz radicalmente distinta, solo con sus métodos principales, y me quedo con la más profunda.
+- esbozo al menos otra interfaz radicalmente distinta, solo con sus métodos principales, y me quedo con la más profunda;
+- anoto la descartada y por qué en el archivo del área.
 
-Sin dependencias nuevas sin tu aprobación. Si un escenario o un parámetro parece mal, paro y propongo un commit que solo toque la especificación.
+Sin dependencias nuevas sin tu aprobación. Si un escenario o un parámetro parece mal, paro y te preparo una propuesta (§6) que solo toque la especificación, para que la commitees aparte.
 
 ### Etapa 5: README
 

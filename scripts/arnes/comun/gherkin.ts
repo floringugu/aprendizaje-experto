@@ -52,10 +52,15 @@ export function leerFeatures(raiz: string, directorio = 'features'): LecturaFeat
   return { elementos, problemas };
 }
 
-/** Elementos (Feature, Rules y Scenarios) de un fichero .feature. El idioma por defecto es el español. */
-export function elementosDeFeature(texto: string, fichero: string): ElementoGherkin[] {
+/** Árbol de un fichero .feature, o undefined si está vacío. El idioma por defecto es el español. */
+export function parsearFeature(texto: string): Feature | undefined {
   const parser = new Parser(new AstBuilder(IdGenerator.uuid()), new GherkinClassicTokenMatcher('es'));
-  const feature = parser.parse(texto).feature;
+  return parser.parse(texto).feature;
+}
+
+/** Elementos (Feature, Rules y Scenarios) de un fichero .feature. */
+export function elementosDeFeature(texto: string, fichero: string): ElementoGherkin[] {
+  const feature = parsearFeature(texto);
   if (feature === undefined) return [];
   const elementoFeature = crearElemento('Feature', feature, { fichero, idsPadre: [] });
   const dentroDelFeature: Ubicacion = { fichero, idsPadre: idsDe(elementoFeature) };

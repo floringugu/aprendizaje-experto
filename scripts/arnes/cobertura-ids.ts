@@ -2,6 +2,7 @@
 //
 // Falla si:
 //   - un Feature, Rule o Scenario no tiene un ID válido o no dice su procedencia;
+//   - un paso Entonces usa una frase vaga («correctamente», «funciona»…; comun/frases-vagas.ts);
 //   - config/parametros.json tiene un parámetro sin sección, nivel de evidencia o marca de extrapolación;
 //   - un escenario en alcance no pasa en Cucumber o nadie lo cita en src/ ni en tests/unidad/;
 //   - el código o los tests citan un ID que no existe en features/.
@@ -14,6 +15,7 @@ import { leerAreasFueraDeAlcance } from './comun/alcance.ts';
 import { buscarCitas } from './comun/citas.ts';
 import { construirInforme, formatearInforme } from './comun/cobertura.ts';
 import { estadosPorEscenario, RUTA_MENSAJES_CUCUMBER } from './comun/estados-cucumber.ts';
+import { leerFrasesVagas } from './comun/frases-vagas.ts';
 import { idDe, leerFeatures, validarElementos } from './comun/gherkin.ts';
 import type { LecturaFeatures } from './comun/gherkin.ts';
 import { leerSeccionesDelInforme } from './comun/informe.ts';
@@ -39,9 +41,11 @@ function principal(): number {
 
 function problemasDeEspecificacion(lectura: LecturaFeatures): string[] {
   const secciones = leerSeccionesDelInforme(RAIZ);
-  const problemasFeatures = [...lectura.problemas, ...validarElementos(lectura.elementos, secciones)].map(
-    (problema) => `${problema.fichero}:${String(problema.linea)} ${problema.mensaje}`,
-  );
+  const problemasFeatures = [
+    ...lectura.problemas,
+    ...validarElementos(lectura.elementos, secciones),
+    ...leerFrasesVagas(RAIZ),
+  ].map((problema) => `${problema.fichero}:${String(problema.linea)} ${problema.mensaje}`);
   return [...problemasFeatures, ...validarParametros(leerParametros(RAIZ), secciones)];
 }
 

@@ -37,9 +37,18 @@ const PATRONES_PROHIBIDOS: readonly { readonly patron: RegExp; readonly motivo: 
   },
   {
     patron: /\bARNES_FASE\b/,
-    motivo: 'La fase (ARNES_FASE) la fija el dueño al lanzar la sesión; no se cambia desde un comando.',
+    motivo:
+      'La fase (ARNES_FASE) la fija el dueño antes de abrir la conversación, con «make fase» o la tarea ' +
+      'de VS Code; no se cambia desde un comando.',
   },
   { patron: /disableAllHooks/, motivo: 'No se pueden desactivar los hooks de Claude Code.' },
+  {
+    // «patch» solo como orden (al principio o tras ; & | o «(»): «x.patch» como nombre de fichero sí pasa.
+    patron: /\bgit\s+(?:-C\s+\S+\s+)?(?:apply|am)\b|(?:^|[;&|(]\s*)patch\s/,
+    motivo:
+      'Las propuestas (reports/propuestas/*.patch) las aplica el dueño. Dale el comando exacto ' +
+      '(git apply --3way …) y para con [DECISIÓN PENDIENTE].',
+  },
   {
     patron: /\b(npm|pnpm|yarn)\s+(install|i|add|uninstall|un|remove|rm|update|up|upgrade|link)\b/,
     motivo:
@@ -93,15 +102,18 @@ function motivoFueraDelRepositorio(rutaReal: string, home: string): string | und
   return esMemoriaDeProyecto ? undefined : MOTIVO_HOME_CLAUDE;
 }
 
+/** Cómo se cambia una ruta protegida: con una propuesta que aplica el dueño, nunca a mano. */
+const COMO_SE_CAMBIA =
+  'Si hay que cambiarla, prepara una propuesta (CLAUDE.md, «Propuestas»): edítala en un clon fuera del ' +
+  'repositorio, guarda el parche en reports/propuestas/, dale al dueño los comandos exactos para aplicarlo ' +
+  'y para con [DECISIÓN PENDIENTE]. No le pidas que la edite a mano.';
+
 function mensajeRutaProtegida(relativa: string, entrada: EntradaProtegida): string {
   const desbloqueo =
     entrada.desbloqueadaEn === undefined
       ? ''
-      : ` Solo se edita en una sesión lanzada con ARNES_FASE=${entrada.desbloqueadaEn}.`;
-  return (
-    `«${relativa}» está protegida (regla «${entrada.ruta}» de ${RUTA_PROTEGIDAS}).${desbloqueo} ` +
-    'La cambia el dueño, a mano. Si crees que hay que cambiarla, para y propónselo.'
-  );
+      : ` Solo se edita en una conversación con la fase ${entrada.desbloqueadaEn} (ARNES_FASE=${entrada.desbloqueadaEn}).`;
+  return `«${relativa}» está protegida (regla «${entrada.ruta}» de ${RUTA_PROTEGIDAS}).${desbloqueo} ${COMO_SE_CAMBIA}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -119,7 +131,8 @@ export function motivoBloqueoBash(comando: string, contexto: ContextoGuardia): s
   return (
     `El comando menciona la ruta protegida «${entrada.ruta}» (${RUTA_PROTEGIDAS}). ` +
     'En Bash no se puede nombrar una ruta protegida, ni siquiera para leerla: usa las herramientas ' +
-    'Read, Grep o Glob para leer, y los objetivos de make (make check, make specs…) para verificar.'
+    'Read, Grep o Glob para leer, y los objetivos de make (make check, make specs…) para verificar. ' +
+    COMO_SE_CAMBIA
   );
 }
 

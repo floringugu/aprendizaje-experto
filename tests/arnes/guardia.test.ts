@@ -32,14 +32,18 @@ beforeAll(() => {
 });
 
 describe('motivoBloqueoFichero', () => {
-  it('bloquea una ruta protegida y dice quién la cambia', () => {
+  it('bloquea una ruta protegida y dice cómo se cambia: con una propuesta que aplica el dueño', () => {
     const motivo = motivoBloqueoFichero(path.join(raiz, 'docs/investigacion.md'), contexto());
     expect(motivo).toMatch(/«docs\/investigacion\.md» está protegida/);
-    expect(motivo).toMatch(/La cambia el dueño/);
+    expect(motivo).toMatch(/reports\/propuestas\//);
+    expect(motivo).toMatch(/comandos exactos/);
+    expect(motivo).toMatch(/\[DECISIÓN PENDIENTE\]/);
   });
 
-  it('bloquea un fichero nuevo dentro de un directorio protegido', () => {
-    expect(motivoBloqueoFichero(path.join(raiz, 'features/nueva.feature'), contexto())).toMatch(/ARNES_FASE=specs/);
+  it('bloquea un fichero nuevo dentro de un directorio protegido y dice en qué fase se edita', () => {
+    expect(motivoBloqueoFichero(path.join(raiz, 'features/nueva.feature'), contexto())).toMatch(
+      /conversación con la fase specs/,
+    );
   });
 
   it('deja escribir en features/ solo en la fase specs', () => {
@@ -86,7 +90,9 @@ describe('motivoBloqueoBash', () => {
     'cat .claude/settings.json',
     'echo x > .gitignore',
   ])('bloquea un comando que nombra una ruta protegida: %s', (comando) => {
-    expect(motivoBloqueoBash(comando, contexto())).toMatch(/ruta protegida/);
+    const motivo = motivoBloqueoBash(comando, contexto());
+    expect(motivo).toMatch(/ruta protegida/);
+    expect(motivo).toMatch(/reports\/propuestas\//);
   });
 
   it.each([
@@ -100,6 +106,11 @@ describe('motivoBloqueoBash', () => {
     ['npm install left-pad', /dependencias/],
     ['npm i -D left-pad', /dependencias/],
     ['ls .git/hooks', /\.git\//],
+    ['git apply reports/propuestas/x.patch', /las aplica el dueño/],
+    ['git apply --3way x.patch', /las aplica el dueño/],
+    ['git -C /tmp/clon am x.patch', /las aplica el dueño/],
+    ['patch -p1 < x.patch', /las aplica el dueño/],
+    ['cd /tmp && patch -p1 < x.patch', /las aplica el dueño/],
   ])('bloquea las salidas del arnés: %s', (comando, motivo) => {
     expect(motivoBloqueoBash(comando, contexto())).toMatch(motivo);
   });
@@ -112,6 +123,10 @@ describe('motivoBloqueoBash', () => {
     'cat .gitignore-de-otro',
     'grep -rn MAST src/',
     'npx vitest run tests/unidad',
+    // Preparar una propuesta sí está permitido: editar un clon y guardar el parche.
+    'git -C /tmp/clon add -A',
+    'git -C /tmp/clon diff --cached --binary > reports/propuestas/x.patch',
+    'ls reports/propuestas/',
   ])('deja pasar un comando normal: %s', (comando) => {
     expect(motivoBloqueoBash(comando, contexto())).toBeUndefined();
   });

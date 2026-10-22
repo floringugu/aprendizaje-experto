@@ -1,0 +1,36 @@
+{
+  // Tareas del arnés para el dueño (Ctrl+Shift+P → «Tasks: Run Task»).
+  // Se ejecutan en un terminal de VS Code, fuera de Claude Code, como exigen «make fase» y «make sumas».
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Arnés: fase de la próxima conversación",
+      "detail": "Elige la fase y abre después una conversación nueva de Claude Code",
+      "type": "shell",
+      "command": "make fase F=${input:fase}",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+    },
+    {
+      "label": "Arnés: actualizar sumas",
+      "detail": "make sumas, después de aplicar una propuesta que toca ficheros protegidos",
+      "type": "shell",
+      "command": "make sumas",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+    }
+  ],
+  "inputs": [
+    {
+      "id": "fase",
+      "type": "pickString",
+      "description": "Fase de la próxima conversación de Claude Code",
+      "options": [
+        { "label": "impl: etapa 4, implementar el área en curso (make check)", "value": "impl" },
+        { "label": "specs: etapa 2, escribir features/ y parámetros (make check-specs)", "value": "specs" },
+        { "label": "aceptacion: etapa 3, escribir los steps en rojo (make check-aceptacion)", "value": "aceptacion" }
+      ],
+      "default": "impl"
+    }
+  ]
+}

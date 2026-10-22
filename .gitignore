@@ -2,3 +2,4 @@ node_modules/
 reports/
 .stryker-tmp/
 .claude/settings.local.json
+.claude/registro-stop.jsonl
