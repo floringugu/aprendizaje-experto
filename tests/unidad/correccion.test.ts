@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { esCorrecta, respuestasAceptadas } from '../../src/dominio/correccion.ts';
+import { esCorrecta, respuestaMostrada, respuestasAceptadas } from '../../src/dominio/correccion.ts';
 
 const ESCRITA = { aceptadas: ['a', 'b'] };
 const ELECCION = { opciones: ['x', 'y', 'z'], correcta: 'y' };
@@ -51,5 +51,19 @@ describe('respuestasAceptadas', () => {
   it('@DIAG-1.2 son las aceptadas, o la opción correcta', () => {
     expect(respuestasAceptadas(ESCRITA)).toEqual(['a', 'b']);
     expect(respuestasAceptadas(ELECCION)).toEqual(['y']);
+  });
+});
+
+describe('respuestaMostrada', () => {
+  it('@RECU-2.1 en una pregunta de opciones es la opción correcta', () => {
+    expect(respuestaMostrada(ELECCION)).toBe('y');
+  });
+
+  it('@RECU-2.1 en una respuesta escrita es la primera de las aceptadas', () => {
+    expect(respuestaMostrada(ESCRITA)).toBe('a');
+  });
+
+  it('@RECU-2.1 una respuesta escrita sin ninguna aceptada es un error del contenido', () => {
+    expect(() => respuestaMostrada({ aceptadas: [] })).toThrow('sin ninguna respuesta aceptada');
   });
 });

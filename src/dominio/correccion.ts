@@ -2,9 +2,25 @@
 type RespuestaEsperada =
   { readonly opciones: readonly string[]; readonly correcta: string } | { readonly aceptadas: readonly string[] };
 
-/** Todas las respuestas que se corrigen como acertadas; la primera es la que se enseña en el feedback. */
+/** Todas las respuestas que se corrigen como acertadas. */
 export function respuestasAceptadas(esperada: RespuestaEsperada): readonly string[] {
   return 'aceptadas' in esperada ? esperada.aceptadas : [esperada.correcta];
+}
+
+/**
+ * La respuesta que el feedback enseña como correcta (@RECU-2.1): la opción correcta o, en una
+ * respuesta escrita, la primera de las aceptadas, que es la que el autor pone como principal.
+ * Un ítem de respuesta escrita sin ninguna aceptada es un error del contenido, no un caso que corregir.
+ */
+export function respuestaMostrada(esperada: RespuestaEsperada): string {
+  if (!('aceptadas' in esperada)) {
+    return esperada.correcta;
+  }
+  const principal = esperada.aceptadas[0];
+  if (principal === undefined) {
+    throw new Error('El contenido tiene un ítem de respuesta escrita sin ninguna respuesta aceptada');
+  }
+  return principal;
 }
 
 /**

@@ -1,4 +1,4 @@
-import { esCorrecta, respuestasAceptadas } from '../dominio/correccion.ts';
+import { esCorrecta, respuestaMostrada } from '../dominio/correccion.ts';
 import type { ItemContenido } from './contenido.ts';
 import type { Entorno, Situacion } from './estado.ts';
 import {
@@ -88,7 +88,6 @@ export function declararConfianza(entorno: Entorno, peticion: PeticionConfianza)
     const correcta = esCorrecta(pendiente.respuesta, item.respuesta);
     situacion.estado.pendientes.delete(item.id);
     situacion.estado.intentos.push({ item: item.id, contexto: pendiente.contexto, correcta });
-    const respuestaCorrecta = respuestasAceptadas(item.respuesta)[0] ?? '';
-    return aceptar({ correcta, respuestaCorrecta, explicacion: item.feedback });
+    return aceptar({ correcta, respuestaCorrecta: respuestaMostrada(item.respuesta), explicacion: item.feedback });
   });
 }
