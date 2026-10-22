@@ -29,6 +29,10 @@ describe('esCorrecta', () => {
       expect(esCorrecta('Regla  de  Tres', REGLA)).toBe(true);
     });
 
+    it('@RECU-3.1 reduce los espacios a uno, pero no los quita', () => {
+      expect(esCorrecta('reglade tres', REGLA)).toBe(false);
+    });
+
     it('@RECU-3.2 ignora los espacios al principio y al final', () => {
       expect(esCorrecta('  proporción ', REGLA)).toBe(true);
     });

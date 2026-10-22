@@ -52,6 +52,10 @@ function itemQueSePuedeResponder(situacion: Situacion, peticion: PeticionItem): 
   return motivo === undefined ? aceptar(item) : rechazar(motivo);
 }
 
+/**
+ * El contexto decide si el ítem se puede responder, pero no cómo se ve: se presenta igual en la
+ * práctica, en los repasos y en las pruebas de retención (@RECU-4.1).
+ */
 export function presentarItem(entorno: Entorno, peticion: PeticionItem): Resultado<ItemPresentado> {
   return enDominio(entorno, peticion.dominio, (situacion) => {
     const item = itemQueSePuedeResponder(situacion, peticion);
@@ -76,7 +80,8 @@ export function responderItem(
 
 /**
  * Corrige la respuesta comparándola con el contenido y registra el intento. La confianza que declare
- * la persona no cambia la corrección (@DIAG-1.2).
+ * la persona no cambia la corrección (@DIAG-1.2). El feedback sale siempre, acierte o falle
+ * (@RECU-2.1), y su explicación es el `feedback` del autor tal cual (@RECU-2.2).
  */
 export function declararConfianza(entorno: Entorno, peticion: PeticionConfianza): Resultado<Feedback> {
   return enDominio(entorno, peticion.dominio, (situacion) => {
@@ -85,9 +90,11 @@ export function declararConfianza(entorno: Entorno, peticion: PeticionConfianza)
     if (pendiente === undefined || item === undefined) {
       return rechazar(`Primero hay que responder el ítem ${peticion.item}.`);
     }
+    // Todo lo que puede fallar va antes de tocar el estado, para no dejar un intento a medias.
     const correcta = esCorrecta(pendiente.respuesta, item.respuesta);
+    const respuestaCorrecta = respuestaMostrada(item.respuesta);
     situacion.estado.pendientes.delete(item.id);
     situacion.estado.intentos.push({ item: item.id, contexto: pendiente.contexto, correcta });
-    return aceptar({ correcta, respuestaCorrecta: respuestaMostrada(item.respuesta), explicacion: item.feedback });
+    return aceptar({ correcta, respuestaCorrecta, explicacion: item.feedback });
   });
 }
