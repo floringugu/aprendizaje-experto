@@ -69,9 +69,10 @@ describe('motivoBloqueoFichero', () => {
     expect(motivoBloqueoFichero(path.join(raiz, '.git/hooks/pre-commit'), contexto())).toMatch(/\.git\//);
   });
 
-  it('bloquea ~/.claude/ salvo la memoria de un proyecto', () => {
+  it('bloquea ~/.claude/ salvo la memoria de un proyecto y los planes', () => {
     expect(motivoBloqueoFichero(path.join(home, '.claude/settings.json'), contexto())).toMatch(/~\/\.claude\//);
     expect(motivoBloqueoFichero(path.join(home, '.claude/projects/p/memory/nota.md'), contexto())).toBeUndefined();
+    expect(motivoBloqueoFichero(path.join(home, '.claude/plans/plan.md'), contexto())).toBeUndefined();
   });
 
   it('no se mete con ficheros de fuera del repositorio', () => {
@@ -81,21 +82,21 @@ describe('motivoBloqueoFichero', () => {
 
 describe('motivoBloqueoBash', () => {
   it.each([
-    'cat docs/investigacion.md',
-    'sed -i s/a/b/ ./docs/investigacion.md',
-    'cd docs && cp /tmp/x investigacion.md',
-    'echo "Escenario" >> features/dominio.feature',
-    'rm -rf features',
-    "python3 -c \"open('config/parametros.json','w')\"",
-    'cat .claude/settings.json',
-    'echo x > .gitignore',
-  ])('bloquea un comando que nombra una ruta protegida: %s', (comando) => {
-    const motivo = motivoBloqueoBash(comando, contexto());
-    expect(motivo).toMatch(/ruta protegida/);
-    expect(motivo).toMatch(/reports\/propuestas\//);
+    'cat ~/.claude/settings.json',
+    'cat "$HOME/.claude/CLAUDE.md"',
+    'ls ${HOME}/.claude',
+    'cat ~/.claude/projects/../settings.json',
+    'rm -rf ~/.claude',
+  ])('bloquea ~/.claude/ fuera de projects/ y plans/: %s', (comando) => {
+    expect(motivoBloqueoBash(comando, contexto())).toMatch(/~\/\.claude\//);
+  });
+
+  it('reconoce también la ruta absoluta del home', () => {
+    expect(motivoBloqueoBash(`cat ${home}/.claude/settings.json`, contexto())).toMatch(/~\/\.claude\//);
   });
 
   it.each([
+    ['git commit --no-verify -m x', /pre-commit/],
     ['git commit --no-verify -m x', /pre-commit/],
     ['git commit -nm x', /pre-commit/],
     ['git config core.hooksPath /dev/null', /hooksPath/],
@@ -116,6 +117,15 @@ describe('motivoBloqueoBash', () => {
   });
 
   it.each([
+    // Las rutas protegidas se pueden nombrar: lo que el comando cambie en ellas lo deshace
+    // vigilar-huellas.ts (tests/arnes/huellas.test.ts).
+    'cat docs/investigacion.md',
+    'grep -n MAST docs/investigacion.md',
+    'cat .claude/settings.json',
+    'echo x > .gitignore',
+    'cat ~/.claude/projects/p/tool-results/x.txt',
+    'ls ~/.claude/plans/',
+    'cat ~/.claude.json',
     'make check',
     'npm run lint',
     'git status',
@@ -129,10 +139,5 @@ describe('motivoBloqueoBash', () => {
     'ls reports/propuestas/',
   ])('deja pasar un comando normal: %s', (comando) => {
     expect(motivoBloqueoBash(comando, contexto())).toBeUndefined();
-  });
-
-  it('deja nombrar features/ en la fase specs, pero no el informe', () => {
-    expect(motivoBloqueoBash('ls features/', contexto('specs'))).toBeUndefined();
-    expect(motivoBloqueoBash('cat docs/investigacion.md', contexto('specs'))).toBeDefined();
   });
 });

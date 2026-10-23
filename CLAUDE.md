@@ -1,6 +1,7 @@
 # aprendizaje-experto
 
-- **docs/plan.md:** nunca lo leas entero. Busca primero lo que necesitas (con Grep, o con `git grep -n "<texto>"`, porque en Bash no se puede nombrar una ruta protegida) y luego lee solo esas líneas con Read, usando offset y limit.
+- **docs/plan.md:** nunca lo leas entero. Busca primero lo que necesitas (con Grep o con `git grep -n "<texto>" -- docs/plan.md`) y luego lee solo esas líneas con Read, usando offset y limit.
+- **Rutas protegidas en Bash:** se pueden leer (`cat`, `grep`, `git diff`), pero lo que un comando cambie en ellas vuelve a como estaba al acabar el comando, y la versión del comando queda en `reports/huellas/`. Para cambiarlas, prepara una propuesta.
 
 ## Comandos para el dueño (regla dura)
 

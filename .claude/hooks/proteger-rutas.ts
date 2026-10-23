@@ -1,5 +1,7 @@
-// Hook PreToolUse (Edit, Write, MultiEdit, NotebookEdit y Bash): bloquea cualquier cambio
-// en las rutas de .claude/protegidas.txt. La lógica está en scripts/arnes/comun/guardia.ts.
+// Hook PreToolUse (Edit, Write, MultiEdit, NotebookEdit y Bash): bloquea las ediciones en las
+// rutas de .claude/protegidas.txt y los comandos Bash que intentan una salida del arnés. Lo que
+// un comando Bash cambie en las rutas protegidas lo deshace vigilar-huellas.ts.
+// La lógica está en scripts/arnes/comun/guardia.ts.
 import os from 'node:os';
 import path from 'node:path';
 import { campo, campoTexto, ejecutarHook, leerEntradaHook, responder } from '../../scripts/arnes/comun/entrada-hook.ts';

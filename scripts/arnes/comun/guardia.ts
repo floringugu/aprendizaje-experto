@@ -1,5 +1,7 @@
-// Lógica del hook PreToolUse: decide si una edición o un comando Bash toca algo protegido.
-// Separada del hook para poder probarla con tests unitarios.
+// Lógica del hook PreToolUse proteger-rutas.ts: decide si una edición toca algo protegido y
+// si un comando Bash intenta una salida del arnés. Separada del hook para probarla con tests.
+// Lo que un comando Bash cambie en las rutas protegidas lo vigila otro hook, por su efecto:
+// vigilar-huellas.ts (scripts/arnes/comun/huellas.ts).
 import { lstatSync, readlinkSync, realpathSync } from 'node:fs';
 import path from 'node:path';
 import { entradaQueBloquea, RUTA_PROTEGIDAS } from './protegidas.ts';
@@ -18,7 +20,8 @@ const MOTIVO_GIT = 'No se puede tocar .git/: ahí viven los hooks de git y la co
 
 const MOTIVO_HOME_CLAUDE =
   'No se puede tocar ~/.claude/: ahí vive la configuración de Claude Code del usuario. ' +
-  'Solo se permite escribir en la memoria del proyecto (~/.claude/projects/<proyecto>/memory/).';
+  'Solo quedan abiertos los planes (~/.claude/plans/), la memoria del proyecto ' +
+  '(~/.claude/projects/<proyecto>/memory/) y, para leer desde Bash, el resto de ~/.claude/projects/.';
 
 /**
  * Comandos prohibidos sea cual sea la ruta. Cierran las salidas más obvias del arnés.
@@ -98,12 +101,13 @@ function relativaSiDentro(ruta: string, directorio: string): string | undefined 
 function motivoFueraDelRepositorio(rutaReal: string, home: string): string | undefined {
   const relativaAHomeClaude = relativaSiDentro(rutaReal, resolverReal(path.join(home, '.claude')));
   if (relativaAHomeClaude === undefined) return undefined;
-  const esMemoriaDeProyecto = /^projects\/[^/]+\/memory(\/|$)/.test(relativaAHomeClaude);
-  return esMemoriaDeProyecto ? undefined : MOTIVO_HOME_CLAUDE;
+  // El modo plan de Claude Code escribe el plan en ~/.claude/plans/.
+  const estaAbierta = /^(projects\/[^/]+\/memory|plans)(\/|$)/.test(relativaAHomeClaude);
+  return estaAbierta ? undefined : MOTIVO_HOME_CLAUDE;
 }
 
 /** Cómo se cambia una ruta protegida: con una propuesta que aplica el dueño, nunca a mano. */
-const COMO_SE_CAMBIA =
+export const COMO_SE_CAMBIA =
   'Si hay que cambiarla, prepara una propuesta (CLAUDE.md, «Propuestas»): edítala en un clon fuera del ' +
   'repositorio, guarda el parche en reports/propuestas/, dale al dueño los comandos exactos para aplicarlo ' +
   'y para con [DECISIÓN PENDIENTE]. No le pidas que la edite a mano.';
@@ -120,29 +124,32 @@ function mensajeRutaProtegida(relativa: string, entrada: EntradaProtegida): stri
 // Bash
 // ---------------------------------------------------------------------------
 
+/**
+ * Las rutas protegidas del repositorio no se buscan en el texto del comando: un comando puede
+ * nombrarlas para leerlas, y lo que cambie en ellas lo deshace vigilar-huellas.ts. Aquí solo
+ * quedan las salidas que no dejan huella en el repositorio: los patrones prohibidos, .git/
+ * (donde están los hooks de git y las copias de las huellas) y ~/.claude/.
+ */
 export function motivoBloqueoBash(comando: string, contexto: ContextoGuardia): string | undefined {
   const prohibido = PATRONES_PROHIBIDOS.find(({ patron }) => patron.test(comando));
   if (prohibido !== undefined) return prohibido.motivo;
   if (mencionaRuta(comando, '.git')) return MOTIVO_GIT;
-  const entrada = contexto.entradas.find(
-    (candidata) => candidata.desbloqueadaEn !== contexto.fase && mencionaEntrada(comando, candidata),
-  );
-  if (entrada === undefined) return undefined;
-  return (
-    `El comando menciona la ruta protegida «${entrada.ruta}» (${RUTA_PROTEGIDAS}). ` +
-    'En Bash no se puede nombrar una ruta protegida, ni siquiera para leerla: usa las herramientas ' +
-    'Read, Grep o Glob para leer, y los objetivos de make (make check, make specs…) para verificar. ' +
-    COMO_SE_CAMBIA
-  );
+  return mencionaHomeClaude(comando, contexto.home) ? MOTIVO_HOME_CLAUDE : undefined;
 }
 
-function mencionaEntrada(comando: string, entrada: EntradaProtegida): boolean {
-  const ruta = entrada.ruta.replace(/\/$/, '');
-  if (mencionaRuta(comando, ruta)) return true;
-  // En los ficheros se busca también el nombre suelto, para pillar rutas relativas
-  // desde otro directorio o a través de un enlace simbólico.
-  const nombre = path.posix.basename(ruta);
-  return !entrada.ruta.endsWith('/') && nombre !== ruta && mencionaRuta(comando, nombre);
+/**
+ * ¿Nombra el comando ~/.claude/ (como ~, $HOME, ${HOME} o la ruta absoluta del home) fuera de
+ * projects/ y plans/? No ve un «cd ~» seguido de una ruta relativa: para eso está además el
+ * hook ConfigChange, que bloquea los cambios en los ajustes durante la conversación.
+ */
+function mencionaHomeClaude(comando: string, home: string): boolean {
+  const formasDelHome = ['~', '$HOME', '${HOME}', home].map(escaparRegex).join('|');
+  const patron = new RegExp(String.raw`(?:${formasDelHome})/\.claude(?![\w.-])([^\s'"\x60;&|()<>]*)`, 'g');
+  return [...comando.matchAll(patron)].some(([, resto = '']) => {
+    // normalize resuelve los «..»: ~/.claude/projects/../settings.json es ~/.claude/settings.json.
+    const dentroDeClaude = path.posix.normalize(resto === '' ? '/' : resto);
+    return !/^\/(projects|plans)(\/|$)/.test(dentroDeClaude);
+  });
 }
 
 function mencionaRuta(comando: string, ruta: string): boolean {

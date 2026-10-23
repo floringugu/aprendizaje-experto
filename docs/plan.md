@@ -216,12 +216,26 @@ Están en `.claude/settings.json`:
       {
         "matcher": "Edit|Write|MultiEdit|NotebookEdit|Bash",
         "hooks": [{ "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/proteger-rutas.ts\"", "timeout": 30 }]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [{ "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/vigilar-huellas.ts\"", "timeout": 30 }]
       }
     ],
     "PostToolUse": [
       {
         "matcher": "Edit|Write|MultiEdit",
         "hooks": [{ "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/formatear-y-lintear.ts\"", "timeout": 120 }]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [{ "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/vigilar-huellas.ts\"", "timeout": 30 }]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "Bash",
+        "hooks": [{ "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/vigilar-huellas.ts\"", "timeout": 30 }]
       }
     ],
     "Stop": [
@@ -252,11 +266,11 @@ Al empezar cada conversación (y al reanudarla, limpiarla o compactarla), dice e
 
 - una ruta de `.claude/protegidas.txt`, salvo que la fase la desbloquee;
 - `.git/`;
-- `~/.claude/`, salvo la memoria de un proyecto.
+- `~/.claude/`, salvo la memoria de un proyecto y los planes del modo plan (`~/.claude/plans/`).
 
-**En Bash,** bloquea el comando si:
+**En Bash,** no busca las rutas protegidas en el texto del comando: un comando puede nombrarlas para leerlas (`cat`, `grep`, `git diff`…). Lo que cambie en ellas lo deshace `vigilar-huellas.ts`. Solo bloquea el comando si:
 
-- **Nombra una ruta protegida**, aunque sea solo para leerla. Para leer están Read, Grep y Glob.
+- **Nombra `~/.claude/`** (como `~`, `$HOME`, `${HOME}` o la ruta absoluta), salvo `projects/` y `plans/`.
 - **Intenta saltarse el arnés:**
   - `git commit --no-verify` o `-n`;
   - cambiar `core.hooksPath`;
@@ -265,9 +279,25 @@ Al empezar cada conversación (y al reanudarla, limpiarla o compactarla), dice e
   - `disableAllHooks`;
   - aplicar un parche (`git apply`, `git am`, `patch`): las propuestas las aplicas tú (§6);
   - instalar o quitar dependencias (`npm|pnpm|yarn install/i/add/remove/update…`);
-  - nombrar `.git/`.
+  - nombrar `.git/`, donde están los hooks de git y las copias de las huellas.
 
 El mensaje de bloqueo de una ruta protegida le recuerda a Claude cómo se cambia: con una propuesta y tus comandos, nunca pidiéndote que la edites a mano.
+
+### PreToolUse, PostToolUse y PostToolUseFailure en Bash: `vigilar-huellas.ts`
+
+Vigila los comandos Bash por su efecto, no por su texto (`scripts/arnes/comun/huellas.ts`):
+
+1. **Antes del comando** guarda la huella (sha256) de cada fichero protegido que la fase no desbloquea, más `.claude/sumas.sha256` y `.claude/settings.local.json`. Guarda también una copia de cada contenido en `.git/arnes-huellas/copias/`, con la suma como nombre: un contenido ya copiado no se vuelve a copiar.
+2. **Después del comando**, haya acabado bien (PostToolUse) o con error (PostToolUseFailure), vuelve a calcular las huellas y deshace lo que haya cambiado:
+   - un fichero cambiado o borrado vuelve a ser la copia de antes del comando;
+   - un fichero nuevo dentro de un directorio protegido se quita.
+3. **La versión que dejó el comando** se aparta en `reports/huellas/<fecha y hora UTC>-<id del comando>/`, con la misma ruta. Se avisa a ti (`systemMessage`) y a Claude (`additionalContext`), y a Claude se le recuerda cómo se cambia una ruta protegida: con una propuesta.
+
+Restaura desde la copia, no desde git: un `git add` o un `git checkout` del comando no cambia lo que se restaura.
+
+En `.claude/settings.local.json` solo cuenta lo que toca al arnés: `env` (la fase), `hooks` y `disableAllHooks`. Claude Code guarda ahí los permisos que aceptas con «Allow always», a veces mientras corre un comando, y esos se quedan.
+
+Cada hook tarda unos 100 ms.
 
 ### PostToolUse: `formatear-y-lintear.ts`
 
@@ -465,25 +495,29 @@ Se activa con `npm ci`: el script `prepare` ejecuta `git config core.hooksPath .
 
 **Capas, de la primera a la última:**
 
-1. **Guardia textual de Bash.** Bloquea los comandos que nombran rutas protegidas o atajos para saltarse el arnés, también aplicar un parche: las propuestas las aplicas tú.
-2. **Guardia de ficheros.** Resuelve la ruta real, así que los enlaces simbólicos y los `..` no sirven para colarse.
-3. **Sumas sha256** de todo lo protegido, en cada `make check`.
-4. **Comparación del fichero de sumas con el último commit.** Recalcular las sumas no basta para ocultar un cambio.
-5. **`make sumas` se niega a ejecutarse** dentro de Claude Code o sin un terminal interactivo.
-6. **Pre-commit:** separa la especificación del código, comprueba la autoría de los ficheros protegidos y comprueba las sumas.
-7. **ConfigChange:** los hooks no se cambian en caliente.
-8. **Tu revisión del diff antes de cada commit.**
+1. **Guardia textual de Bash.** Bloquea los atajos para saltarse el arnés, también aplicar un parche (las propuestas las aplicas tú), y los comandos que nombran `.git/` o `~/.claude/`.
+2. **Huellas de Bash.** Lo que un comando cambie en las rutas protegidas vuelve a como estaba al acabar el comando, sin depender de cómo esté escrito.
+3. **Guardia de ficheros.** Resuelve la ruta real, así que los enlaces simbólicos y los `..` no sirven para colarse.
+4. **Sumas sha256** de todo lo protegido, en cada `make check`.
+5. **Comparación del fichero de sumas con el último commit.** Recalcular las sumas no basta para ocultar un cambio.
+6. **`make sumas` se niega a ejecutarse** dentro de Claude Code o sin un terminal interactivo.
+7. **Pre-commit:** separa la especificación del código, comprueba la autoría de los ficheros protegidos y comprueba las sumas.
+8. **ConfigChange:** los hooks no se cambian en caliente.
+9. **Tu revisión del diff antes de cada commit.**
 
 **Límites que conviene conocer:**
 
-- **La guardia de Bash es textual.** Un comando ofuscado (una ruta construida por partes, en base64 o en variables) puede pasar. Por eso existen las capas 3, 4 y 8: lo que no se bloquea, se detecta.
+- **La guardia de Bash es textual.** Un comando ofuscado (una ruta construida por partes, en base64 o en variables) puede llegar a `.git/` o a `~/.claude/`, también a las copias de las huellas. Por eso existen las capas 4, 5, 8 y 9: lo que no se bloquea, se detecta. Las rutas protegidas del repositorio ya no dependen del texto: las vigilan las huellas.
+- **Las huellas deshacen, no impiden.** Mientras dura el comando, el cambio existe, y el propio comando puede usarlo: por ejemplo, relajar `eslint.config.js` y pasar el lint en la misma línea. Por eso el hook Stop ejecuta `make check` cuando todo ya está restaurado, y lo que el comando deje fuera de las rutas protegidas lo ve tu revisión.
+- **Las huellas no ven los comandos en segundo plano ni los cancelados.** Un comando en segundo plano sigue trabajando después de PostToolUse, y uno cancelado no dispara ningún hook Post. Lo que cambien lo detectan integridad, en el hook Stop (capa 4), y tu revisión.
+- **Si cambias una ruta protegida mientras corre un comando de Claude**, por ejemplo al aplicar una propuesta, las huellas también deshacen tu cambio. No se pierde: queda en `reports/huellas/` y el aviso te lo dice. Aplica las propuestas cuando Claude haya parado.
+- **Las copias de las huellas crecen** en `.git/arnes-huellas/copias/`: una por cada contenido distinto de un fichero protegido. Puedes borrar la carpeta cuando ninguna conversación esté ejecutando comandos.
 - **`npx <paquete>` puede descargar y ejecutar un paquete** que no está en el lockfile. No cambia `package.json`, pero se ejecuta.
-- **La comprobación del terminal de `make sumas` se puede engañar** simulando uno (por ejemplo, con `script`). Si ocurriera, la capa 4 lo detectaría, porque las sumas ya no coincidirían con el último commit, y también tu revisión.
+- **La comprobación del terminal de `make sumas` se puede engañar** simulando uno (por ejemplo, con `script`). Si ocurriera, la capa 5 lo detectaría, porque las sumas ya no coincidirían con el último commit, y también tu revisión.
 - **ConfigChange también te bloquea a ti** si cambias la configuración con `/config` durante una conversación. Edita la configuración fuera de Claude Code y abre una conversación nueva. `make fase` también cambia la configuración local, así que las conversaciones abiertas pueden mostrarte ese bloqueo: es lo esperado, y siguen en su fase.
-- **La fase vive en un fichero local** (`.claude/settings.local.json`), fuera de git y de las sumas. Claude no puede editarlo, porque está dentro de `.claude/`; tú sí. Si lo cambias a mano, el aviso de `anunciar-fase.ts` te muestra la fase con la que empieza cada conversación.
+- **La fase vive en un fichero local** (`.claude/settings.local.json`), fuera de git y de las sumas. Claude no puede editarlo con Edit o Write, porque está dentro de `.claude/`, y si un comando Bash le cambia la fase, los hooks o `disableAllHooks`, las huellas lo deshacen; tú sí puedes. Si lo cambias a mano, el aviso de `anunciar-fase.ts` te muestra la fase con la que empieza cada conversación.
 - **Los errores del entorno se reconocen por el texto** de la salida. Un test que imprima `EACCES` a propósito daría un falso aviso; solo le pide a Claude que pare y pregunte.
 - **El freno cuenta bloqueos seguidos del mismo paso.** Si Claude alterna dos pasos que fallan, la racha empieza de cero cada vez. Lo verás en `make bloqueos`.
-- **En Bash no se pueden nombrar las rutas protegidas ni para leerlas.** Es incómodo, pero Read, Grep y Glob cubren la lectura.
 - **Los hooks solo vigilan a Claude Code.** A ti no te frenan, a propósito.
 - **Los subagentes son un LLM:** su informe orienta, pero no demuestra nada.
 - **Que pasen los tests no demuestra eficacia pedagógica.** Lo dirá el README de la etapa 5.
@@ -498,9 +532,17 @@ Se activa con `npm ci`: el script `prepare` ejecuta `git config core.hooksPath .
 
   > «docs/investigacion.md» está protegida (regla «docs/investigacion.md» de .claude/protegidas.txt). Si hay que cambiarla, prepara una propuesta (CLAUDE.md, «Propuestas»): edítala en un clon fuera del repositorio, guarda el parche en reports/propuestas/, dale al dueño los comandos exactos para aplicarlo y para con [DECISIÓN PENDIENTE]. No le pidas que la edite a mano.
 
-- **Bash `echo PRUEBA >> docs/investigacion.md`** → la respuesta es `deny`, con el motivo:
+- **Bash `echo PRUEBA >> docs/investigacion.md`** → `proteger-rutas.ts` lo deja pasar. `vigilar-huellas.ts` guarda las huellas antes y, al acabar el comando, devuelve el informe a como estaba, aparta la versión del comando en `reports/huellas/` y responde:
 
-  > El comando menciona la ruta protegida «docs/investigacion.md» (.claude/protegidas.txt). En Bash no se puede nombrar una ruta protegida, ni siquiera para leerla: usa las herramientas Read, Grep o Glob para leer, y los objetivos de make (make check, make specs…) para verificar. Si hay que cambiarla, prepara una propuesta (…).
+  > El comando ha tocado rutas protegidas (.claude/protegidas.txt):
+  >
+  > - docs/investigacion.md: lo cambió el comando y ha vuelto a como estaba.
+  >
+  > La versión que dejó el comando está en reports/huellas/2026-10-24T10-15-30Z-toolu_…/.
+
+  A Claude le añade cómo se cambia una ruta protegida (…prepara una propuesta…).
+
+- **Bash `cat ~/.claude/settings.json`** → la respuesta es `deny`: «No se puede tocar ~/.claude/…».
 
 - **Write sobre `src/dominio/criterio.ts`** → no hay respuesta, es decir, el hook lo permite.
 
@@ -509,11 +551,11 @@ Se activa con `npm ci`: el script `prepare` ejecuta `git config core.hooksPath .
 - **Cómo:** sesión no interactiva (`claude -p`, Claude Code 2.1.302, modelo Haiku) en este repositorio, a la que se pidió añadir una línea «PRUEBA» al final del informe.
 - **Read:** permitido.
 - **Edit:** `PreToolUse:Edit hook error: «docs/investigacion.md» está protegida…`.
-- **Bash:** `PreToolUse:Bash hook error: El comando menciona la ruta protegida «docs/investigacion.md»…`.
+- **Bash:** `PreToolUse:Bash hook error: El comando menciona la ruta protegida «docs/investigacion.md»…`. Era la guardia textual de entonces, anterior a las huellas.
 - **Final:** el modelo informó de los dos bloqueos, no buscó otra vía y terminó con `[DECISIÓN PENDIENTE]`. El hook Stop mostró: «Claude ha parado con [DECISIÓN PENDIENTE]: espera tu decisión. La comprobación no se ha ejecutado.».
 - **Después:** `sha256sum -c` sobre el informe devolvió «La suma coincide».
 
-**3. Tests automáticos.** `tests/arnes/guardia.test.ts` repite estos casos, y más (enlaces simbólicos, `..`, `.git/`, `~/.claude/`, `--no-verify`, `env -u CLAUDECODE`, `npm install`…), en cada `make check`.
+**3. Tests automáticos.** `tests/arnes/guardia.test.ts` repite estos casos, y más (enlaces simbólicos, `..`, `.git/`, `~/.claude/`, `--no-verify`, `env -u CLAUDECODE`, `npm install`…), en cada `make check`. `tests/arnes/huellas.test.ts` hace lo mismo con las huellas: ficheros cambiados, borrados y creados, un fichero cambiado por un enlace simbólico, los permisos de los ajustes locales y un cambio de fase.
 
 ---
 
