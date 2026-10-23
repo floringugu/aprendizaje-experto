@@ -1,4 +1,5 @@
 import { aciertoSinAyuda, llegaAlUmbral } from './acierto.ts';
+import { objetivosPendientes } from './ruta.ts';
 
 type FaseTrasDiagnostico = 'novato' | 'intermedio' | 'avanzado_experto';
 
@@ -29,23 +30,6 @@ interface ConclusionDiagnostico {
   readonly objetivosDominados: readonly string[];
   readonly aciertoPorObjetivo: Readonly<Record<string, number>>;
   readonly aciertoProblemasSinPista?: number;
-}
-
-/** Objetivos que quedan por dominar, en el orden del contenido: son la ruta (@DIAG-2.1). */
-export function objetivosPendientes(objetivos: readonly string[], dominados: ReadonlySet<string>): readonly string[] {
-  return objetivos.filter((objetivo) => !dominados.has(objetivo));
-}
-
-/**
- * Mezcla los grupos por turnos: el primero de cada grupo, después el segundo de cada uno, y así hasta
- * agotarlos. Con un grupo por objetivo, dos ítems seguidos casi nunca son del mismo objetivo, así que
- * el orden no da pista del tipo de problema (@DIAG-1.3).
- */
-export function intercalarPorTurnos<T>(grupos: readonly (readonly T[])[]): T[] {
-  const turnos = Math.max(0, ...grupos.map((grupo) => grupo.length));
-  return Array.from({ length: turnos }, (_, turno) => turno).flatMap((turno) =>
-    grupos.flatMap((grupo) => grupo.slice(turno, turno + 1)),
-  );
 }
 
 /** Lo que hace falta saber de un ítem para decidir si es un problema intercalable. */

@@ -1,14 +1,10 @@
-import { ultimoIntentoPorItem } from '../dominio/acierto.ts';
 import type { EntradaDiagnostico } from '../dominio/diagnostico.ts';
-import {
-  evaluarDiagnostico,
-  intercalarPorTurnos,
-  pasosRetiradosIniciales,
-  problemasIntercalables,
-} from '../dominio/diagnostico.ts';
+import { evaluarDiagnostico, pasosRetiradosIniciales, problemasIntercalables } from '../dominio/diagnostico.ts';
+import { intercalarPorTurnos } from '../dominio/turnos.ts';
 import type { ContenidoDominio, ItemContenido } from './contenido.ts';
+import { itemsDelObjetivo } from './contenido.ts';
 import type { AperturaDominio, ResultadoDiagnostico } from './dominio.ts';
-import type { Entorno, EstadoDominio, Situacion } from './estado.ts';
+import type { Entorno, Situacion } from './estado.ts';
 import { diagnosticoPendiente, enDominio, MOTIVO_DIAGNOSTICO_TERMINADO } from './estado.ts';
 import { parametroNumerico } from './parametros.ts';
 import type { PeticionDominio } from './peticiones.ts';
@@ -29,7 +25,7 @@ function itemsDeDiagnostico(contenido: ContenidoDominio): readonly ItemContenido
  */
 function sesionDeDiagnostico(contenido: ContenidoDominio): Sesion {
   const items = itemsDeDiagnostico(contenido);
-  const porObjetivo = contenido.objetivos.map((objetivo) => items.filter((item) => item.objetivo === objetivo.id));
+  const porObjetivo = contenido.objetivos.map((objetivo) => itemsDelObjetivo(items, objetivo.id));
   return {
     tipo: 'diagnostico',
     intercalada: false,
@@ -50,31 +46,30 @@ export function abrirDominio(entorno: Entorno, peticion: PeticionDominio): Resul
 function entradaDelDiagnostico(situacion: Situacion, parametros: ParametrosJson): EntradaDiagnostico {
   const { contenido, estado } = situacion;
   const items = itemsDeDiagnostico(contenido);
-  const delDiagnostico = estado.intentos.filter((intento) => intento.contexto === 'diagnostico');
   return {
     objetivos: contenido.objetivos.map((objetivo) => ({
       id: objetivo.id,
-      items: items.filter((item) => item.objetivo === objetivo.id).map((item) => item.id),
+      items: itemsDelObjetivo(items, objetivo.id).map((item) => item.id),
     })),
     problemasIntercalables: problemasIntercalables(items, contenido.categorias),
-    respuestas: ultimoIntentoPorItem(delDiagnostico),
+    respuestas: estado.ultimoIntentoDeCadaItem('diagnostico'),
     umbralDominio: parametroNumerico(parametros, 'umbral_dominio'),
     umbralPasoAAvanzado: parametroNumerico(parametros, 'umbral_paso_a_avanzado'),
   };
 }
 
-function aplicarResultado(contenido: ContenidoDominio, estado: EstadoDominio, resultado: ResultadoDiagnostico): void {
-  estado.fase = resultado.fase;
-  // Una respuesta del diagnóstico sin confianza declarada ya no cuenta: el diagnóstico está cerrado.
-  estado.pendientes.clear();
-  contenido.objetivos.forEach((objetivo) => {
-    const dominado = resultado.objetivosDominados.includes(objetivo.id);
-    if (dominado) {
-      estado.dominados.add(objetivo.id);
-    }
-    const pasosDeCadaEjemplo = objetivo.ejemplos_resueltos.map((ejemplo) => ejemplo.pasos.length);
-    estado.pasosRetirados.set(objetivo.id, pasosRetiradosIniciales(dominado, pasosDeCadaEjemplo));
-  });
+/** Los pasos que el diagnóstico retira de los ejemplos resueltos de cada objetivo (@DIAG-2.5). */
+function pasosRetiradosTrasDiagnostico(
+  contenido: ContenidoDominio,
+  resultado: ResultadoDiagnostico,
+): ReadonlyMap<string, number> {
+  return new Map(
+    contenido.objetivos.map((objetivo) => {
+      const dominado = resultado.objetivosDominados.includes(objetivo.id);
+      const pasosDeCadaEjemplo = objetivo.ejemplos_resueltos.map((ejemplo) => ejemplo.pasos.length);
+      return [objetivo.id, pasosRetiradosIniciales(dominado, pasosDeCadaEjemplo)];
+    }),
+  );
 }
 
 /**
@@ -88,7 +83,11 @@ export function terminarDiagnostico(entorno: Entorno, peticion: PeticionDominio)
       return rechazar(MOTIVO_DIAGNOSTICO_TERMINADO);
     }
     const resultado = evaluarDiagnostico(entradaDelDiagnostico(situacion, entorno.dependencias.leerParametros()));
-    aplicarResultado(situacion.contenido, situacion.estado, resultado);
+    situacion.estado.cerrarDiagnostico({
+      fase: resultado.fase,
+      dominados: resultado.objetivosDominados,
+      pasosRetirados: pasosRetiradosTrasDiagnostico(situacion.contenido, resultado),
+    });
     return aceptar(resultado);
   });
 }

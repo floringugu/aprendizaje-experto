@@ -1,3 +1,4 @@
+import { ultimoIntentoPorItem } from '../dominio/acierto.ts';
 import type { ContenidoDominio } from './contenido.ts';
 import type { Dependencias } from './dependencias.ts';
 import type { Fase } from './dominio.ts';
@@ -18,16 +19,72 @@ interface RespuestaPendiente {
   readonly respuesta: string;
 }
 
-/** Lo que la aplicación sabe de una persona en un dominio. */
-export interface EstadoDominio {
-  /** Empieza en «diagnostico»: hasta terminarlo no se practica nada. */
-  fase: Fase;
-  /** En el orden en que se hicieron. */
-  readonly intentos: Intento[];
-  readonly pendientes: Map<string, RespuestaPendiente>;
-  readonly dominados: Set<string>;
+/** Lo que deja el diagnóstico al cerrarse. */
+interface CierreDiagnostico {
+  readonly fase: Fase;
+  readonly dominados: readonly string[];
   /** Pasos retirados de los ejemplos resueltos de cada objetivo. */
-  readonly pasosRetirados: Map<string, number>;
+  readonly pasosRetirados: ReadonlyMap<string, number>;
+}
+
+/**
+ * Lo que la aplicación sabe de una persona en un dominio. Los casos de uso lo leen y lo cambian solo
+ * con estos métodos, así que la forma en que se guarda no sale de este módulo.
+ */
+export class EstadoDominio {
+  /** Empieza en «diagnostico»: hasta terminarlo no se practica nada. */
+  private faseActual: Fase = 'diagnostico';
+  /** En el orden en que se hicieron. */
+  private readonly intentos: Intento[] = [];
+  private readonly pendientes = new Map<string, RespuestaPendiente>();
+  private readonly objetivosDominados = new Set<string>();
+  private readonly pasosRetirados = new Map<string, number>();
+
+  get fase(): Fase {
+    return this.faseActual;
+  }
+
+  get dominados(): ReadonlySet<string> {
+    return this.objetivosDominados;
+  }
+
+  /** Mientras dura el diagnóstico no se ha retirado ningún paso. */
+  pasosRetiradosDe(objetivo: string): number {
+    return this.pasosRetirados.get(objetivo) ?? 0;
+  }
+
+  /** Último intento de cada ítem (`true` si lo acertó); con `contexto`, solo entre los de ese contexto. */
+  ultimoIntentoDeCadaItem(contexto?: ContextoRespuesta): Map<string, boolean> {
+    const contados =
+      contexto === undefined ? this.intentos : this.intentos.filter((intento) => intento.contexto === contexto);
+    return ultimoIntentoPorItem(contados);
+  }
+
+  respuestaPendiente(item: string): RespuestaPendiente | undefined {
+    return this.pendientes.get(item);
+  }
+
+  /** Guarda la respuesta hasta que la persona declare su confianza; otra respuesta al mismo ítem la sustituye. */
+  guardarRespuesta(item: string, respuesta: RespuestaPendiente): void {
+    this.pendientes.set(item, respuesta);
+  }
+
+  /** Registra el intento ya corregido: su respuesta deja de estar pendiente. */
+  registrarIntento(intento: Intento): void {
+    this.pendientes.delete(intento.item);
+    this.intentos.push(intento);
+  }
+
+  /**
+   * Deja la fase, los objetivos dominados y los pasos retirados que dio el diagnóstico. Una respuesta
+   * del diagnóstico sin confianza declarada ya no cuenta: el diagnóstico está cerrado.
+   */
+  cerrarDiagnostico(cierre: CierreDiagnostico): void {
+    this.faseActual = cierre.fase;
+    this.pendientes.clear();
+    cierre.dominados.forEach((objetivo) => this.objetivosDominados.add(objetivo));
+    cierre.pasosRetirados.forEach((pasos, objetivo) => this.pasosRetirados.set(objetivo, pasos));
+  }
 }
 
 /** Progreso de una persona en todos sus dominios. Por ahora vive en memoria. */
@@ -39,13 +96,7 @@ export class EstadoPersona {
     if (existente !== undefined) {
       return existente;
     }
-    const nuevo: EstadoDominio = {
-      fase: 'diagnostico',
-      intentos: [],
-      pendientes: new Map(),
-      dominados: new Set(),
-      pasosRetirados: new Map(),
-    };
+    const nuevo = new EstadoDominio();
     this.dominios.set(dominio, nuevo);
     return nuevo;
   }

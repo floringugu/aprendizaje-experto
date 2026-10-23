@@ -73,7 +73,7 @@ export function responderItem(
     if (!item.ok) {
       return item;
     }
-    situacion.estado.pendientes.set(item.valor.id, { contexto: peticion.contexto, respuesta: peticion.respuesta });
+    situacion.estado.guardarRespuesta(item.valor.id, { contexto: peticion.contexto, respuesta: peticion.respuesta });
     return aceptar({ esperandoConfianza: true });
   });
 }
@@ -85,7 +85,7 @@ export function responderItem(
  */
 export function declararConfianza(entorno: Entorno, peticion: PeticionConfianza): Resultado<Feedback> {
   return enDominio(entorno, peticion.dominio, (situacion) => {
-    const pendiente = situacion.estado.pendientes.get(peticion.item);
+    const pendiente = situacion.estado.respuestaPendiente(peticion.item);
     const item = buscarItem(situacion, peticion.item);
     if (pendiente === undefined || item === undefined) {
       return rechazar(`Primero hay que responder el ítem ${peticion.item}.`);
@@ -93,8 +93,7 @@ export function declararConfianza(entorno: Entorno, peticion: PeticionConfianza)
     // Todo lo que puede fallar va antes de tocar el estado, para no dejar un intento a medias.
     const correcta = esCorrecta(pendiente.respuesta, item.respuesta);
     const respuestaCorrecta = respuestaMostrada(item.respuesta);
-    situacion.estado.pendientes.delete(item.id);
-    situacion.estado.intentos.push({ item: item.id, contexto: pendiente.contexto, correcta });
+    situacion.estado.registrarIntento({ item: item.id, contexto: pendiente.contexto, correcta });
     return aceptar({ correcta, respuestaCorrecta, explicacion: item.feedback });
   });
 }

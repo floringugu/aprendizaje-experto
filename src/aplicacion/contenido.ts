@@ -19,6 +19,11 @@ export interface ItemContenido {
   readonly feedback: string;
 }
 
+/** Los ítems de un objetivo, en el orden del contenido. */
+export function itemsDelObjetivo(items: readonly ItemContenido[], objetivo: string): readonly ItemContenido[] {
+  return items.filter((item) => item.objetivo === objetivo);
+}
+
 export interface EjemploResueltoContenido {
   readonly id: string;
   readonly pasos: readonly string[];

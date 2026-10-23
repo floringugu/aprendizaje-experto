@@ -1,5 +1,5 @@
-import { ultimoIntentoPorItem } from '../dominio/acierto.ts';
-import { objetivosPendientes } from '../dominio/diagnostico.ts';
+import { objetivosPendientes } from '../dominio/ruta.ts';
+import { itemsDelObjetivo } from './contenido.ts';
 import type { Progreso, ProgresoObjetivo } from './dominio.ts';
 import type { Entorno, Situacion } from './estado.ts';
 import { diagnosticoPendiente, enDominio } from './estado.ts';
@@ -21,14 +21,14 @@ interface VistaDelProgreso {
  */
 function progresoDelObjetivo(objetivo: string, vista: VistaDelProgreso): ProgresoObjetivo {
   const { contenido, estado } = vista.situacion;
-  const items = contenido.items.filter((item) => item.objetivo === objetivo).map((item) => item.id);
+  const items = itemsDelObjetivo(contenido.items, objetivo).map((item) => item.id);
   const dominado = estado.dominados.has(objetivo);
   const abierto = objetivo === vista.abierto;
   return {
     objetivo,
     estado: dominado ? 'dominado' : abierto ? 'abierto' : 'cerrado',
     itemsSinIntento: items.filter((item) => !vista.ultimoIntento.has(item)).length,
-    pasosRetirados: estado.pasosRetirados.get(objetivo) ?? 0,
+    pasosRetirados: estado.pasosRetiradosDe(objetivo),
     enColaDePractica: abierto,
   };
 }
@@ -40,7 +40,7 @@ export function consultarProgreso(entorno: Entorno, peticion: PeticionDominio): 
     const ids = contenido.objetivos.map((objetivo) => objetivo.id);
     const ruta = objetivosPendientes(ids, estado.dominados);
     const abierto = diagnosticoPendiente(estado) ? undefined : ruta[0];
-    const vista: VistaDelProgreso = { situacion, ultimoIntento: ultimoIntentoPorItem(estado.intentos), abierto };
+    const vista: VistaDelProgreso = { situacion, ultimoIntento: estado.ultimoIntentoDeCadaItem(), abierto };
     const progreso: Progreso = {
       fase: estado.fase,
       objetivos: ids.map((objetivo) => progresoDelObjetivo(objetivo, vista)),

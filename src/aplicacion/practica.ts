@@ -1,4 +1,5 @@
 import type { ContenidoDominio, ObjetivoContenido } from './contenido.ts';
+import { itemsDelObjetivo } from './contenido.ts';
 import type { Entorno } from './estado.ts';
 import { diagnosticoPendiente, enDominio, MOTIVO_DIAGNOSTICO_PENDIENTE } from './estado.ts';
 import { presentar } from './presentacion.ts';
@@ -30,9 +31,10 @@ function elementosDePractica(
   objetivo: ObjetivoContenido,
   pasosRetirados: number,
 ): readonly ElementoSesion[] {
-  const items: ElementoSesion[] = contenido.items
-    .filter((item) => item.objetivo === objetivo.id)
-    .map((item) => ({ tipo: 'item', item: presentar(item) }));
+  const items: ElementoSesion[] = itemsDelObjetivo(contenido.items, objetivo.id).map((item) => ({
+    tipo: 'item',
+    item: presentar(item),
+  }));
   const ejemplo = ejemploVisible(objetivo, pasosRetirados);
   return ejemplo === undefined ? items : [{ tipo: 'ejemplo', ejemplo }, ...items];
 }
@@ -50,7 +52,7 @@ export function iniciarSesion(entorno: Entorno, peticion: PeticionSesion): Resul
     if (objetivo === undefined) {
       return rechazar('Hay que elegir un objetivo del dominio para practicarlo.');
     }
-    const pasosRetirados = estado.pasosRetirados.get(objetivo.id) ?? 0;
+    const pasosRetirados = estado.pasosRetiradosDe(objetivo.id);
     return aceptar({
       tipo: 'practica',
       intercalada: false,

@@ -1,12 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { EntradaDiagnostico } from '../../src/dominio/diagnostico.ts';
-import {
-  evaluarDiagnostico,
-  intercalarPorTurnos,
-  objetivosPendientes,
-  pasosRetiradosIniciales,
-  problemasIntercalables,
-} from '../../src/dominio/diagnostico.ts';
+import { evaluarDiagnostico, pasosRetiradosIniciales, problemasIntercalables } from '../../src/dominio/diagnostico.ts';
 
 const UMBRAL = 0.85;
 
@@ -111,30 +105,6 @@ describe('evaluarDiagnostico', () => {
   it('@DIAG-3.1 sin problemas intercalables no informa de su acierto', () => {
     // El campo no existe, ni siquiera con valor `undefined`.
     expect(evaluar({})).not.toHaveProperty('aciertoProblemasSinPista');
-  });
-});
-
-describe('objetivosPendientes', () => {
-  it('@DIAG-2.1 conserva el orden del contenido', () => {
-    expect(objetivosPendientes(['O1', 'O2', 'O3'], new Set(['O2']))).toEqual(['O1', 'O3']);
-  });
-});
-
-describe('intercalarPorTurnos', () => {
-  it('@DIAG-1.3 toma uno de cada grupo por turnos y sigue con los que aún tienen elementos', () => {
-    expect(intercalarPorTurnos([['A1', 'A2', 'A3'], ['B1'], ['C1', 'C2']])).toEqual([
-      'A1',
-      'B1',
-      'C1',
-      'A2',
-      'C2',
-      'A3',
-    ]);
-  });
-
-  it('@DIAG-1.3 sin grupos, o con grupos vacíos, no da nada', () => {
-    expect(intercalarPorTurnos([])).toEqual([]);
-    expect(intercalarPorTurnos([[], []])).toEqual([]);
   });
 });
 
