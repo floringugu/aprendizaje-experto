@@ -85,7 +85,8 @@ export function revisar(mesa: Mesa, marcas: Marcador, filtro: FiltroRevision): R
 
 /**
  * Aplica la acción y devuelve la mesa nueva, sin tocar la de entrada. Lo que no cambia se queda donde
- * estaba y en el mismo orden; lo que entra en una lista va al final.
+ * estaba y en el mismo orden; lo que entra en una lista va al final. La mesa de entrada no repite ids
+ * (`idRepetido` da `undefined`), y la que devuelve tampoco.
  *
  * - `aprobar` saca la pieza del borrador y la pone en el aprobado con su fuente, si la tiene (@MATE-4.4,
  *   @MATE-5.3); da igual que lleve marca. Un objetivo entra sin sus ejemplos, que siguen pendientes y
@@ -101,8 +102,13 @@ export function revisar(mesa: Mesa, marcas: Marcador, filtro: FiltroRevision): R
  *   todo lo que cuelga de él en el borrador: sus ejemplos y sus ítems (regla que la feature no cubre).
  * - `corregir` sustituye la pieza por `corregida`, en el mismo sitio del borrador, y sigue pendiente
  *   (@MATE-4.6). Se valida como una pieza suelta de su tipo: si no cumple el formato del contenido, no
- *   cambia nada y rechaza con el `campo` que falta (@MATE-4.8); si cambia el `id`, rechaza con `campo`
- *   `id`. Un ejemplo que va aparte conserva su `objetivo`, venga o no en `corregida`.
+ *   cambia nada y rechaza con el `campo` que falta (@MATE-4.8). Si cambia el `id`, o si la mesa queda
+ *   con un id repetido (un objetivo corregido con un ejemplo dentro que usa el id de otra pieza),
+ *   rechaza con `campo` `id` (regla que la feature no cubre, plan §0). Un ítem que pasa a colgar de un
+ *   `objetivo` que no está ni en el borrador ni en el aprobado rechaza con `campo` `objetivo`: nunca se
+ *   podría aprobar (regla que la feature no cubre, aprobada por el dueño el 24-10-2026). Se comprueba en
+ *   este orden: el formato, el `id`, el `objetivo` y los ids repetidos. Un ejemplo que va aparte
+ *   conserva su `objetivo`, venga o no en `corregida`.
  *
  * Una pieza que no está en el borrador rechaza con `causa` `pieza_no_encontrada`. Las marcas no se
  * guardan: se vuelven a calcular cada vez que se abre la revisión (@MATE-4.7).
@@ -118,6 +124,24 @@ export function aplicar(mesa: Mesa, accion: Accion, marcas: Marcador): Resultado
     case 'corregir':
       return sobrePieza(mesa, accion.pieza, (actual, pendiente) => corregirPieza(actual, pendiente, accion.corregida));
   }
+}
+
+/**
+ * El primer id del borrador que se repite, o `undefined` si no hay ninguno. Recorre el borrador en el
+ * orden de `revisar` y da el primer id que ya ha salido antes en el borrador, sea cual sea el tipo de
+ * pieza, o que también está en el aprobado, en cualquiera de sus piezas. Que el aprobado repita ids
+ * entre sus propias piezas no cuenta: el contenido escrito a mano puede hacerlo (plan §0, «Borradores»).
+ *
+ * La revisión nombra cada pieza solo por su id, así que un id repetido haría ambigua cualquier acción.
+ * Los casos de uso de material.ts la comprueban al leer la mesa, antes de llamar a `aplicar`.
+ */
+export function idRepetido(mesa: Mesa): string | undefined {
+  // `ContenidoDominio` encaja como borrador sin ejemplos aparte, así que `pendientesDelBorrador` también
+  // da todas las piezas del aprobado, con los ejemplos de dentro de sus objetivos.
+  const aprobados = new Set(pendientesDelBorrador(mesa.aprobado).map(({ pieza }) => pieza.id));
+  const delBorrador = pendientesDelBorrador(mesa.borrador).map(({ pieza }) => pieza.id);
+  // Repetido: está en el aprobado o ya ha salido antes en el borrador (su primera aparición es anterior).
+  return delBorrador.find((id, posicion) => aprobados.has(id) || delBorrador.indexOf(id) < posicion);
 }
 
 // --- Las piezas pendientes del borrador ---
@@ -225,13 +249,9 @@ function aprobarEnBloque(mesa: Mesa, marcas: Marcador): Resultado<Mesa> {
 
 // --- Rechazos ---
 
-function rechazarPor(causa: string, motivo: string): Resultado<never> {
-  return { ok: false, motivo, causa };
-}
+const rechazarPor = (causa: string, motivo: string): Resultado<never> => ({ ok: false, motivo, causa });
 
-function rechazarElCampo(campo: string, motivo: string): Resultado<never> {
-  return { ok: false, motivo, campo };
-}
+const rechazarElCampo = (campo: string, motivo: string): Resultado<never> => ({ ok: false, motivo, campo });
 
 /** Busca la pieza en el borrador y le aplica la acción; si no está, `pieza_no_encontrada`. */
 function sobrePieza(
@@ -383,14 +403,36 @@ function esRegistro(valor: unknown): valor is Registro {
 }
 
 /**
- * Sustituye la pieza por `corregida` si cumple el formato de su tipo y conserva el `id`. Valida
- * `corregida` tal como está en el borrador (@MATE-4.8): un ejemplo que va aparte se valida con su
- * `objetivo`, venga o no en `corregida`, y se guarda con él.
+ * Sustituye la pieza por `corregida` si pasa las comprobaciones de `primerRechazoDeLaCorreccion` y la mesa
+ * resultante no repite ningún id. Valida `corregida` tal como está en el borrador (@MATE-4.8): un ejemplo
+ * que va aparte se valida con su `objetivo`, venga o no en `corregida`, y se guarda con él.
  */
 function corregirPieza(mesa: Mesa, pendiente: Pendiente, corregida: unknown): Resultado<Mesa> {
-  const conObjetivo =
-    pendiente.tipo === 'ejemplo' && esRegistro(corregida) ? { ...corregida, objetivo: pendiente.objetivo } : corregida;
-  const fallo = falloDeLaPiezaSuelta(pendiente.tipo, conObjetivo);
+  const rechazo = primerRechazoDeLaCorreccion(mesa, pendiente, corregida);
+  if (rechazo !== undefined) {
+    return rechazo;
+  }
+  const id = pendiente.pieza.id;
+  const guardada = pendiente.tipo === 'ejemplo' && pendiente.aparte ? conObjetivoDelEjemplo(pendiente, corregida) : corregida;
+  // El `as` es honesto: `falloDeLaPiezaSuelta` ha comprobado que `guardada` es una pieza de su tipo.
+  const sustituir: CambioDeLista = (lista) =>
+    lista.map((pieza) => (pieza.id === id ? (guardada as typeof pieza) : pieza));
+  const mesaNueva = cambiarPieza(mesa, pendiente, sustituir);
+  // Se compara la mesa ya corregida: el objetivo viejo no está en ella, así que no choca con sus ejemplos.
+  const repetido = idRepetido(mesaNueva);
+  return repetido === undefined
+    ? aceptar(mesaNueva)
+    : rechazarElCampo('id', `No se guarda la corrección: el id «${repetido}» ya lo usa otra pieza.`);
+}
+
+/** Un ejemplo corregido se valida con el `objetivo` de la pieza que sustituye, venga o no en `corregida`. */
+function conObjetivoDelEjemplo(pendiente: Pendiente, corregida: unknown): unknown {
+  return pendiente.tipo === 'ejemplo' && esRegistro(corregida) ? { ...corregida, objetivo: pendiente.objetivo } : corregida;
+}
+
+/** El primer rechazo de la corrección, en el orden del plan (formato, `id`, `objetivo`), o `undefined` si pasa todos. */
+function primerRechazoDeLaCorreccion(mesa: Mesa, pendiente: Pendiente, corregida: unknown): Resultado<never> | undefined {
+  const fallo = falloDeLaPiezaSuelta(pendiente.tipo, conObjetivoDelEjemplo(pendiente, corregida));
   if (fallo !== undefined) {
     return rechazoDeFormato(fallo);
   }
@@ -398,11 +440,19 @@ function corregirPieza(mesa: Mesa, pendiente: Pendiente, corregida: unknown): Re
   if (!esRegistro(corregida) || corregida['id'] !== id) {
     return rechazarElCampo('id', `No se guarda la corrección: no se puede cambiar el id de «${id}».`);
   }
-  const guardada = pendiente.tipo === 'ejemplo' && pendiente.aparte ? conObjetivo : corregida;
-  // El `as` es honesto: `falloDeLaPiezaSuelta` ha comprobado que `guardada` es una pieza de su tipo.
-  const sustituir: CambioDeLista = (lista) =>
-    lista.map((pieza) => (pieza.id === id ? (guardada as typeof pieza) : pieza));
-  return aceptar(cambiarPieza(mesa, pendiente, sustituir));
+  return rechazoDeObjetivoInexistente(mesa, pendiente, corregida);
+}
+
+/** Un ítem que pasa a un objetivo que no está ni en el borrador ni en el aprobado nunca se podría aprobar. */
+function rechazoDeObjetivoInexistente(mesa: Mesa, pendiente: Pendiente, corregida: Registro): Resultado<never> | undefined {
+  const objetivo = corregida['objetivo'];
+  const existe = [...mesa.borrador.objetivos, ...mesa.aprobado.objetivos].some(({ id }) => id === objetivo);
+  return pendiente.tipo !== 'item' || existe
+    ? undefined
+    : rechazarElCampo(
+        'objetivo',
+        `No se guarda la corrección: el objetivo «${String(objetivo)}» no está ni en el borrador ni en el aprobado.`,
+      );
 }
 
 function rechazoDeFormato(fallo: FalloDeFormato): Resultado<never> {

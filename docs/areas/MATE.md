@@ -24,6 +24,7 @@ Todo lo que se guarda pasa por el puerto `Ficheros`, con rutas relativas a la ca
    - `cita_no_encontrada`: el documento no está en el material, o el fragmento no aparece en su texto. Para compararlos, cada tramo de espacios, tabuladores y saltos de línea cuenta como un solo espacio, en el fragmento y en el texto, y nada más se normaliza;
    - las páginas se unen con un salto de línea, así que una cita que cruza de una página a otra se encuentra.
 6. **Revisión** (el módulo central, `src/aplicacion/revision.ts`). Lee el borrador y el contenido aprobado, agrupa las piezas pendientes por objetivo y aplica aprobar, aprobar en bloque, descartar y corregir. Escribe los dos ficheros enteros. Hay una regla que la feature no cubre: una pieza que cuelga de un objetivo aún pendiente (un ítem de O4) no se aprueba antes que su objetivo, porque el contenido aprobado quedaría con un objetivo que no existe. Rechaza con `objetivo_pendiente`. Las dos interfaces posibles están más abajo.
+   - **Ids únicos y corregir (24-10-2026).** Ningún id se repite dentro del borrador ni entre el borrador y el aprobado, sea cual sea el tipo de pieza; el aprobado escrito a mano no se comprueba. `idRepetido(mesa)` da el primero que se repite, y los casos de uso lo comprueban al leer la mesa. Una corrección que deja un id repetido rechaza con `campo` `id`. Decidido por el dueño en la misma fecha: un ítem corregido que pasa a colgar de un objetivo que no está ni en el borrador ni en el aprobado rechaza con `campo` `objetivo`, porque nunca se podría aprobar.
 7. **Ver fuente.** Busca la primera página que contiene el fragmento, con la misma normalización, y la hoja trae el texto entero de esa página; si la cita cruza de una página a otra, trae todas las que abarca, para que una pieza sin marca siempre se pueda abrir. Si no aparece en ninguna, usa la página que dice `lugar` («página 12», «diapositiva 3»), si es un número válido. Si tampoco, rechaza con `cita_no_encontrada`. Se busca por el fragmento antes que por `lugar` porque la IA puede contar las páginas impresas, y en un libro no coinciden con las del PDF. Lo mismo vale para lo aprobado, y en una sesión solo después de responder (MATE-7.1).
 8. **Deshacer.** Antes de cada acción de la revisión se guarda en memoria, por dominio, lo que había en los dos ficheros; deshacer los vuelve a escribir. Es un único hueco, así que solo se deshace la última acción (MATE-4.10). No sobrevive a reiniciar el servidor, y no hace falta.
 9. **Inicio de sesión de Claude Code** (`src/aplicacion/inicio-sesion.ts`). Es un estado en memoria (en marcha, enlace, pide código) con el proceso y la cancelación del temporizador. De cada evento `salida` solo se saca la primera URL `https://` y el texto se tira (MATE-8.7). El código que escribe la persona va a `proceso.enviar` y no se guarda en ningún sitio (MATE-8.6). Al lanzarlo se programan 5 minutos con `Temporizador`; al vencer, o con «Cancelar», se llama a `cortar()`. Ajustes solo devuelve `estado().iniciada`.
@@ -161,23 +162,31 @@ Salida de `make bloqueos A=<ÁREA>` al cerrar el área, y una frase sobre el blo
 
 **Hecho.**
 
-- `revision.ts` revisado. Las decisiones del implementador se quedan: el ejemplo de dentro de un objetivo pendiente da `objetivo_pendiente`; el ejemplo aprobado se reconstruye con `id`, `pasos` y `fuente` (son todos los campos de `EjemploResueltoContenido`); `ejemplos_resueltos` de la raíz no se crea vacío.
-- Mutación de `revision.ts`: 90,52 % → 283 muertos, 19 vivos y 4 sin cobertura, tras los seis tests nuevos (MATE-1 del implementador). Los vivos que quedan son equivalentes o textos de `motivo`: 172, 331 y 401 (tipos que no pueden llegar ahí); 218 y 277 (ramas inalcanzables si no hay ids repetidos); 296 y 334 (`dentro` sobra si los ids del borrador no están en el aprobado); 374 (`fuente: undefined`); 382 (`esRegistro`: el validador ya rechaza lo que no es un objeto); 409 y los textos de 244, 317 y 399. Sin commitear.
-- Los tests de la revisión están partidos en `tests/unidad/revision.test.ts` (`revisar`), `revision-aplicar.test.ts` (`aplicar`) y `revision-fabricas.ts` (fábricas comunes). Sin commitear.
-- **Alcance de los ids únicos, decidido por el dueño (24-10-2026): el borrador.** Ningún id se repite dentro del borrador ni entre el borrador y el aprobado, sea cual sea el tipo de pieza. El aprobado escrito a mano no se comprueba: el contenido de prueba repite `E1` en O1–O3, y sus piezas no llevan `fuente`. La propuesta del plan está en `reports/propuestas/2026-10-24-ids-unicos-borrador.patch` (filas «Borradores» y «Reglas de `MATE` que la feature no cubre»), pendiente de que el dueño la aplique.
+- MATE-3 (implementador, Sonnet, VERDE), revisado:
+  - `idRepetido(mesa)` en `src/aplicacion/revision.ts`.
+  - Dos reglas nuevas en `corregir`, comprobadas en este orden: formato, `id` cambiado, `objetivo` inexistente (`campo` `objetivo`, solo ítems) e id repetido en la mesa resultante (`campo` `id`).
+  - Tests en `tests/unidad/revision-ids.test.ts`. Los ayudantes `aplicado` y `rechazado` pasan a `revision-fabricas.ts`.
+  - Sin commitear.
+- Punto 2 del relevo anterior, decidido por el dueño (24-10-2026): rechazar con `campo` `objetivo`. Anotado en «Mecanismo». La propuesta para plan §0 está en `reports/propuestas/2026-10-24-objetivo-al-corregir.patch`, pendiente de aplicar.
+- **`revision.ts` está justo en 300 líneas de código** (`max-lines`). El implementador ha pasado `rechazarPor` y `rechazarElCampo` a flechas de una línea para caber. Cualquier línea más obliga a sacar un módulo: candidatos, las comprobaciones de `corregir` o `idRepetido` con `pendientesDelBorrador`.
+- La mutación de `revision.ts` (90,52 %) es anterior a MATE-3: repetirla al cerrar el área.
 
 **Falta.**
 
-1. La regla de los ids en `revision.ts`: `export function idRepetido(mesa: Mesa): string | undefined`, el primer id repetido dentro del borrador o que también está en el aprobado. Los casos de uso de `material.ts` la comprueban al leer la mesa. En `aplicar`, `corregir` rechaza con `campo` `id` si la mesa resultante tiene un id repetido (un objetivo corregido con un ejemplo dentro que choca). Añadir al comentario de `aplicar` que la mesa de entrada no repite ids. Encargo al implementador (Sonnet, toca `src/aplicacion/`).
-2. Sin decidir, para preguntar al dueño: `corregir` deja cambiar el `objetivo` de un ítem por uno que no existe ni en el borrador ni en el aprobado, y entonces la pieza da `objetivo_pendiente` para siempre. Propuesta: rechazar con `campo` `objetivo`.
-3. `src/aplicacion/inicio-sesion.ts`. Firma y comentario ya escritos (abajo); falta encargar el cuerpo y los tests, y cablearlo en `aplicacion.ts` con `...crearInicioSesion(dependencias.claudeCode, dependencias.temporizador)` en lugar de los cinco `sinImplementar` de Claude Code. En `src/dominio/unidades.ts`: `export const MS_PARA_INICIAR_SESION = 5 * SEGUNDOS_POR_MINUTO * MS_POR_SEGUNDO;` con el comentario «El inicio de sesión de Claude Code se corta solo a los 5 minutos (MATE-8.3).».
-4. Los casos de uso de `material.ts` (revisión con deshacer, `verFuente`, `anadirMaterial`, `redactarBorrador`), como en el relevo anterior.
+1. `src/aplicacion/inicio-sesion.ts`:
+   - Crea el fichero con la firma de abajo, con el cuerpo `return sinImplementar();`, y encarga en seguida el cuerpo y `tests/unidad/inicio-sesion.test.ts` (Tarea: MATE-4).
+   - El stub da `no-unused-vars` en los dos parámetros y deja rojo el lint hasta que el implementador escriba el cuerpo; no se arregla con `void`.
+   - En `src/dominio/unidades.ts`, al final: `export const MS_PARA_INICIAR_SESION = 5 * SEGUNDOS_POR_MINUTO * MS_POR_SEGUNDO;`, con el comentario `/** El inicio de sesión de Claude Code se corta solo a los 5 minutos (MATE-8.3). */`.
+   - Cablea `aplicacion.ts` cuando vuelva el implementador, no antes: `crearAplicacion` llamaría al stub y lanzaría en todos los tests. El cableado es `...crearInicioSesion(dependencias.claudeCode, dependencias.temporizador)` en el objeto que devuelve `crearAplicacion`, sin los cinco `sinImplementar` de Claude Code en `CASOS_DE_MATERIAL`, que pasa a ser solo `CasosDeMaterial`.
+   - El doble `tests/aceptacion/soporte/claude-code.ts` emite los eventos después de `iniciarSesionClaudeCode` (`emitirAlLanzar`). Al relanzar sustituye `alRecibir`, así que ignorar los eventos de un proceso viejo hay que hacerlo con un cierre por proceso.
+2. Los casos de uso de `material.ts`: revisión con deshacer, que comprueba `idRepetido` al leer la mesa; `verFuente`; `anadirMaterial`; `redactarBorrador`.
 
-**Firma de `inicio-sesion.ts`** (cópiala tal cual al crear el fichero):
+**Firma de `inicio-sesion.ts`** (cópiala tal cual):
 
 ```ts
 import type { CasosDeClaudeCode } from './claude-code.ts';
 import type { ClaudeCode, Temporizador } from './puertos.ts';
+import { sinImplementar } from './sin-implementar.ts';
 
 /**
  * Los casos de uso del inicio de sesión de Claude Code desde Ajustes (MATE-8), con el estado del
@@ -204,15 +213,16 @@ import type { ClaudeCode, Temporizador } from './puertos.ts';
  * - `consultarAjustes` devuelve solo `{ sesionClaudeCode }`, con `iniciada` de `claudeCode.estado()`; la
  *   cuenta no sale de aquí (@MATE-8.5).
  */
-export function crearInicioSesion(claudeCode: ClaudeCode, temporizador: Temporizador): CasosDeClaudeCode
+export function crearInicioSesion(claudeCode: ClaudeCode, temporizador: Temporizador): CasosDeClaudeCode {
+  return sinImplementar();
+}
 ```
 
-**Nota sobre `make check`.** El paso «aceptacion» falla también en HEAD (75 escenarios, los de MATE sin implementar); los pasos estáticos pasan.
+**Nota sobre `make check`.** El paso «aceptacion» falla también en HEAD (75 escenarios, los de MATE sin implementar); los anteriores pasan.
 
-**Paso siguiente.** Comprueba que el dueño aplicó la propuesta de los ids. Luego escribe `idRepetido` (punto 1) y encárgalo; pregunta el punto 2; después, `inicio-sesion.ts`.
+**Paso siguiente.** Comprueba que el dueño commiteó MATE-3 y aplicó la propuesta del `objetivo`. Luego, el punto 1.
 
 **Leer primero:**
 
-- este relevo y «Mecanismo»;
-- el comentario de `aplicar` en `src/aplicacion/revision.ts`;
-- `src/aplicacion/claude-code.ts`, `src/aplicacion/aplicacion.ts` y `tests/aceptacion/soporte/claude-code.ts`.
+- este relevo;
+- `src/aplicacion/claude-code.ts`, `src/aplicacion/aplicacion.ts`, los puertos `ClaudeCode` y `Temporizador` de `src/aplicacion/puertos.ts`, `tests/aceptacion/soporte/claude-code.ts` y `tests/aceptacion/pasos/claude-code.ts`.

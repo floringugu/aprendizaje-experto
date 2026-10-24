@@ -10,7 +10,15 @@ import type {
   ObjetivoContenido,
   TareaContenido,
 } from '../../src/aplicacion/contenido.ts';
-import { revisar, type BorradorDominio, type FiltroRevision, type Mesa } from '../../src/aplicacion/revision.ts';
+import type { Resultado } from '../../src/aplicacion/resultado.ts';
+import {
+  aplicar,
+  revisar,
+  type Accion,
+  type BorradorDominio,
+  type FiltroRevision,
+  type Mesa,
+} from '../../src/aplicacion/revision.ts';
 
 export const FUENTE_BUENA: Fuente = { documento: 'apuntes.pdf', lugar: 'página 12', fragmento: 'buena' };
 export const FUENTE_MALA: Fuente = { ...FUENTE_BUENA, fragmento: 'mala' };
@@ -62,4 +70,16 @@ export const ids = (piezas: readonly { readonly id: string }[]): string[] => pie
 /** Cada grupo como [objetivo, ids de sus piezas]. */
 export function agrupadas(mesa: Mesa, filtro: FiltroRevision = 'pendientes'): unknown[] {
   return revisar(mesa, marcador, filtro).grupos.map(({ objetivo: grupo, piezas }) => [grupo, ids(piezas)]);
+}
+
+/** Los ayudantes de `aplicar`: el éxito o el rechazo que el test espera, y un error claro si pasa lo otro. */
+function exito(resultado: Resultado<Mesa>): Mesa {
+  if (!resultado.ok) throw new Error(`Se esperaba éxito y fue un rechazo: ${resultado.motivo}`);
+  return resultado.valor;
+}
+export const aplicado = (mesa: Mesa, accion: Accion): Mesa => exito(aplicar(mesa, accion, marcador));
+export function rechazado(mesa: Mesa, accion: Accion): Extract<Resultado<Mesa>, { ok: false }> {
+  const resultado = aplicar(mesa, accion, marcador);
+  if (resultado.ok) throw new Error('Se esperaba un rechazo');
+  return resultado;
 }

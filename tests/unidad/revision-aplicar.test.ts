@@ -1,31 +1,22 @@
 import { describe, expect, it } from 'vitest';
-import { aplicar, revisar, type Accion, type Mesa } from '../../src/aplicacion/revision.ts';
-import type { Resultado } from '../../src/aplicacion/resultado.ts';
+import { revisar, type Accion, type Mesa } from '../../src/aplicacion/revision.ts';
 import {
   FUENTE_BUENA,
   FUENTE_MALA,
   ITEMS,
   MESA,
   agrupadas,
+  aplicado,
   ejemplo,
   ids,
   item,
   marcador,
   mesaDe,
   objetivo,
+  rechazado,
   tarea,
 } from './revision-fabricas.ts';
 
-function exito(resultado: Resultado<Mesa>): Mesa {
-  if (!resultado.ok) throw new Error(`Se esperaba éxito y fue un rechazo: ${resultado.motivo}`);
-  return resultado.valor;
-}
-const aplicado = (mesa: Mesa, accion: Accion): Mesa => exito(aplicar(mesa, accion, marcador));
-function rechazado(mesa: Mesa, accion: Accion): Extract<Resultado<Mesa>, { ok: false }> {
-  const resultado = aplicar(mesa, accion, marcador);
-  if (resultado.ok) throw new Error('Se esperaba un rechazo');
-  return resultado;
-}
 const aprobar = (mesa: Mesa, pieza: string): Mesa => aplicado(mesa, { tipo: 'aprobar', pieza });
 
 describe('aplicar: aprobar', () => {
