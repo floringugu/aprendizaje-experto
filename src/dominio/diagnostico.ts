@@ -1,7 +1,7 @@
 import { aciertoSinAyuda, llegaAlUmbral } from './acierto.ts';
+import type { Fase } from './fases.ts';
+import { faseTrasDominio, faseTrasProblemas } from './fases.ts';
 import { objetivosPendientes } from './ruta.ts';
-
-type FaseTrasDiagnostico = 'novato' | 'intermedio' | 'avanzado_experto';
 
 interface ObjetivoDiagnosticado {
   readonly id: string;
@@ -25,7 +25,7 @@ export interface EntradaDiagnostico {
  * ni fecha prevista (@DIAG-3.1).
  */
 interface ConclusionDiagnostico {
-  readonly fase: FaseTrasDiagnostico;
+  readonly fase: Fase;
   readonly ruta: readonly string[];
   readonly objetivosDominados: readonly string[];
   readonly aciertoPorObjetivo: Readonly<Record<string, number>>;
@@ -61,19 +61,16 @@ export function problemasIntercalables(
 }
 
 /**
- * La fase no pasa de novato mientras quede algún objetivo por dominar. Con todos dominados, el acierto
- * en problemas intercalables decide entre intermedio y avanzado/experto, con la misma métrica que
- * el paso de fase durante la práctica (@DIAG-2.3, @DIAG-2.4).
+ * El diagnóstico aplica, partiendo de novato, las mismas reglas de fase que la práctica: no se pasa
+ * de novato mientras quede algún objetivo por dominar, y con todos dominados el acierto en problemas
+ * intercalables decide entre intermedio y avanzado/experto (@DIAG-2.3, @DIAG-2.4).
  */
 function faseTrasDiagnostico(
   todosDominados: boolean,
   aciertoProblemas: number | undefined,
   umbralPasoAAvanzado: number,
-): FaseTrasDiagnostico {
-  if (!todosDominados) {
-    return 'novato';
-  }
-  return llegaAlUmbral(aciertoProblemas, umbralPasoAAvanzado) ? 'avanzado_experto' : 'intermedio';
+): Fase {
+  return faseTrasProblemas(faseTrasDominio('novato', todosDominados), aciertoProblemas, umbralPasoAAvanzado);
 }
 
 /**

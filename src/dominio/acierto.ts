@@ -29,6 +29,22 @@ export function aciertoSinAyuda(
   return acertados / items.length;
 }
 
+/** Lo que se sabe del acierto de un conjunto de ítems. */
+export interface MedidaAcierto {
+  /** Se omite mientras falte algún ítem por responder. */
+  readonly aciertoSinAyuda?: number;
+  /** Ítems que aún no tienen ningún intento (@MAST-1.3). */
+  readonly itemsSinIntento: number;
+}
+
+/** El acierto sin ayuda, si ya se puede medir, y cuántos ítems faltan por responder para medirlo. */
+export function medirAcierto(items: readonly string[], ultimoIntento: ReadonlyMap<string, boolean>): MedidaAcierto {
+  const itemsSinIntento = items.filter((item) => !ultimoIntento.has(item)).length;
+  const acierto = aciertoSinAyuda(items, ultimoIntento);
+  // Con `exactOptionalPropertyTypes`, un campo opcional sin valor se omite: no se pone a `undefined`.
+  return acierto === undefined ? { itemsSinIntento } : { aciertoSinAyuda: acierto, itemsSinIntento };
+}
+
 /** Un acierto igual al umbral ya lo supera (@DIAG-2.2); sin acierto medido, nunca. */
 export function llegaAlUmbral(acierto: number | undefined, umbral: number): boolean {
   return acierto !== undefined && acierto >= umbral;

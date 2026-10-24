@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { aciertoSinAyuda, llegaAlUmbral, ultimoIntentoPorItem } from '../../src/dominio/acierto.ts';
+import { aciertoSinAyuda, llegaAlUmbral, medirAcierto, ultimoIntentoPorItem } from '../../src/dominio/acierto.ts';
 
 describe('ultimoIntentoPorItem', () => {
   it('@DIAG-2.2 un intento posterior sustituye al anterior del mismo ítem', () => {
@@ -42,6 +42,20 @@ describe('aciertoSinAyuda', () => {
       ['OTRO', false],
     ]);
     expect(aciertoSinAyuda(['I1'], intentos)).toBe(1);
+  });
+});
+
+describe('medirAcierto', () => {
+  it('@MAST-1.3 cuenta los ítems sin intento y omite el acierto mientras falte alguno', () => {
+    expect(medirAcierto(['I1', 'I2', 'I3'], new Map([['I1', true]]))).toStrictEqual({ itemsSinIntento: 2 });
+  });
+
+  it('@MAST-1.2 con todos respondidos da el acierto del último intento de cada uno', () => {
+    const intentos = new Map([
+      ['I1', true],
+      ['I2', false],
+    ]);
+    expect(medirAcierto(['I1', 'I2'], intentos)).toStrictEqual({ aciertoSinAyuda: 0.5, itemsSinIntento: 0 });
   });
 });
 

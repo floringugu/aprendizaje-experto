@@ -8,3 +8,16 @@ export function parametroNumerico(parametros: ParametrosJson, nombre: string): n
   }
   return valor;
 }
+
+function esListaDeNumeros(valor: unknown): valor is readonly number[] {
+  return Array.isArray(valor) && valor.every((elemento) => typeof elemento === 'number');
+}
+
+/** Lista de números de un parámetro de `config/parametros.json`; falla si falta o no es una lista de números. */
+export function parametroListaNumerica(parametros: ParametrosJson, nombre: string): readonly number[] {
+  const valor = parametros[nombre]?.valor;
+  if (!esListaDeNumeros(valor)) {
+    throw new Error(`El parámetro «${nombre}» de config/parametros.json falta o no es una lista de números`);
+  }
+  return valor;
+}

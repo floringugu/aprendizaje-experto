@@ -72,10 +72,17 @@ function pasosRetiradosTrasDiagnostico(
   );
 }
 
+/** El acierto de cada objetivo que el diagnóstico deja dominado. */
+function aciertoDeLosDominados(resultado: ResultadoDiagnostico): ReadonlyMap<string, number> {
+  const aciertos = Object.entries(resultado.aciertoPorObjetivo);
+  return new Map(aciertos.filter(([objetivo]) => resultado.objetivosDominados.includes(objetivo)));
+}
+
 /**
  * Corrige el diagnóstico con el último intento de cada ítem y deja a la persona en su fase y su ruta.
  * Si la persona deja algún ítem de un objetivo sin responder, ese objetivo no tiene acierto medido y
- * no queda dominado.
+ * no queda dominado. La fase y los objetivos dominados se registran con la fecha de hoy, como
+ * cualquier otro cambio, así que las pruebas de retención de esos objetivos se cuentan desde hoy.
  */
 export function terminarDiagnostico(entorno: Entorno, peticion: PeticionDominio): Resultado<ResultadoDiagnostico> {
   return enDominio(entorno, peticion.dominio, (situacion) => {
@@ -84,8 +91,9 @@ export function terminarDiagnostico(entorno: Entorno, peticion: PeticionDominio)
     }
     const resultado = evaluarDiagnostico(entradaDelDiagnostico(situacion, entorno.dependencias.leerParametros()));
     situacion.estado.cerrarDiagnostico({
+      fecha: entorno.dependencias.reloj.ahora(),
       fase: resultado.fase,
-      dominados: resultado.objetivosDominados,
+      dominados: aciertoDeLosDominados(resultado),
       pasosRetirados: pasosRetiradosTrasDiagnostico(situacion.contenido, resultado),
     });
     return aceptar(resultado);

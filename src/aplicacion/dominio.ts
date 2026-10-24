@@ -1,20 +1,20 @@
+import type { Fase } from '../dominio/fases.ts';
+import type { EstadoEnRuta } from '../dominio/ruta.ts';
 import type { PeticionDominio } from './peticiones.ts';
 import type { Resultado } from './resultado.ts';
 import type { Sesion } from './sesiones.ts';
+
+// Las fases y sus reglas son del dominio; la aplicación solo las muestra.
+export type { Fase };
 
 interface PeticionObjetivo {
   readonly dominio: string;
   readonly objetivo: string;
 }
 
-export type Fase = 'diagnostico' | 'novato' | 'intermedio' | 'avanzado_experto';
-
-/** «cerrado»: aún no se puede practicar. «abierto»: se practica. «dominado»: superó el umbral. */
-type EstadoObjetivo = 'cerrado' | 'abierto' | 'dominado';
-
 export interface ProgresoObjetivo {
   readonly objetivo: string;
-  readonly estado: EstadoObjetivo;
+  readonly estado: EstadoEnRuta;
   /** Fracción de 0 a 1; `undefined` mientras algún ítem no tiene intento (MAST-1.3). */
   readonly aciertoSinAyuda?: number;
   readonly itemsSinIntento: number;

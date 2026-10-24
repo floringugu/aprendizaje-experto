@@ -1,28 +1,64 @@
 import { ultimoIntentoPorItem } from '../dominio/acierto.ts';
+import type { Fase } from '../dominio/fases.ts';
+import type { RecorridoDeRuta } from '../dominio/ruta.ts';
+import { recorrerRuta } from '../dominio/ruta.ts';
 import type { ContenidoDominio } from './contenido.ts';
 import type { Dependencias } from './dependencias.ts';
-import type { Fase } from './dominio.ts';
 import type { Resultado } from './resultado.ts';
 import { rechazar } from './resultado.ts';
 import type { ContextoRespuesta } from './sesiones.ts';
 
-/** Un intento ya corregido: se guarda al declarar la confianza. */
-interface Intento {
-  readonly item: string;
-  readonly contexto: ContextoRespuesta;
-  readonly correcta: boolean;
-}
-
 /** Respuesta recogida que espera la confianza para corregirse. */
 interface RespuestaPendiente {
+  /** Cuando respondió la persona, que es la fecha del intento. */
+  readonly fecha: Date;
   readonly contexto: ContextoRespuesta;
   readonly respuesta: string;
 }
 
+/** Un intento recién corregido, con la fecha y el contexto de la respuesta pendiente de la que sale. */
+export interface IntentoNuevo {
+  readonly fecha: Date;
+  readonly contexto: ContextoRespuesta;
+  readonly item: string;
+  readonly objetivo: string;
+  readonly correcta: boolean;
+  readonly confianza: number;
+}
+
+/** Un intento ya registrado: se guarda al declarar la confianza. */
+interface Intento extends IntentoNuevo {
+  /** Pasos retirados de los ejemplos resueltos del objetivo cuando respondió. */
+  readonly pasosRetirados: number;
+}
+
+/** Un objetivo que pasa a estar dominado o deja de estarlo, con el acierto que lo decide. */
+interface CambioDominado {
+  readonly fecha: Date;
+  readonly objetivo: string;
+  readonly dominado: boolean;
+  readonly acierto: number;
+}
+
+interface CambioFase {
+  readonly fecha: Date;
+  readonly anterior: Fase;
+  readonly nueva: Fase;
+}
+
+/** Todo lo que ha pasado en un dominio, en el orden en que pasó: es lo que se exporta (INST). */
+export interface RegistroDominio {
+  readonly intentos: readonly Intento[];
+  readonly cambiosDominado: readonly CambioDominado[];
+  readonly cambiosFase: readonly CambioFase[];
+}
+
 /** Lo que deja el diagnóstico al cerrarse. */
 interface CierreDiagnostico {
+  readonly fecha: Date;
   readonly fase: Fase;
-  readonly dominados: readonly string[];
+  /** Cada objetivo dominado, con el acierto con el que lo domina. */
+  readonly dominados: ReadonlyMap<string, number>;
   /** Pasos retirados de los ejemplos resueltos de cada objetivo. */
   readonly pasosRetirados: ReadonlyMap<string, number>;
 }
@@ -30,22 +66,42 @@ interface CierreDiagnostico {
 /**
  * Lo que la aplicación sabe de una persona en un dominio. Los casos de uso lo leen y lo cambian solo
  * con estos métodos, así que la forma en que se guarda no sale de este módulo.
+ *
+ * La fase y los objetivos dominados no se guardan aparte: salen de los cambios registrados, que son
+ * también lo que se exporta. Así lo que ve la persona y lo que se exporta no pueden contradecirse.
  */
 export class EstadoDominio {
-  /** Empieza en «diagnostico»: hasta terminarlo no se practica nada. */
-  private faseActual: Fase = 'diagnostico';
-  /** En el orden en que se hicieron. */
   private readonly intentos: Intento[] = [];
   private readonly pendientes = new Map<string, RespuestaPendiente>();
-  private readonly objetivosDominados = new Set<string>();
+  private readonly cambiosDominado: CambioDominado[] = [];
+  private readonly cambiosFase: CambioFase[] = [];
   private readonly pasosRetirados = new Map<string, number>();
 
+  /** Empieza en «diagnostico»: hasta terminarlo no se practica nada. */
   get fase(): Fase {
-    return this.faseActual;
+    return this.cambiosFase.at(-1)?.nueva ?? 'diagnostico';
   }
 
   get dominados(): ReadonlySet<string> {
-    return this.objetivosDominados;
+    const ultimos = [...this.ultimoCambioDeCadaObjetivo().values()];
+    return new Set(ultimos.filter((cambio) => cambio.dominado).map((cambio) => cambio.objetivo));
+  }
+
+  /** Desde cuándo está dominado el objetivo; `undefined` si ahora no lo está. */
+  dominadoDesde(objetivo: string): Date | undefined {
+    const ultimo = this.ultimoCambioDeCadaObjetivo().get(objetivo);
+    return ultimo?.dominado === true ? ultimo.fecha : undefined;
+  }
+
+  /** Estado de cada objetivo en la ruta y cuál es el actual. Durante el diagnóstico, todos están cerrados. */
+  recorrerRuta(objetivos: readonly string[]): RecorridoDeRuta {
+    if (this.fase === 'diagnostico') {
+      return { estados: new Map(objetivos.map((objetivo) => [objetivo, 'cerrado'])) };
+    }
+    const dominadosAlgunaVez = this.cambiosDominado
+      .filter((cambio) => cambio.dominado)
+      .map((cambio) => cambio.objetivo);
+    return recorrerRuta(objetivos, { dominados: this.dominados, dominadosAlgunaVez: new Set(dominadosAlgunaVez) });
   }
 
   /** Mientras dura el diagnóstico no se ha retirado ningún paso. */
@@ -60,6 +116,10 @@ export class EstadoDominio {
     return ultimoIntentoPorItem(contados);
   }
 
+  get registro(): RegistroDominio {
+    return { intentos: this.intentos, cambiosDominado: this.cambiosDominado, cambiosFase: this.cambiosFase };
+  }
+
   respuestaPendiente(item: string): RespuestaPendiente | undefined {
     return this.pendientes.get(item);
   }
@@ -69,21 +129,43 @@ export class EstadoDominio {
     this.pendientes.set(item, respuesta);
   }
 
-  /** Registra el intento ya corregido: su respuesta deja de estar pendiente. */
-  registrarIntento(intento: Intento): void {
+  /** Registra el intento con los pasos retirados de ahora; su respuesta deja de estar pendiente. */
+  registrarIntento(intento: IntentoNuevo): void {
     this.pendientes.delete(intento.item);
-    this.intentos.push(intento);
+    this.intentos.push({ ...intento, pasosRetirados: this.pasosRetiradosDe(intento.objetivo) });
+  }
+
+  /** Registra el cambio solo si el objetivo pasa de verdad a estar dominado o deja de estarlo. */
+  cambiarDominado(cambio: CambioDominado): void {
+    if (this.dominados.has(cambio.objetivo) !== cambio.dominado) {
+      this.cambiosDominado.push(cambio);
+    }
+  }
+
+  /** Registra el cambio solo si la fase es otra. */
+  cambiarFase(fecha: Date, nueva: Fase): void {
+    const anterior = this.fase;
+    if (nueva !== anterior) {
+      this.cambiosFase.push({ fecha, anterior, nueva });
+    }
   }
 
   /**
-   * Deja la fase, los objetivos dominados y los pasos retirados que dio el diagnóstico. Una respuesta
-   * del diagnóstico sin confianza declarada ya no cuenta: el diagnóstico está cerrado.
+   * Deja la fase, los objetivos dominados y los pasos retirados que dio el diagnóstico, registrados
+   * como cualquier otro cambio. Una respuesta del diagnóstico sin confianza declarada ya no cuenta: el
+   * diagnóstico está cerrado.
    */
   cerrarDiagnostico(cierre: CierreDiagnostico): void {
-    this.faseActual = cierre.fase;
     this.pendientes.clear();
-    cierre.dominados.forEach((objetivo) => this.objetivosDominados.add(objetivo));
+    this.cambiarFase(cierre.fecha, cierre.fase);
+    cierre.dominados.forEach((acierto, objetivo) => {
+      this.cambiarDominado({ fecha: cierre.fecha, objetivo, dominado: true, acierto });
+    });
     cierre.pasosRetirados.forEach((pasos, objetivo) => this.pasosRetirados.set(objetivo, pasos));
+  }
+
+  private ultimoCambioDeCadaObjetivo(): Map<string, CambioDominado> {
+    return new Map(this.cambiosDominado.map((cambio) => [cambio.objetivo, cambio]));
   }
 }
 
@@ -100,6 +182,11 @@ export class EstadoPersona {
     this.dominios.set(dominio, nuevo);
     return nuevo;
   }
+
+  /** El estado de cada dominio que la persona ha abierto, en el orden en que los abrió. */
+  get todosLosDominios(): ReadonlyMap<string, EstadoDominio> {
+    return this.dominios;
+  }
 }
 
 /** Lo que comparten todos los casos de uso de una persona: sus dependencias y su estado. */
@@ -112,6 +199,11 @@ export interface Entorno {
 export interface Situacion {
   readonly contenido: ContenidoDominio;
   readonly estado: EstadoDominio;
+}
+
+/** El estado de cada objetivo del dominio en la ruta de la persona, y cuál es el actual. */
+export function recorridoDeRuta(situacion: Situacion): RecorridoDeRuta {
+  return situacion.estado.recorrerRuta(situacion.contenido.objetivos.map((objetivo) => objetivo.id));
 }
 
 /** Ejecuta el caso de uso con el dominio pedido; si el dominio no existe, rechaza la petición. */

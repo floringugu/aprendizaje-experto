@@ -1,5 +1,6 @@
 import { esCorrecta, respuestaMostrada } from '../dominio/correccion.ts';
 import type { ItemContenido } from './contenido.ts';
+import { registrarIntentoYReevaluar } from './criterio-dominio.ts';
 import type { Entorno, Situacion } from './estado.ts';
 import {
   diagnosticoPendiente,
@@ -73,15 +74,20 @@ export function responderItem(
     if (!item.ok) {
       return item;
     }
-    situacion.estado.guardarRespuesta(item.valor.id, { contexto: peticion.contexto, respuesta: peticion.respuesta });
+    situacion.estado.guardarRespuesta(item.valor.id, {
+      fecha: entorno.dependencias.reloj.ahora(),
+      contexto: peticion.contexto,
+      respuesta: peticion.respuesta,
+    });
     return aceptar({ esperandoConfianza: true });
   });
 }
 
 /**
  * Corrige la respuesta comparándola con el contenido y registra el intento. La confianza que declare
- * la persona no cambia la corrección (@DIAG-1.2). El feedback sale siempre, acierte o falle
- * (@RECU-2.1), y su explicación es el `feedback` del autor tal cual (@RECU-2.2).
+ * la persona no cambia la corrección (@DIAG-1.2) ni cuenta para el dominio: solo se guarda
+ * (@MAST-3.1). El feedback sale siempre, acierte o falle (@RECU-2.1), y su explicación es el
+ * `feedback` del autor tal cual (@RECU-2.2).
  */
 export function declararConfianza(entorno: Entorno, peticion: PeticionConfianza): Resultado<Feedback> {
   return enDominio(entorno, peticion.dominio, (situacion) => {
@@ -93,7 +99,14 @@ export function declararConfianza(entorno: Entorno, peticion: PeticionConfianza)
     // Todo lo que puede fallar va antes de tocar el estado, para no dejar un intento a medias.
     const correcta = esCorrecta(pendiente.respuesta, item.respuesta);
     const respuestaCorrecta = respuestaMostrada(item.respuesta);
-    situacion.estado.registrarIntento({ item: item.id, contexto: pendiente.contexto, correcta });
+    registrarIntentoYReevaluar(entorno, situacion, {
+      fecha: pendiente.fecha,
+      contexto: pendiente.contexto,
+      item: item.id,
+      objetivo: item.objetivo,
+      correcta,
+      confianza: peticion.confianza,
+    });
     return aceptar({ correcta, respuestaCorrecta, explicacion: item.feedback });
   });
 }

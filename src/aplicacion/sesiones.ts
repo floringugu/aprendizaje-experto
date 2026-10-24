@@ -45,7 +45,7 @@ export interface Feedback {
   readonly explicacion: string;
 }
 
-interface Repaso {
+export interface Repaso {
   /** «repaso» de un ítem, o «retencion»: prueba diferida de un objetivo dominado (MAST-7). */
   readonly clase: 'repaso' | 'retencion';
   readonly objetivo: string;

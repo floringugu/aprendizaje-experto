@@ -1,4 +1,6 @@
 import type { CasosDeBucle } from './bucle.ts';
+import { consultarObjetivo, evaluarFase, evaluarObjetivo } from './criterio-dominio.ts';
+import { exportarCsv } from './csv.ts';
 import type { Dependencias } from './dependencias.ts';
 import { abrirDominio, terminarDiagnostico } from './diagnostico.ts';
 import type { CasosDeDominio } from './dominio.ts';
@@ -6,8 +8,10 @@ import type { Entorno } from './estado.ts';
 import { EstadoPersona } from './estado.ts';
 import type { CasosDeExportacion } from './exportacion.ts';
 import type { CasosDeHoras } from './horas.ts';
+import { evaluarNivelExperto } from './nivel-experto.ts';
 import { iniciarSesion } from './practica.ts';
 import { consultarProgreso } from './progreso.ts';
+import { consultarRepasos } from './repasos.ts';
 import { declararConfianza, presentarItem, responderItem } from './respuestas.ts';
 import { sinImplementar } from './sin-implementar.ts';
 import type { CasosDeSesiones } from './sesiones.ts';
@@ -34,15 +38,15 @@ export const crearAplicacion: (dependencias: Dependencias) => Aplicacion = (depe
     abrirDominio: (peticion) => abrirDominio(entorno, peticion),
     terminarDiagnostico: (peticion) => terminarDiagnostico(entorno, peticion),
     consultarProgreso: (peticion) => consultarProgreso(entorno, peticion),
-    consultarObjetivo: sinImplementar,
-    evaluarObjetivo: sinImplementar,
-    evaluarFase: sinImplementar,
+    consultarObjetivo: (peticion) => consultarObjetivo(entorno, peticion),
+    evaluarObjetivo: (peticion) => evaluarObjetivo(entorno, peticion),
+    evaluarFase: (peticion) => evaluarFase(entorno, peticion),
     iniciarSesion: (peticion) => iniciarSesion(entorno, peticion),
     presentarItem: (peticion) => presentarItem(entorno, peticion),
     estudiarEjemplo: sinImplementar,
     responderItem: (peticion) => responderItem(entorno, peticion),
     declararConfianza: (peticion) => declararConfianza(entorno, peticion),
-    consultarRepasos: sinImplementar,
+    consultarRepasos: (peticion) => consultarRepasos(entorno, peticion),
     consultarHorizontes: sinImplementar,
     elegirHorizonte: sinImplementar,
     abrirSesion: sinImplementar,
@@ -54,8 +58,8 @@ export const crearAplicacion: (dependencias: Dependencias) => Aplicacion = (depe
     consultarTareas: sinImplementar,
     registrarEvaluacionExterna: sinImplementar,
     consultarEvaluacionTarea: sinImplementar,
-    evaluarNivelExperto: sinImplementar,
-    exportarCsv: sinImplementar,
+    evaluarNivelExperto: (peticion) => evaluarNivelExperto(entorno, peticion),
+    exportarCsv: (peticion) => exportarCsv(entorno, peticion),
     listarExportaciones: sinImplementar,
   };
 };

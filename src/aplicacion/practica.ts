@@ -1,7 +1,7 @@
 import type { ContenidoDominio, ObjetivoContenido } from './contenido.ts';
 import { itemsDelObjetivo } from './contenido.ts';
 import type { Entorno } from './estado.ts';
-import { diagnosticoPendiente, enDominio, MOTIVO_DIAGNOSTICO_PENDIENTE } from './estado.ts';
+import { diagnosticoPendiente, enDominio, MOTIVO_DIAGNOSTICO_PENDIENTE, recorridoDeRuta } from './estado.ts';
 import { presentar } from './presentacion.ts';
 import type { Resultado } from './resultado.ts';
 import { aceptar, rechazar } from './resultado.ts';
@@ -39,18 +39,25 @@ function elementosDePractica(
   return ejemplo === undefined ? items : [{ tipo: 'ejemplo', ejemplo }, ...items];
 }
 
-/** Hasta terminar el diagnóstico no se practica ningún objetivo (@DIAG-1.1). */
+/**
+ * Hasta terminar el diagnóstico no se practica ningún objetivo (@DIAG-1.1), y después solo los que
+ * están abiertos o dominados: uno cerrado se abre al dominar el anterior (@MAST-2.2).
+ */
 export function iniciarSesion(entorno: Entorno, peticion: PeticionSesion): Resultado<Sesion> {
   if (peticion.tipo !== 'practica') {
     return sinImplementar();
   }
-  return enDominio(entorno, peticion.dominio, ({ contenido, estado }) => {
+  return enDominio(entorno, peticion.dominio, (situacion) => {
+    const { contenido, estado } = situacion;
     if (diagnosticoPendiente(estado)) {
       return rechazar(MOTIVO_DIAGNOSTICO_PENDIENTE);
     }
     const objetivo = contenido.objetivos.find((candidato) => candidato.id === peticion.objetivo);
     if (objetivo === undefined) {
       return rechazar('Hay que elegir un objetivo del dominio para practicarlo.');
+    }
+    if (recorridoDeRuta(situacion).estados.get(objetivo.id) === 'cerrado') {
+      return rechazar('Este objetivo se abre al dominar el anterior.');
     }
     const pasosRetirados = estado.pasosRetiradosDe(objetivo.id);
     return aceptar({
