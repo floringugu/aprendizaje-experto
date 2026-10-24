@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import type { CasosDeClaudeCode } from '../../../src/aplicacion/claude-code.ts';
 import type {
+  CategoriaContenido,
   ContenidoDominio,
   EjemploResueltoContenido,
   Fuente,
@@ -22,7 +23,13 @@ export type Revision = Aceptado<ReturnType<CasosDeMaterial['abrirRevision']>>;
 export type FuenteAbierta = Aceptado<ReturnType<CasosDeMaterial['verFuente']>>;
 export type BorradorRedactado = Aceptado<Awaited<ReturnType<CasosDeMaterial['redactarBorrador']>>>;
 export type InicioSesionEnCurso = Aceptado<Awaited<ReturnType<CasosDeClaudeCode['consultarInicioSesion']>>>;
-export type Pieza = ObjetivoContenido | EjemploResueltoContenido | ItemContenido | TareaContenido;
+/**
+ * Una categoría del borrador, con la descripción y la fuente que el formato del contenido aún no declara
+ * (MATE-2.1, MATE-2.3). Se añaden por intersección: si el formato las declara, el tipo sigue valiendo.
+ */
+export type CategoriaDelBorrador = CategoriaContenido & { readonly descripcion?: string; readonly fuente?: Fuente };
+export type Pieza =
+  ObjetivoContenido | EjemploResueltoContenido | ItemContenido | TareaContenido | CategoriaDelBorrador;
 
 /**
  * Lo que usan estas utilidades del mundo del escenario. Se declara aquí en vez de importar `Mundo`
@@ -145,6 +152,7 @@ export function piezasDe(contenido: BorradorDominio): readonly Pieza[] {
   return [
     ...contenido.objetivos.flatMap((objetivo) => [objetivo, ...objetivo.ejemplos_resueltos]),
     ...(contenido.ejemplos_resueltos ?? []),
+    ...contenido.categorias,
     ...contenido.items,
     ...contenido.tareas,
   ];
@@ -235,4 +243,19 @@ export function ejemploDePrueba(id: string, objetivo: string, fuente: Fuente): E
 /** Una tarea con la rúbrica por defecto y su fuente. */
 export function tareaDePrueba(id: string, fuente: Fuente): TareaContenido {
   return { id, enunciado: `Enunciado de ${id}`, rubrica: [criterioPorDefecto('Planteamiento')], fuente };
+}
+
+/** Una categoría con su descripción y su fuente. */
+export function categoriaDePrueba(id: string, fuente: Fuente): CategoriaDelBorrador {
+  return { id, descripcion: `Descripción de ${id}`, fuente };
+}
+
+/** Lo que entrega la IA: el formato del contenido, con solo las piezas indicadas (MATE-2). */
+export function entregaDeLaIa(actual: Escenario, piezas: Partial<Record<keyof BorradorDominio, unknown>>): unknown {
+  return { dominio: actual.dominio, objetivos: [], categorias: [], items: [], tareas: [], ...piezas };
+}
+
+/** Pide el borrador de un documento y deja lo que responde la aplicación para los pasos «Entonces». */
+export async function redactar(actual: Escenario, documento: string): Promise<void> {
+  actual.material.redaccion = await actual.aplicacion().redactarBorrador({ dominio: actual.dominio, documento });
 }

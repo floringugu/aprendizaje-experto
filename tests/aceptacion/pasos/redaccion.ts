@@ -8,8 +8,10 @@ import {
   APUNTES,
   aprobadoEnDisco,
   borradorEnDisco,
+  categoriaDePrueba,
   comoEnDisco,
   ejemploDePrueba,
+  entregaDeLaIa,
   fuenteDeLosApuntes,
   idsDe,
   idsDeLaRevision,
@@ -17,22 +19,17 @@ import {
   itemDePrueba,
   listaDeMaterial,
   objetivoDePrueba,
+  redactar,
   sinPropiedad,
   tareaDePrueba,
 } from '../soporte/escenario-material.ts';
 import type { Pieza } from '../soporte/escenario-material.ts';
 import { aceptado, mundo } from '../soporte/mundo.ts';
-import type { Mundo } from '../soporte/mundo.ts';
 import { pdfDePrueba } from '../soporte/pdf.ts';
 
 // Pasos de los borradores que redacta la IA a partir del material (MATE-2).
 
 // --- MATE-2: la IA redacta borradores en un fichero aparte ----------------------------------------
-
-/** Lo que entrega la IA: el formato del contenido, con solo las piezas indicadas. */
-function entregaDeLaIa(actual: Mundo, piezas: Partial<Record<keyof BorradorDominio, unknown>>): unknown {
-  return { dominio: actual.dominio, objetivos: [], categorias: [], items: [], tareas: [], ...piezas };
-}
 
 /** Las piezas que entrega la IA en MATE-2.1, cada una con su fuente. */
 function piezaRedactada(pieza: string, fuente: Fuente): Partial<Record<keyof BorradorDominio, unknown>> {
@@ -41,6 +38,7 @@ function piezaRedactada(pieza: string, fuente: Fuente): Partial<Record<keyof Bor
     'un ejemplo resuelto de O1': { ejemplos_resueltos: [ejemploDePrueba('E9', 'O1', fuente)] },
     'un ítem de O1': { items: [itemDePrueba('I7', 'O1', fuente)] },
     'una tarea con rúbrica': { tareas: [tareaDePrueba('T9', fuente)] },
+    'una categoría': { categorias: [categoriaDePrueba('C4', fuente)] },
   };
   return presente(piezas[pieza], `la pieza «${pieza}»`);
 }
@@ -52,6 +50,7 @@ function piezasDelTipo(borrador: BorradorDominio, pieza: string): readonly Pieza
     'un ejemplo resuelto de O1': (borrador.ejemplos_resueltos ?? []).filter((ejemplo) => ejemplo.objetivo === 'O1'),
     'un ítem de O1': borrador.items.filter((item) => item.objetivo === 'O1'),
     'una tarea con rúbrica': borrador.tareas.filter((tarea) => tarea.rubrica.length > 0),
+    'una categoría': borrador.categorias,
   };
   return presente(delTipo[pieza], `la pieza «${pieza}»`);
 }
@@ -73,12 +72,9 @@ function piezaIncompleta(pieza: string, fuente: Fuente): Partial<Record<keyof Bo
       tareas: [{ ...tarea, rubrica: [{ criterio: 'Planteamiento', niveles: nivelesSinDescriptor }] }],
     },
     'un objetivo sin instrucción': { objetivos: [sinPropiedad(objetivo, 'instruccion')] },
+    'una categoría sin descripción': { categorias: [sinPropiedad(categoriaDePrueba('C4', fuente), 'descripcion')] },
   };
   return presente(piezas[pieza], `la pieza «${pieza}»`);
-}
-
-async function redactar(actual: Mundo, documento: string): Promise<void> {
-  actual.material.redaccion = await actual.aplicacion().redactarBorrador({ dominio: actual.dominio, documento });
 }
 
 When(
@@ -150,14 +146,6 @@ Then('el ítem {item} de contenido\\/ficticio.json no cambia', (item: string) =>
 
 Then('contenido\\/borradores\\/ficticio.json tiene ese ítem de O1 y ninguna otra pieza', () => {
   assert.deepEqual(idsDe(borradorEnDisco(mundo())), ['I8']);
-});
-
-Then('la aplicación indica que ha apartado {int} pieza porque le falta {falta}', (cantidad: number, falta: string) => {
-  const redactado = aceptado(presente(mundo().material.redaccion, 'ningún borrador redactado'));
-  assert.deepEqual(
-    redactado.apartadas,
-    Array.from({ length: cantidad }, () => ({ falta })),
-  );
 });
 
 Given('que no hay ninguna IA configurada', () => {

@@ -8,6 +8,7 @@ import {
   APUNTES,
   PAGINA_CITADA,
   comprobarHoja,
+  ejemploDePrueba,
   fuenteDeLosApuntes,
   idsDeLaRevision,
   itemDePrueba,
@@ -16,16 +17,20 @@ import type { Revision } from '../soporte/escenario-material.ts';
 import { aceptado, mundo } from '../soporte/mundo.ts';
 import type { Mundo } from '../soporte/mundo.ts';
 import { leerFuente } from '../soporte/tipos-de-parametro.ts';
+import type { PasosYFuente } from '../soporte/tipos-de-parametro.ts';
 
 // Pasos del borrador que ya estaba en el disco y de las marcas y la revisión (MATE-3, MATE-4.1 a 4.3).
 
-type Marca = Revision['grupos'][number]['piezas'][number]['marcas'][number];
 type FiltroRevision = NonNullable<Parameters<CasosDeMaterial['abrirRevision']>[0]['filtro']>;
 
-/** Lo que dice la pantalla → la marca que devuelve la aplicación (MATE-3). */
-const MARCAS: Readonly<Record<string, Marca>> = {
+/**
+ * Lo que dice la pantalla → la marca que devuelve la aplicación (MATE-3). Son textos y no `Marca`: así los
+ * steps no dependen de que el tipo ya declare `un_solo_paso` (MATE-3.5).
+ */
+const MARCAS: Readonly<Record<string, string>> = {
   'No está en tu material': 'sin_fuente',
   'Cita no encontrada': 'cita_no_encontrada',
+  'Un solo paso': 'un_solo_paso',
 };
 
 /** Lo que dice el filtro de la revisión → el filtro que recibe la aplicación (MATE-4.2). */
@@ -35,7 +40,7 @@ const FILTROS: Readonly<Record<string, FiltroRevision>> = {
   'Cita no encontrada': 'cita_no_encontrada',
 };
 
-function aMarca(texto: string): Marca {
+function aMarca(texto: string): string {
   return presente(MARCAS[texto], `la marca «${texto}»`);
 }
 
@@ -56,7 +61,7 @@ function revisionAbierta(): Revision {
   return presente(mundo().material.revision, 'la revisión del material');
 }
 
-function marcasDe(revision: Revision, item: string): readonly Marca[] {
+function marcasDe(revision: Revision, item: string): readonly string[] {
   const piezas = revision.grupos.flatMap((grupo) => grupo.piezas);
   return presente(
     piezas.find((pendiente) => pendiente.id === item),
@@ -141,6 +146,17 @@ Given(
       `${material.frase.slice(0, posicion)}${inicio}`,
       `${fin}${material.frase.slice(posicion + palabra.length)}`,
     ];
+  },
+);
+
+Given(
+  'que contenido\\/borradores\\/ficticio.json tiene el ejemplo resuelto {item} de {objetivo}, con {pasos_y_fuente}',
+  (ejemplo: string, objetivo: string, { cantidad, fuente }: PasosYFuente) => {
+    const actual = mundo();
+    const { material } = actual;
+    const pasos = Array.from({ length: cantidad }, (_, posicion) => `P${String(posicion + 1)}`);
+    material.ejemplosSueltos = [...material.ejemplosSueltos, { ...ejemploDePrueba(ejemplo, objetivo, fuente), pasos }];
+    material.dejarBorrador(actual);
   },
 );
 

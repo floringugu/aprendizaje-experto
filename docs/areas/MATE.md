@@ -178,34 +178,30 @@ Salida de `make bloqueos A=<ÁREA>` al cerrar el área, y una frase sobre el blo
 
 **Hecho:**
 - MATE-12, en 017131c: `lugarDelFallo` compartida, `esRegistro` en un solo sitio, `escribirMesa` y `codificar` en `revision-fabricas.ts`, `rechazado` exige motivo, tests para los huecos de mutación de `revision.ts` y `revision-del-material.ts`.
-- MATE-13 y MATE-14, sin commitear: `verFuente` busca la pieza con `piezaDeVerFuente` (lee primero el aprobado); `inicio-sesion.ts` ya no es una clase, sino `Inicios` y funciones de módulo. Los `proceso?.enviar` y `proceso?.cortar()` son supervivientes equivalentes: `proceso` solo falta dentro de `iniciarSesion`.
+- MATE-13 y MATE-14, ya commiteados: `verFuente` busca la pieza con `piezaDeVerFuente` (lee primero el aprobado); `inicio-sesion.ts` ya no es una clase, sino `Inicios` y funciones de módulo. Los `proceso?.enviar` y `proceso?.cortar()` son supervivientes equivalentes: `proceso` solo falta dentro de `iniciarSesion`.
 - `make check-implementador` en verde, con 811 tests.
 - e20d15e y 39748d9 (fase specs) decidieron el hueco 1: `redactarBorrador` ya no espera a la especificación, espera a la aceptación. Añadieron la categoría como pieza, `diagnostico` a `false`, opciones repetidas como error de formato, la marca «Un solo paso», `diagrama` (SVG como texto) y `antes_de` en las tareas, y quitaron «Aprobar las N sin marca».
-- **Conversación en fase `aceptacion` (la del punto 1): solo leyó. No hay ningún cambio sin commitear de ella**, salvo este relevo. Quedaron decididos los pasos de abajo.
+- **Punto 1, fase `aceptacion`, hecho a medias (sin commitear, en el árbol de trabajo):** 8 de los 11 escenarios ya tienen steps. `tsc` y `eslint tests/aceptacion` limpios; `npx cucumber-js --tags @MATE --dry-run` deja solo los 3 de MATE-4.11 sin definir.
+  - `soporte/escenario-material.ts`: tipo `CategoriaDelBorrador` (por intersección, con `descripcion?` y `fuente?`) dentro de `Pieza`; `piezasDe` incluye `contenido.categorias`; funciones nuevas `categoriaDePrueba`, `entregaDeLaIa` y `redactar` (movidas de `redaccion.ts`).
+  - `soporte/tipos-de-parametro.ts`: «una categoría» en `pieza_redactada`, «una categoría sin descripción» en `pieza_incompleta`, «la descripción» (→ `descripcion`) en `falta` y `PROPIEDAD_QUE_FALTA`; parámetro nuevo `pasos_y_fuente` (`PasosYFuente`: `cantidad` y `fuente`), uno solo para no pasar de 3 parámetros en el step.
+  - `pasos/redaccion.ts`: la categoría en `piezaRedactada`, `piezasDelTipo` y `piezaIncompleta`; el step «le falta {falta}» se mudó a `redaccion-rechazos.ts`.
+  - `pasos/redaccion-rechazos.ts` (nuevo): `comprobarApartadas`, y los steps de MATE-2.5 (opciones repetidas, `falta` = `opciones`), MATE-2.6 (`diagnostico` a `false`) y MATE-2.7 (`diagrama` en un objetivo O4 o en el ejemplo E9, `falta` = `diagrama`).
+  - `pasos/revision.ts`: `MARCAS` pasa a `Record<string, string>` con `'Un solo paso': 'un_solo_paso'`, `marcasDe` y `aMarca` usan `string`, y el `Given` «…tiene el ejemplo resuelto {item} de {objetivo}, con {pasos_y_fuente}» (MATE-3.5).
+  - **Decisión de interfaz que documentar en la fase `impl`:** `apartadas[].falta` nombra la propiedad que falla (`descripcion`, `opciones`, `diagrama`), como `FalloDeFormato.falta`; y `un_solo_paso` es el identificador de la marca.
+- El dueño apartó mi trabajo de `tests/aceptacion/` unos minutos (hay dos `git stash` con él, `stash@{0}` y `stash@{1}`) y lo restauró; el árbol de trabajo ya tiene todo, el arreglo de max-params (`pasos_y_fuente`) incluido. Los stashes ya no hacen falta: que los borre el dueño.
+- Los cambios por Bash en `tests/aceptacion/` no son fiables (uno se revirtió): usa Edit y Write.
 
 **Falta, en este orden:**
-1. **Conversación en fase `aceptacion`** (nueva, con el relevo anterior ya leído: no hace falta releer `aprobacion.ts` ni `revision.ts` enteros, mira los que cita cada punto). Los 11 escenarios sin steps salen de `npx cucumber-js --tags @MATE --dry-run`.
-   - **Regla para todos los steps nuevos.** Ni `CategoriaContenido` (sin `descripcion` ni `fuente`), ni `TareaContenido` (sin `antes_de`), ni `ObjetivoContenido` (sin `diagrama`), ni `Marca` (sin `un_solo_paso`) tienen todavía los campos nuevos, y `tests/aceptacion/` está protegido en `impl`. Por eso los steps no deben depender de ellos, o cuando la fase `impl` los añada el lint (`no-duplicate-type-constituents`) o `tsc` obligarán a tocar los steps. Usa tipos locales por intersección (`CategoriaContenido & { readonly fuente?: Fuente }`, nunca una unión con el literal nuevo), `Object.assign({}, tarea, { antes_de })` (sin exceso de propiedades) y `Record<string, string>` para las marcas.
-   - **2.1 y 2.3, fila «una categoría»:**
-     - `tipos-de-parametro.ts`: añadir «una categoría» a `pieza_redactada`, «una categoría sin descripción» a `pieza_incompleta` y «la descripción» (→ `descripcion`) a `falta` y a `PROPIEDAD_QUE_FALTA`;
-     - `redaccion.ts`: una categoría `{ id: 'C4', descripcion, fuente }` en `piezaRedactada`, `borrador.categorias` en `piezasDelTipo` y una sin `descripcion` en `piezaIncompleta`;
-     - `escenario-material.ts`: `...contenido.categorias` en `piezasDe` (así «ninguna otra pieza» también cuenta categorías) y la categoría en el tipo `Pieza`.
-   - **`redaccion.ts` está en 188 líneas y el límite es 300:** mueve `entregaDeLaIa` y `redactar` a `soporte/` y pon 2.5, 2.6 y 2.7 en `pasos/redaccion-rechazos.ts`.
-     - 2.5: `When` literal «…entrega un borrador con un ítem de O1 completo y un ítem de O1 con las opciones {textos}»: I8 completo e I9 con esas opciones y `correcta` la primera. `Then` «tiene el ítem de O1 completo y ninguna otra pieza» (`idsDe` igual a `['I8']`) y «ha apartado {int} pieza porque tiene dos opciones iguales» (`apartadas` igual a `[{ falta: 'opciones' }]`).
-     - 2.6: I8 con `diagnostico: true`; el `Then` busca I8 en el borrador del disco y comprueba `diagnostico === false`.
-     - 2.7: `When` «…completo y {pieza_redactada} cuyo diagrama es {texto}» con el `diagrama` puesto en el objetivo O4 o en el ejemplo E9; el `Then` de «ese ítem de O1 y ninguna otra pieza» ya existe; nuevo «ha apartado {int} pieza porque su diagrama no es SVG» (`apartadas` igual a `[{ falta: 'diagrama' }]`).
-     - **Decisión de interfaz que documentar:** `apartadas[].falta` nombra la propiedad que falla (`descripcion`, `opciones`, `diagrama`), como `FalloDeFormato.falta`.
-   - **3.5 (marca «Un solo paso»), en `revision.ts` de los steps:**
-     - `Given` «…tiene el ejemplo resuelto {item} de {objetivo}, con {int} paso(s) y la fuente {fuente}» (los pasos `P1…Pn`; el ejemplo va en `material.ejemplosSueltos`, para un objetivo aprobado, con `dejarBorrador`);
-     - añadir `'Un solo paso': 'un_solo_paso'` a `MARCAS`, que pasa a `Record<string, string>`, y `marcasDe` devuelve `readonly string[]`. Los `Then` «tiene la marca» y «no tiene ninguna marca» ya existen. **El identificador `un_solo_paso` es lo que tendrá que devolver el marcador.**
-   - **4.11 (`antes_de`), en `aprobacion.ts` de los steps (176 líneas; al quitar los de 5.x quedan unas 145):**
+1. **Conversación en fase `aceptacion`** (nueva; lee `git status`, este relevo y los ficheros de abajo; no hace falta releer los de 2.x ni 3.5):
+   - **4.11 (`antes_de`), en `pasos/aprobacion.ts` (176 líneas; al quitar los de 5.x quedan unas 145):**
      - `Given` «que contenido\/ficticio.json tiene las tareas {ids}, en ese orden» → `mundo().contenido().fijarTareas(ids)`;
-     - `Given` «…borradores\/ficticio.json tiene la tarea {tarea}, pendiente, que va antes de {tarea}» y «…, pendiente, sin {texto}» (el texto es «antes de»): `material.borrador.tareas` con `tareaDePrueba('T3', fuenteDeLosApuntes(material.frase))` y, en el primero, `antes_de`; después `material.dejarBorrador(actual)`;
-     - `Then` «contenido\/ficticio.json tiene las tareas {ids}, en ese orden» → `aprobadoEnDisco(mundo()).tareas.map((t) => t.id)`.
+     - `Given` «que contenido\/borradores\/ficticio.json tiene la tarea {tarea}, pendiente, que va antes de {tarea}» y «…, pendiente, sin {texto}» (el texto es «antes de»): `material.borrador.tareas` con `tareaDePrueba('T3', fuenteDeLosApuntes(material.frase))` y, en el primero, `antes_de` con `Object.assign({}, tarea, { antes_de })` (sin exceso de propiedades, porque `TareaContenido` no lo declara aún); después `material.dejarBorrador(actual)`;
+     - `Then` «contenido\/ficticio.json tiene las tareas {ids}, en ese orden» → `aprobadoEnDisco(mundo()).tareas.map((t) => t.id)`;
+     - los steps de aprobar T3 ya existen («la persona aprueba {item}»). Ojo con la ambigüedad de `{ids}`/`{item}`/`{tarea}` en los pasos de tarea: el `Given` de la tarea usa `{tarea}`.
    - **5.5:** `Then` «la revisión no ofrece aprobar ninguna pieza en bloque»: la revisión abierta no tiene `aprobablesEnBloque` y `aplicacion()` no tiene `aprobarSinMarca` (`'x' in objeto`). Hoy falla en rojo, que es lo que toca.
-   - **Quitar los steps de 5.1, 5.2 y 5.4** (`aprobacion.ts`, desde «MATE-5: solo las piezas sin marca…»): «ofrece «Aprobar las {int} sin marca»», «pulsa «Aprobar las…»», «tiene {ids}, cada uno con su fuente» y «sigue teniendo {ids}, pendientes». Ningún `.feature` los usa ya. El `Given` «que la persona ha aprobado {ids}» se queda, lo usa 4.9.
-   - **Casos de uso vacíos: seguramente ninguno.** Los once escenarios usan `redactarBorrador`, `abrirRevision` y `aprobarPieza`, que existen. Si al escribirlos aparece uno, va en un commit de código aparte (plan §14.14).
-   - **Cierre:** `npx cucumber-js --tags @MATE --dry-run` sin indefinidos; `make check-aceptacion` en verde; commit solo de `tests/aceptacion/`. No commitear `features/ayuda.feature` ni `docs/cobertura-investigacion.md`.
+   - **Quitar los steps de 5.1, 5.2 y 5.4** (`aprobacion.ts`, desde «MATE-5: solo las piezas sin marca…»): «ofrece «Aprobar las {int} sin marca»», «pulsa «Aprobar las…»», «tiene {ids}, cada uno con su fuente» y «sigue teniendo {ids}, pendientes». Ningún `.feature` los usa ya. El `Given` «que la persona ha aprobado {ids}» se queda, lo usa 4.9. Al quitar «cada uno con su fuente», `aprobadoConFuente` sigue usándose en otros steps.
+   - **Casos de uso vacíos: ninguno hasta ahora.** Si aparece uno, va en un commit de código aparte (plan §14.14).
+   - **Cierre:** `npx cucumber-js --tags @MATE --dry-run` sin indefinidos; `make check-aceptacion` en verde; commit solo de `tests/aceptacion/` (incluido `redaccion-rechazos.ts`, que es nuevo). No commitear `features/ayuda.feature` ni `docs/cobertura-investigacion.md`. Mensaje de commit en inglés, con «Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>».
 2. **Tú, en fase `impl`:**
    - renombrar `presentados`/`marcarPresentado` (estado.ts) a `itemsEnCurso`/`marcarEnCurso`;
    - arreglar los `@MATE-3.3` de `texto-pdf.test.ts` y `texto-html.test.ts:130` y los `@MATE-1.1` de `texto-html.test.ts` y `material.test.ts:245` (ver `reports/revisor-codigo-MATE.md`);
@@ -236,9 +232,9 @@ Salida de `make bloqueos A=<ÁREA>` al cerrar el área, y una frase sobre el blo
    - completar «Mutación», «Deuda pagada» y «Bloqueos»;
    - citar MATE-6.2, 6.4 y 6.5.
 
-**Paso siguiente:** el punto 1, en una conversación nueva en fase `aceptacion` (el dueño la elige antes de abrirla).
+**Paso siguiente:** el resto del punto 1 (4.11, 5.5, quitar los steps de 5.x y cerrar con `make check-aceptacion` y el commit), en una conversación nueva en fase `aceptacion`.
 
 **Leer primero:**
 - este relevo y `git status`;
-- `git show e20d15e 39748d9 -- features/material.feature` (los docs/plan.md ya están resumidos arriba);
-- `tests/aceptacion/pasos/redaccion.ts`, `aprobacion.ts` y `revision.ts`, y `tests/aceptacion/soporte/escenario-material.ts` y `tipos-de-parametro.ts`.
+- `features/material.feature` de la línea 320 a la 362 (MATE-4.11 y MATE-5);
+- `tests/aceptacion/pasos/aprobacion.ts` y `tests/aceptacion/soporte/escenario-material.ts` (`tareaDePrueba`, `aprobadoEnDisco`, `fuenteDeLosApuntes`) y `soporte/contenido.ts` (`fijarTareas`).

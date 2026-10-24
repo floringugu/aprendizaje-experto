@@ -164,6 +164,22 @@ defineParameterType({
   }),
 });
 
+/** Los pasos de un ejemplo resuelto y la fuente que cita: «2 pasos y la fuente «apuntes.pdf», página 12, «…»». */
+export interface PasosYFuente {
+  readonly cantidad: number;
+  readonly fuente: Fuente;
+}
+
+// Un solo parámetro para que el paso no pase de tres (max-params).
+defineParameterType({
+  name: 'pasos_y_fuente',
+  regexp: /(\d+) pasos? y la fuente «([^»]+)», página (\d+), «([^»]*)»/,
+  transformer: (...grupos: string[]): PasosYFuente => {
+    const [cantidad = '', documento = '', pagina = '', fragmento = ''] = grupos;
+    return { cantidad: Number(cantidad), fuente: { documento, lugar: `página ${pagina}`, fragmento } };
+  },
+});
+
 /** Una página de un documento del material y la frase que dice: «apuntes.pdf», cuya página 12 dice «…». */
 export interface PaginaCitada {
   readonly documento: string;
@@ -184,14 +200,14 @@ defineParameterType({
 // Las piezas que redacta la IA (MATE-2.1) y las que entrega sin el formato del contenido (MATE-2.3).
 defineParameterType({
   name: 'pieza_redactada',
-  regexp: /un objetivo|un ejemplo resuelto de O1|un ítem de O1|una tarea con rúbrica/,
+  regexp: /un objetivo|un ejemplo resuelto de O1|un ítem de O1|una tarea con rúbrica|una categoría/,
   transformer: (frase: string) => frase,
 });
 
 defineParameterType({
   name: 'pieza_incompleta',
   regexp:
-    /un ítem de O1 sin respuesta|un ítem de O1 sin feedback|un ejemplo resuelto de O1 sin pasos|una tarea sin rúbrica|una tarea con un nivel de la rúbrica sin descriptor|un objetivo sin instrucción/,
+    /un ítem de O1 sin respuesta|un ítem de O1 sin feedback|un ejemplo resuelto de O1 sin pasos|una tarea sin rúbrica|una tarea con un nivel de la rúbrica sin descriptor|un objetivo sin instrucción|una categoría sin descripción/,
   transformer: (frase: string) => frase,
 });
 
@@ -203,10 +219,11 @@ const PROPIEDAD_QUE_FALTA: Readonly<Record<string, string>> = {
   'la rúbrica': 'rubrica',
   'el descriptor del nivel': 'descriptor',
   'la instrucción': 'instruccion',
+  'la descripción': 'descripcion',
 };
 
 defineParameterType({
   name: 'falta',
-  regexp: /la respuesta|el feedback|los pasos|la rúbrica|el descriptor del nivel|la instrucción/,
+  regexp: /la respuesta|el feedback|los pasos|la rúbrica|el descriptor del nivel|la instrucción|la descripción/,
   transformer: (frase: string) => PROPIEDAD_QUE_FALTA[frase] ?? frase,
 });
