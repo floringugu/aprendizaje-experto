@@ -207,9 +207,22 @@ describe('verFuente: la mesa no se puede leer', () => {
     expect(rechazado).not.toHaveProperty('causa');
   });
 
-  it('@MATE-4.3 con un id repetido entre el borrador y el aprobado rechaza con id_repetido (regla que la feature no cubre)', () => {
-    const { entorno } = preparar(mesaDe({ items: [item('I9', FUENTE_BUENA)] }, { items: [item('I9', FUENTE_BUENA)] }));
-    expect(ver(entorno, 'I9')).toMatchObject(rechazo('id_repetido', '«I9»'));
+  // El borrador lleva el I9 con una cita que no está en el material: si se abriera ese, daría cita_no_encontrada.
+  it('@MATE-4.3 con un id en el borrador y en el aprobado abre la fuente del aprobado (regla que la feature no cubre)', () => {
+    const { entorno } = preparar(mesaDe({ items: [item('I9', FUENTE_MALA)] }, { items: [item('I9', FUENTE_BUENA)] }));
+    expect(ver(entorno, 'I9')).toStrictEqual({ ok: true, valor: HOJA });
+  });
+
+  it('@MATE-4.3 una pieza aprobada se abre aunque el borrador no sea JSON (regla que la feature no cubre)', () => {
+    const { entorno, contenidos } = preparar();
+    contenidos.set(`contenido/borradores/${DOMINIO}.json`, new TextEncoder().encode('esto no es JSON'));
+    expect(ver(entorno, 'I7')).toStrictEqual({ ok: true, valor: HOJA });
+  });
+
+  it('@MATE-4.3 una pieza solo del borrador rechaza con id_repetido si el borrador repite el id de otra aprobada (regla que la feature no cubre)', () => {
+    const borrador = { items: [item('I9', FUENTE_BUENA), item('I7', FUENTE_BUENA)] };
+    const { entorno } = preparar(mesaDe(borrador, { items: [item('I7', FUENTE_BUENA)] }));
+    expect(ver(entorno, 'I9')).toMatchObject(rechazo('id_repetido', '«I7»'));
   });
 });
 

@@ -142,7 +142,7 @@ describe('iniciarSesionClaudeCode', () => {
     viejo.emitir(salida('Abre https://viejo.org/acceso ya.'));
     viejo.emitir({ tipo: 'pide_codigo' });
     viejo.emitir({ tipo: 'terminado', exito: true });
-    expect(await casos.consultarInicioSesion()).toEqual({
+    expect(await casos.consultarInicioSesion()).toStrictEqual({
       ok: true,
       valor: { enMarcha: true, pideCodigo: false },
     });
@@ -175,7 +175,8 @@ describe('eventos del proceso', () => {
   it('@MATE-8.1 la salida con un enlace lo muestra y pide_codigo enseña la casilla', async () => {
     const { claudeCode, casos } = montar();
     await casos.iniciarSesionClaudeCode();
-    expect(await casos.consultarInicioSesion()).toEqual({
+    // `toStrictEqual`: sin enlace, la vista no trae la propiedad, ni siquiera con `undefined`.
+    expect(await casos.consultarInicioSesion()).toStrictEqual({
       ok: true,
       valor: { enMarcha: true, pideCodigo: false },
     });
@@ -192,6 +193,11 @@ describe('eventos del proceso', () => {
     expect(await enlaceTras(`Abre https://ejemplo.org/a?x=1${cierre}`)).toBe('https://ejemplo.org/a?x=1');
   });
 
+  it('@MATE-8.7 quita todos los signos seguidos que cierran el enlace, no solo el último', async () => {
+    expect(await enlaceTras('Abre (https://x.org/a).')).toBe('https://x.org/a');
+    expect(await enlaceTras('Abre «https://x.org/a».')).toBe('https://x.org/a');
+  });
+
   it('@MATE-8.7 el enlace es el de la primera salida que trae uno', async () => {
     const { claudeCode, casos } = montar();
     await casos.iniciarSesionClaudeCode();
@@ -206,7 +212,7 @@ describe('eventos del proceso', () => {
     await casos.iniciarSesionClaudeCode();
     claudeCode.ultimo.emitir(salida('Token: sk-secreto-123'));
     const vista = await casos.consultarInicioSesion();
-    expect(vista).toEqual({ ok: true, valor: { enMarcha: true, pideCodigo: false } });
+    expect(vista).toStrictEqual({ ok: true, valor: { enMarcha: true, pideCodigo: false } });
     expect(JSON.stringify(vista)).not.toContain('secreto');
   });
 
@@ -251,7 +257,7 @@ describe('enviarCodigo', () => {
   it('@MATE-8.2 sin un inicio en marcha rechaza y no envía nada', async () => {
     const { claudeCode, casos } = montar();
     const resultado = await casos.enviarCodigo({ codigo: 'abc' });
-    expect(resultado.ok).toBe(false);
+    expect(resultado).toMatchObject({ ok: false, motivo: expect.stringMatching(/\S/) as unknown });
     expect(claudeCode.procesos).toEqual([]);
   });
 
@@ -261,7 +267,7 @@ describe('enviarCodigo', () => {
       const { claudeCode, casos } = montar();
       await casos.iniciarSesionClaudeCode();
       const resultado = await casos.enviarCodigo({ codigo });
-      expect(resultado).toMatchObject({ ok: false, campo: 'codigo' });
+      expect(resultado).toMatchObject({ ok: false, campo: 'codigo', motivo: expect.stringMatching(/\S/) as unknown });
       expect(claudeCode.ultimo.codigos).toEqual([]);
     },
   );

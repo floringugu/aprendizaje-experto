@@ -11,7 +11,7 @@ import { aplicar, revisar, type Accion, type FiltroRevision, type Revision } fro
 // Los casos de uso de la pantalla «Revisión del material» (MATE-4, MATE-5) sobre los dos ficheros del
 // dominio, con «Deshacer». Cómo pasa cada pieza del borrador al aprobado es cosa de revision.ts; aquí se
 // leen y se escriben los ficheros y se guarda lo que había para deshacer («Mecanismo» 6 y 8 de MATE).
-// También «Ver fuente», que lee la misma mesa desde la revisión y desde las sesiones («Mecanismo» 7).
+// También «Ver fuente», desde la revisión y desde las sesiones («Mecanismo» 7), que lee primero el aprobado.
 
 export interface PeticionPieza {
   readonly dominio: string;
@@ -89,8 +89,8 @@ export function crearRevisionDelMaterial(ficheros: Ficheros): CasosDeRevision {
 
 /**
  * «Ver fuente» de una pieza, desde la revisión o desde una sesión (MATE-4.3, MATE-7): su fuente, con el
- * texto que da `contextoDeLaCita(fuente, textosDelMaterial(…))`. Lee la mesa como los casos de la revisión,
- * con sus mismos rechazos, y busca la pieza con `buscarPieza`. Después rechaza, por este orden, con `causa`:
+ * texto que da `contextoDeLaCita(fuente, textosDelMaterial(…))`. Busca la pieza con `piezaDeVerFuente`, que
+ * rechaza como la revisión si no puede leer lo que necesita. Después rechaza, por este orden, con `causa`:
  * - `pieza_no_encontrada` si la pieza no está en la mesa;
  * - `antes_de_responder` si es un ítem aprobado que la persona tiene en curso (`enCurso`): la fuente va
  *   con el feedback, y antes adelantaría la respuesta o cambiaría la confianza que declara (@MATE-7.1).
@@ -102,11 +102,11 @@ export function crearRevisionDelMaterial(ficheros: Ficheros): CasosDeRevision {
  */
 export function verFuente(entorno: Entorno, peticion: PeticionPieza): Resultado<FuenteAbierta> {
   const { ficheros } = entorno.dependencias;
-  const lectura = leerMesa(ficheros, peticion.dominio);
-  if (!lectura.ok) {
-    return lectura;
+  const pieza = piezaDeVerFuente(ficheros, peticion);
+  if (!pieza.ok) {
+    return pieza;
   }
-  const fuente = fuenteQueSePuedeAbrir(entorno, peticion, lectura.valor.mesa);
+  const fuente = fuenteQueSePuedeAbrir(entorno, peticion, pieza.valor);
   if (!fuente.ok) {
     return fuente;
   }
@@ -123,11 +123,38 @@ export function verFuente(entorno: Entorno, peticion: PeticionPieza): Resultado<
 }
 
 /**
+ * La pieza que pide «Ver fuente», o `undefined` si no está. La busca primero en el aprobado (`leerAprobado`),
+ * que es lo único que presentan las sesiones (MATE-6), y solo si no está ahí lee la mesa entera (`leerMesa`)
+ * y la busca con `buscarPieza`. Así, abrir desde una sesión la fuente de una pieza aprobada no depende del
+ * borrador: un borrador con un id del aprobado, o que ya no es JSON, no lo impide. Los rechazos son los de
+ * esas dos lecturas: sin aprobado, o con uno que no sirve, no se busca en ningún sitio.
+ */
+function piezaDeVerFuente(ficheros: Ficheros, peticion: PeticionPieza): Resultado<PiezaDeLaMesa | undefined> {
+  const { dominio, pieza } = peticion;
+  const aprobado = leerAprobado(ficheros, dominio);
+  if (!aprobado.ok) {
+    return aprobado;
+  }
+  // Una mesa con el borrador vacío: `buscarPieza` solo puede dar entonces una pieza del aprobado (`aprobada: true`).
+  const borradorVacio: BorradorDominio = { dominio, objetivos: [], categorias: [], items: [], tareas: [] };
+  const delAprobado = buscarPieza({ borrador: borradorVacio, aprobado: aprobado.valor.contenido }, pieza);
+  if (delAprobado !== undefined) {
+    return aceptar(delAprobado);
+  }
+  // No está en el aprobado: solo puede ser del borrador, y para fiarse de él hay que leer la mesa entera.
+  const lectura = leerMesa(ficheros, dominio);
+  return lectura.ok ? aceptar(buscarPieza(lectura.valor.mesa, pieza)) : lectura;
+}
+
+/**
  * La fuente de la pieza, si se puede abrir: los rechazos que no dependen del material, por el orden que
  * dice `verFuente`. Con una pieza sin fuente no se llega a mirar el texto del material.
  */
-function fuenteQueSePuedeAbrir(entorno: Entorno, peticion: PeticionPieza, mesa: Mesa): Resultado<Fuente> {
-  const pieza = buscarPieza(mesa, peticion.pieza);
+function fuenteQueSePuedeAbrir(
+  entorno: Entorno,
+  peticion: PeticionPieza,
+  pieza: PiezaDeLaMesa | undefined,
+): Resultado<Fuente> {
   if (pieza === undefined) {
     return rechazarPorCausa(
       'pieza_no_encontrada',

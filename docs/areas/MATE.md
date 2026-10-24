@@ -185,7 +185,9 @@ Salida de `make bloqueos A=<ÁREA>` al cerrar el área, y una frase sobre el blo
   - los tests de `idRepetido` están en `mesa.test.ts`;
   - `rechazado` exige motivo;
   - hay tests para los huecos de mutación de `revision.ts` y `revision-del-material.ts`.
-- Unidad 808/808; tipos y lint limpios.
+- MATE-13, sin commitear: `verFuente` busca la pieza con `piezaDeVerFuente`, que lee primero el aprobado y solo si no está ahí lee la mesa entera. Un borrador con un id del aprobado, o que no es JSON, ya no impide abrir la fuente de una pieza aprobada (tests en `ver-fuente.test.ts`).
+- MATE-14, sin commitear: `inicio-sesion.ts` ya no es una clase, sino `Inicios` (puertos y `actual`) y funciones de módulo. `alRecibir` ya no tiene guarda (basta el de `parar`), `anotar` usa `??=` (por eso `enlace?: string | undefined`), y hay tests para los motivos, para la vista sin `enlace` (`toStrictEqual`) y para varios signos de cierre. Los `proceso?.enviar` y `proceso?.cortar()` son supervivientes equivalentes: `proceso` solo falta dentro de `iniciarSesion`, donde no se llega a enviar ni a cortar.
+- `make check-implementador` en verde, con 811 tests.
 - El hueco 1 se decidió en e20d15e (plan §0, `config/peticion-ia.md`), así que `redactarBorrador` ya no espera a la especificación. Ahora espera a la aceptación:
   - 11 escenarios @MATE no tienen steps (`npx cucumber-js --tags @MATE --dry-run`): la fila «una categoría» de 2.1 y de 2.3, 2.5, 2.6, los dos de 3.5 y, desde 39748d9, los dos de 2.7 (diagrama que no es SVG) y los tres de 4.11 (`antes_de` de las tareas);
   - el step de MATE-5.5 comprueba `aprobablesEnBloque === 0`, y con I7 e I10 sin marca da 2;
@@ -197,16 +199,14 @@ Salida de `make bloqueos A=<ÁREA>` al cerrar el área, y una frase sobre el blo
    - escribir los steps de esos 11 escenarios y rehacer el de 5.5 (la revisión no ofrece ninguna acción en bloque);
    - quitar los de 5.1, 5.2 y 5.4;
    - crear los casos vacíos que haga falta.
-2. **Fase `impl`, `Tarea: MATE-13`:** `verFuente` lee primero el aprobado (`leerAprobado`) y busca allí la pieza. Solo si no está, lee la mesa entera (`leerMesa`). Así, desde una sesión, un borrador con un id repetido o un JSON roto no la rechaza (MATE-6). El test de `ver-fuente.test.ts` que hoy espera `id_repetido` para un ítem aprobado pasa a abrir su fuente.
-3. **`Tarea: MATE-14`:** pasar `inicio-sesion.ts` de clase a cierre, como `crearRevisionDelMaterial`, con tests para sus supervivientes (`:86`, `:89` motivos; `:123`, `:147`, `:165`; ver `reports/mutacion-MATE-aplicacion.txt`).
-4. **Tú:**
+2. **Tú, en fase `impl`:**
    - renombrar `presentados`/`marcarPresentado` (estado.ts) a `itemsEnCurso`/`marcarEnCurso`;
    - arreglar los `@MATE-3.3` de `texto-pdf.test.ts` y `texto-html.test.ts:130` y los `@MATE-1.1` de `texto-html.test.ts` y `material.test.ts:245` (ver `reports/revisor-codigo-MATE.md`);
    - quitar las listas copiadas en el comentario de `textoDelHtml`;
    - pasar el test de `lugarDelFallo` a su sitio: está en `revision-aplicar.test.ts` porque `formato-contenido.test.ts` está en 299 de 300 líneas, así que hay que partirlo o abrir un fichero nuevo;
    - decidir si el motivo de una corrección que no es un objeto debe nombrar la pieza corregida y no «el ítem 1», como hace `falloDeLaPiezaSuelta`;
    - `material-guardado.ts` no pasa `prettier --check`, ya en HEAD.
-5. **`Tarea: MATE-11` y los cambios de e20d15e:**
+3. **`Tarea: MATE-11` y los cambios de e20d15e:**
    - `redactarBorrador` siguiendo `config/peticion-ia.md`;
    - las categorías como pieza del borrador (`categoria_pendiente`, `campo` `categoria`);
    - la marca «Un solo paso»;
@@ -218,13 +218,14 @@ Salida de `make bloqueos A=<ÁREA>` al cerrar el área, y una frase sobre el blo
    - `diagrama` en el formato: opcional en objetivos y ejemplos, empieza por `<svg` y acaba en `</svg>`; si no, error de formato (MATE-2.7);
    - `antes_de` en `revision.ts`: al aprobar, la tarea entra delante de la primera aprobada siguiendo la cadena, o al final si se corta o da la vuelta (MATE-4.11); al descartar, las que apuntaban a ella heredan su `antes_de`; una corrección con un `antes_de` desconocido o propio se rechaza con `campo` `antes_de`; el campo no pasa al contenido;
    - en `redactarBorrador`, además: la petición lleva las tareas aprobadas en orden, un `antes_de` desconocido se quita y el renombrado de ids alcanza a los `antes_de`.
-6. **Para el dueño, con [DECISIÓN PENDIENTE]:**
+4. **Para el dueño, con [DECISIÓN PENDIENTE]:**
    - el aprobado se lee por dos caminos;
    - `dominio` va sin validar dentro de las rutas;
    - las partidas de `docs/deuda-diseno.md` (todo en `reports/revisor-codigo-MATE.md`).
    - Además, MATE-6.3.
-7. **Cierre:**
+5. **Cierre:**
    - `make mutacion` y Stryker de aplicación otra vez;
+   - en «Supervivientes aceptados», los dos `proceso?.` de `inicio-sesion.ts` (ver «Hecho»);
    - completar «Mutación», «Deuda pagada» y «Bloqueos»;
    - citar MATE-6.2, 6.4 y 6.5.
 

@@ -7,7 +7,8 @@ import type { Resultado } from './resultado.ts';
 /**
  * Los casos de uso del inicio de sesión de Claude Code desde Ajustes (MATE-8), con el estado del
  * inicio en curso en memoria: si está en marcha, el enlace y si pide un código. Cada llamada es un
- * estado nuevo; la aplicación crea uno por persona.
+ * estado nuevo; la aplicación crea uno por persona. Devuelve un objeto de funciones, no una instancia
+ * de clase: `crearAplicacion` lo reparte con `...`, que no copia los métodos de una clase.
  *
  * - `iniciarSesionClaudeCode` lanza `claudeCode.iniciarSesion` y programa con `temporizador` el corte
  *   a los `MS_PARA_INICIAR_SESION` (@MATE-8.3). Si ya había uno en marcha, lo corta antes y cancela su
@@ -30,113 +31,116 @@ import type { Resultado } from './resultado.ts';
  *   cuenta no sale de aquí (@MATE-8.5).
  */
 export function crearInicioSesion(claudeCode: ClaudeCode, temporizador: Temporizador): CasosDeClaudeCode {
-  const casos = new CasosDeInicioSesion(claudeCode, temporizador);
-  // `crearAplicacion` reparte estos casos con `...`, que no copia los métodos de una clase.
+  // El inicio en curso vive en este cierre: dos llamadas a la función no comparten nada.
+  const inicios: Inicios = { claudeCode, temporizador, actual: undefined };
   return {
-    consultarAjustes: () => casos.consultarAjustes(),
-    iniciarSesionClaudeCode: () => casos.iniciarSesionClaudeCode(),
-    consultarInicioSesion: () => casos.consultarInicioSesion(),
-    enviarCodigo: (peticion) => casos.enviarCodigo(peticion),
-    cancelarInicioSesion: () => casos.cancelarInicioSesion(),
+    consultarAjustes: () => consultarAjustes(claudeCode),
+    iniciarSesionClaudeCode: () => Promise.resolve(iniciar(inicios)),
+    consultarInicioSesion: () => Promise.resolve(aceptar(vistaDe(inicios.actual))),
+    enviarCodigo: (peticion) => Promise.resolve(enviarCodigo(inicios, peticion)),
+    cancelarInicioSesion: () => {
+      cortarElActual(inicios);
+      return Promise.resolve(aceptar(null));
+    },
   };
 }
 
-class CasosDeInicioSesion implements CasosDeClaudeCode {
-  // El inicio en curso, o `undefined` si no hay ninguno. Cada inicio es un objeto propio: los eventos
-  // y el corte programado de un inicio comparan con él para saber si siguen siendo los del actual.
-  private actual: Inicio | undefined;
-
-  private readonly claudeCode: ClaudeCode;
-  private readonly temporizador: Temporizador;
-
-  constructor(claudeCode: ClaudeCode, temporizador: Temporizador) {
-    this.claudeCode = claudeCode;
-    this.temporizador = temporizador;
-  }
-
-  async consultarAjustes(): Promise<Resultado<{ readonly sesionClaudeCode: boolean }>> {
-    const { iniciada } = await this.claudeCode.estado();
-    // Solo la bandera: la cuenta no sale de aquí (@MATE-8.5).
-    return aceptar({ sesionClaudeCode: iniciada });
-  }
-
-  iniciarSesionClaudeCode(): Promise<Resultado<null>> {
-    this.cortarElActual();
-    const inicio: Inicio = { pideCodigo: false };
-    this.actual = inicio;
-    // Un evento puede llegar dentro de `iniciarSesion`, antes de que `proceso` esté guardado.
-    inicio.proceso = this.claudeCode.iniciarSesion((evento) => {
-      this.alRecibir(inicio, evento);
-    });
-    // Si el proceso ya terminó en esa llamada, no queda nada que cortar a los 5 minutos.
-    if (this.actual === inicio) {
-      inicio.cancelarCorte = this.temporizador.programar(MS_PARA_INICIAR_SESION, () => {
-        this.cortar(inicio);
-      });
-    }
-    return Promise.resolve(aceptar(null));
-  }
-
-  consultarInicioSesion(): Promise<Resultado<InicioSesionEnCurso>> {
-    return Promise.resolve(aceptar(vistaDe(this.actual)));
-  }
-
-  enviarCodigo(peticion: { readonly codigo: string }): Promise<Resultado<null>> {
-    if (this.actual === undefined) {
-      return Promise.resolve(rechazar('No hay un inicio de sesión en marcha.'));
-    }
-    if (peticion.codigo.trim() === '') {
-      return Promise.resolve(rechazarElCampo('codigo', 'Escribe el código para continuar.'));
-    }
-    // El código pasa tal cual al proceso: no se guarda ni se escribe en ningún sitio (@MATE-8.6).
-    this.actual.proceso?.enviar(peticion.codigo);
-    return Promise.resolve(aceptar(null));
-  }
-
-  cancelarInicioSesion(): Promise<Resultado<null>> {
-    this.cortarElActual();
-    return Promise.resolve(aceptar(null));
-  }
-
-  private cortarElActual(): void {
-    if (this.actual !== undefined) {
-      this.cortar(this.actual);
-    }
-  }
-
-  /** Corta el proceso (si ya lo tenemos) y cancela el corte programado: el inicio queda parado. */
-  private cortar(inicio: Inicio): void {
-    this.parar(inicio);
-    inicio.proceso?.cortar();
-  }
-
-  /** Deja el inicio parado sin cortar nada: sirve cuando el proceso ya ha terminado por su cuenta. */
-  private parar(inicio: Inicio): void {
-    inicio.cancelarCorte?.();
-    if (this.actual === inicio) {
-      this.actual = undefined;
-    }
-  }
-
-  private alRecibir(inicio: Inicio, evento: EventoInicioSesion): void {
-    // Un proceso que ya no es el actual (relanzado, cortado o terminado) no cambia nada.
-    if (this.actual !== inicio) {
-      return;
-    }
-    if (evento.tipo === 'terminado') {
-      this.parar(inicio);
-      return;
-    }
-    anotar(inicio, evento);
-  }
+/** Los puertos y el inicio en curso: lo que comparten los casos de un `crearInicioSesion`. */
+interface Inicios {
+  readonly claudeCode: ClaudeCode;
+  readonly temporizador: Temporizador;
+  /**
+   * El inicio en curso, o `undefined` si no hay ninguno. Cada inicio es un objeto propio: los eventos y
+   * el corte programado de un inicio que ya no es el actual solo cambian ese objeto, que ya no se enseña.
+   */
+  actual: Inicio | undefined;
 }
 
 interface Inicio {
   proceso?: ProcesoInicioSesion;
   /** Cancela el corte programado a los 5 minutos. */
   cancelarCorte?: () => void;
-  enlace?: string;
+  // Con `| undefined` porque `??=` en `anotar` puede escribir un `undefined` explícito.
+  enlace?: string | undefined;
   pideCodigo: boolean;
+}
+
+async function consultarAjustes(claudeCode: ClaudeCode): Promise<Resultado<{ readonly sesionClaudeCode: boolean }>> {
+  const { iniciada } = await claudeCode.estado();
+  // Solo la bandera: la cuenta no sale de aquí (@MATE-8.5).
+  return aceptar({ sesionClaudeCode: iniciada });
+}
+
+/**
+ * Corta el inicio en curso, si lo hay, y lanza uno nuevo, que pasa a ser el actual antes de llamar a
+ * `iniciarSesion`: un evento puede llegar dentro de esa llamada, antes de que el proceso esté guardado.
+ * Programa el corte a los `MS_PARA_INICIAR_SESION` solo si el inicio sigue siendo el actual al volver: si
+ * el proceso ya terminó dentro de la llamada, no queda nada que cortar.
+ */
+function iniciar(inicios: Inicios): Resultado<null> {
+  cortarElActual(inicios);
+  const inicio: Inicio = { pideCodigo: false };
+  inicios.actual = inicio;
+  // Un evento puede llegar dentro de `iniciarSesion`, antes de que `proceso` esté guardado.
+  inicio.proceso = inicios.claudeCode.iniciarSesion((evento) => {
+    alRecibir(inicios, inicio, evento);
+  });
+  // Si el proceso ya terminó en esa llamada, no queda nada que cortar a los 5 minutos.
+  if (inicios.actual === inicio) {
+    inicio.cancelarCorte = inicios.temporizador.programar(MS_PARA_INICIAR_SESION, () => {
+      cortar(inicios, inicio);
+    });
+  }
+  return aceptar(null);
+}
+
+/** Ver `enviarCodigo` en el comentario de `crearInicioSesion`. */
+function enviarCodigo(inicios: Inicios, peticion: { readonly codigo: string }): Resultado<null> {
+  const { actual } = inicios;
+  if (actual === undefined) {
+    return rechazar('No hay un inicio de sesión en marcha.');
+  }
+  if (peticion.codigo.trim() === '') {
+    return rechazarElCampo('codigo', 'Escribe el código para continuar.');
+  }
+  // El código pasa tal cual al proceso: no se guarda ni se escribe en ningún sitio (@MATE-8.6).
+  actual.proceso?.enviar(peticion.codigo);
+  return aceptar(null);
+}
+
+function cortarElActual(inicios: Inicios): void {
+  if (inicios.actual !== undefined) {
+    cortar(inicios, inicios.actual);
+  }
+}
+
+/** Corta el proceso (si ya lo tenemos) y cancela el corte programado: el inicio queda parado. */
+function cortar(inicios: Inicios, inicio: Inicio): void {
+  parar(inicios, inicio);
+  inicio.proceso?.cortar();
+}
+
+/**
+ * Deja el inicio parado sin cortar nada: cancela su corte programado y, si es el actual, deja de haber
+ * uno. Sirve cuando el proceso ya ha terminado por su cuenta.
+ */
+function parar(inicios: Inicios, inicio: Inicio): void {
+  inicio.cancelarCorte?.();
+  if (inicios.actual === inicio) {
+    inicios.actual = undefined;
+  }
+}
+
+/**
+ * `terminado` deja el inicio parado; los demás eventos se anotan en él. No mira si es el actual: un
+ * inicio que ya no lo es solo se cambia a sí mismo, y `parar` no toca el actual (ver `Inicios.actual`).
+ */
+function alRecibir(inicios: Inicios, inicio: Inicio, evento: EventoInicioSesion): void {
+  if (evento.tipo === 'terminado') {
+    parar(inicios, inicio);
+    return;
+  }
+  anotar(inicio, evento);
 }
 
 /** Lo que ve el móvil: sin inicio en marcha, nada de enlace ni de casilla. */
@@ -154,10 +158,7 @@ function anotar(inicio: Inicio, evento: Exclude<EventoInicioSesion, { tipo: 'ter
     return;
   }
   // Solo cuenta la primera salida que trae un enlace; el resto del texto se tira (@MATE-8.7).
-  const enlace = extraerEnlace(evento.texto);
-  if (inicio.enlace === undefined && enlace !== undefined) {
-    inicio.enlace = enlace;
-  }
+  inicio.enlace ??= extraerEnlace(evento.texto);
 }
 
 // La URL llega hasta el primer espacio o comilla; después se quita la puntuación que la cierra en la frase.
