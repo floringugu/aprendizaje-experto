@@ -181,27 +181,15 @@ Salida de `make bloqueos A=<ÁREA>` al cerrar el área, y una frase sobre el blo
 - MATE-13 y MATE-14, ya commiteados: `verFuente` busca la pieza con `piezaDeVerFuente` (lee primero el aprobado); `inicio-sesion.ts` ya no es una clase, sino `Inicios` y funciones de módulo. Los `proceso?.enviar` y `proceso?.cortar()` son supervivientes equivalentes: `proceso` solo falta dentro de `iniciarSesion`.
 - `make check-implementador` en verde, con 811 tests.
 - e20d15e y 39748d9 (fase specs) decidieron el hueco 1: `redactarBorrador` ya no espera a la especificación, espera a la aceptación. Añadieron la categoría como pieza, `diagnostico` a `false`, opciones repetidas como error de formato, la marca «Un solo paso», `diagrama` (SVG como texto) y `antes_de` en las tareas, y quitaron «Aprobar las N sin marca».
-- **Punto 1, fase `aceptacion`, hecho a medias (sin commitear, en el árbol de trabajo):** 8 de los 11 escenarios ya tienen steps. `tsc` y `eslint tests/aceptacion` limpios; `npx cucumber-js --tags @MATE --dry-run` deja solo los 3 de MATE-4.11 sin definir.
-  - `soporte/escenario-material.ts`: tipo `CategoriaDelBorrador` (por intersección, con `descripcion?` y `fuente?`) dentro de `Pieza`; `piezasDe` incluye `contenido.categorias`; funciones nuevas `categoriaDePrueba`, `entregaDeLaIa` y `redactar` (movidas de `redaccion.ts`).
-  - `soporte/tipos-de-parametro.ts`: «una categoría» en `pieza_redactada`, «una categoría sin descripción» en `pieza_incompleta`, «la descripción» (→ `descripcion`) en `falta` y `PROPIEDAD_QUE_FALTA`; parámetro nuevo `pasos_y_fuente` (`PasosYFuente`: `cantidad` y `fuente`), uno solo para no pasar de 3 parámetros en el step.
-  - `pasos/redaccion.ts`: la categoría en `piezaRedactada`, `piezasDelTipo` y `piezaIncompleta`; el step «le falta {falta}» se mudó a `redaccion-rechazos.ts`.
-  - `pasos/redaccion-rechazos.ts` (nuevo): `comprobarApartadas`, y los steps de MATE-2.5 (opciones repetidas, `falta` = `opciones`), MATE-2.6 (`diagnostico` a `false`) y MATE-2.7 (`diagrama` en un objetivo O4 o en el ejemplo E9, `falta` = `diagrama`).
-  - `pasos/revision.ts`: `MARCAS` pasa a `Record<string, string>` con `'Un solo paso': 'un_solo_paso'`, `marcasDe` y `aMarca` usan `string`, y el `Given` «…tiene el ejemplo resuelto {item} de {objetivo}, con {pasos_y_fuente}» (MATE-3.5).
-  - **Decisión de interfaz que documentar en la fase `impl`:** `apartadas[].falta` nombra la propiedad que falla (`descripcion`, `opciones`, `diagrama`), como `FalloDeFormato.falta`; y `un_solo_paso` es el identificador de la marca.
-- El dueño apartó mi trabajo de `tests/aceptacion/` unos minutos (hay dos `git stash` con él, `stash@{0}` y `stash@{1}`) y lo restauró; el árbol de trabajo ya tiene todo, el arreglo de max-params (`pasos_y_fuente`) incluido. Los stashes ya no hacen falta: que los borre el dueño.
-- Los cambios por Bash en `tests/aceptacion/` no son fiables (uno se revirtió): usa Edit y Write.
+- **Punto 1, fase `aceptacion`, hecho (los 11 escenarios @MATE tienen steps):** `tsc` y `eslint tests/aceptacion` limpios; `npx cucumber-js --tags @MATE --dry-run` sin pasos sin definir (84 escenarios, 566 pasos).
+  - Commit 512a014: 2.1, 2.3 (categoría), 2.5, 2.6, 2.7 y 3.5 (`redaccion-rechazos.ts` nuevo, `redaccion.ts`, `revision.ts`, `escenario-material.ts`, `tipos-de-parametro.ts`).
+  - Sin commitear, en `tests/aceptacion/pasos/aprobacion.ts`: steps de MATE-4.11 (`Given` de las tareas aprobadas y de la tarea pendiente con y sin «antes de», con `Object.assign({}, tarea, { antes_de })`; `Then` de las tareas en orden); `Then` de MATE-5.5 rehecho (la revisión no tiene `aprobablesEnBloque` y `aplicacion()` no tiene `aprobarSinMarca`); quitados los steps de 5.1, 5.2 y 5.4.
+  - `make check-aceptacion`: todo en verde salvo `estado-aceptacion`, que falla porque 69 escenarios de DIAG, MAST, MATE y RECU ya implementados pasan en verde (la etapa 3 espera todo en rojo). No es de estos cambios: los 11 nuevos o rehechos y los demás de MATE-2, 3.5, 4.11 y 5.5 fallan en rojo, como toca. Hay que decidir cómo se reconcilia (ver «Para el dueño»).
+  - **Decisión de interfaz que documentar en la fase `impl`:** `apartadas[].falta` nombra la propiedad que falla (`descripcion`, `opciones`, `diagrama`), como `FalloDeFormato.falta`; `un_solo_paso` es el identificador de la marca; y MATE-5.5 exige que desaparezcan `aprobablesEnBloque` y `aprobarSinMarca`.
+- Los stashes `stash@{0}` y `stash@{1}` ya no hacen falta: que los borre el dueño. Los cambios por Bash en `tests/aceptacion/` no son fiables: usa Edit y Write.
 
 **Falta, en este orden:**
-1. **Conversación en fase `aceptacion`** (nueva; lee `git status`, este relevo y los ficheros de abajo; no hace falta releer los de 2.x ni 3.5):
-   - **4.11 (`antes_de`), en `pasos/aprobacion.ts` (176 líneas; al quitar los de 5.x quedan unas 145):**
-     - `Given` «que contenido\/ficticio.json tiene las tareas {ids}, en ese orden» → `mundo().contenido().fijarTareas(ids)`;
-     - `Given` «que contenido\/borradores\/ficticio.json tiene la tarea {tarea}, pendiente, que va antes de {tarea}» y «…, pendiente, sin {texto}» (el texto es «antes de»): `material.borrador.tareas` con `tareaDePrueba('T3', fuenteDeLosApuntes(material.frase))` y, en el primero, `antes_de` con `Object.assign({}, tarea, { antes_de })` (sin exceso de propiedades, porque `TareaContenido` no lo declara aún); después `material.dejarBorrador(actual)`;
-     - `Then` «contenido\/ficticio.json tiene las tareas {ids}, en ese orden» → `aprobadoEnDisco(mundo()).tareas.map((t) => t.id)`;
-     - los steps de aprobar T3 ya existen («la persona aprueba {item}»). Ojo con la ambigüedad de `{ids}`/`{item}`/`{tarea}` en los pasos de tarea: el `Given` de la tarea usa `{tarea}`.
-   - **5.5:** `Then` «la revisión no ofrece aprobar ninguna pieza en bloque»: la revisión abierta no tiene `aprobablesEnBloque` y `aplicacion()` no tiene `aprobarSinMarca` (`'x' in objeto`). Hoy falla en rojo, que es lo que toca.
-   - **Quitar los steps de 5.1, 5.2 y 5.4** (`aprobacion.ts`, desde «MATE-5: solo las piezas sin marca…»): «ofrece «Aprobar las {int} sin marca»», «pulsa «Aprobar las…»», «tiene {ids}, cada uno con su fuente» y «sigue teniendo {ids}, pendientes». Ningún `.feature` los usa ya. El `Given` «que la persona ha aprobado {ids}» se queda, lo usa 4.9. Al quitar «cada uno con su fuente», `aprobadoConFuente` sigue usándose en otros steps.
-   - **Casos de uso vacíos: ninguno hasta ahora.** Si aparece uno, va en un commit de código aparte (plan §14.14).
-   - **Cierre:** `npx cucumber-js --tags @MATE --dry-run` sin indefinidos; `make check-aceptacion` en verde; commit solo de `tests/aceptacion/` (incluido `redaccion-rechazos.ts`, que es nuevo). No commitear `features/ayuda.feature` ni `docs/cobertura-investigacion.md`. Mensaje de commit en inglés, con «Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>».
+1. **Cierre del punto 1:** el dueño commitea `tests/aceptacion/pasos/aprobacion.ts` y este relevo (bloque abajo).
 2. **Tú, en fase `impl`:**
    - renombrar `presentados`/`marcarPresentado` (estado.ts) a `itemsEnCurso`/`marcarEnCurso`;
    - arreglar los `@MATE-3.3` de `texto-pdf.test.ts` y `texto-html.test.ts:130` y los `@MATE-1.1` de `texto-html.test.ts` y `material.test.ts:245` (ver `reports/revisor-codigo-MATE.md`);
@@ -222,6 +210,7 @@ Salida de `make bloqueos A=<ÁREA>` al cerrar el área, y una frase sobre el blo
    - `antes_de` en `revision.ts`: al aprobar, la tarea entra delante de la primera aprobada siguiendo la cadena, o al final si se corta o da la vuelta (MATE-4.11); al descartar, las que apuntaban a ella heredan su `antes_de`; una corrección con un `antes_de` desconocido o propio se rechaza con `campo` `antes_de`; el campo no pasa al contenido;
    - en `redactarBorrador`, además: la petición lleva las tareas aprobadas en orden, un `antes_de` desconocido se quita y el renombrado de ids alcanza a los `antes_de`.
 4. **Para el dueño, con [DECISIÓN PENDIENTE]:**
+   - `make check-aceptacion` no puede ponerse en verde mientras DIAG, MAST, MATE y RECU sigan en `config/alcance.json` con escenarios ya implementados (69 en verde): decidir si se pasan a `areas_fuera_de_alcance` las que ya tienen código o si la etapa 3 acepta el verde en las implementadas;
    - el aprobado se lee por dos caminos;
    - `dominio` va sin validar dentro de las rutas;
    - las partidas de `docs/deuda-diseno.md` (todo en `reports/revisor-codigo-MATE.md`).
@@ -232,9 +221,9 @@ Salida de `make bloqueos A=<ÁREA>` al cerrar el área, y una frase sobre el blo
    - completar «Mutación», «Deuda pagada» y «Bloqueos»;
    - citar MATE-6.2, 6.4 y 6.5.
 
-**Paso siguiente:** el resto del punto 1 (4.11, 5.5, quitar los steps de 5.x y cerrar con `make check-aceptacion` y el commit), en una conversación nueva en fase `aceptacion`.
+**Paso siguiente:** el dueño commitea y cambia a la fase `impl`; en una conversación nueva, el punto 2 (arreglos y renombrados) y el 3 (`Tarea: MATE-11` y los cambios de e20d15e y 39748d9).
 
 **Leer primero:**
 - este relevo y `git status`;
-- `features/material.feature` de la línea 320 a la 362 (MATE-4.11 y MATE-5);
-- `tests/aceptacion/pasos/aprobacion.ts` y `tests/aceptacion/soporte/escenario-material.ts` (`tareaDePrueba`, `aprobadoEnDisco`, `fuenteDeLosApuntes`) y `soporte/contenido.ts` (`fijarTareas`).
+- `reports/revisor-codigo-MATE.md` y `config/peticion-ia.md`;
+- `features/material.feature` (MATE-2.x, 3.5, 4.11 y 5.5) y los steps de `tests/aceptacion/pasos/redaccion-rechazos.ts`, `revision.ts` y `aprobacion.ts`, que fijan lo que la fase `impl` tiene que producir.

@@ -2,7 +2,15 @@ import assert from 'node:assert/strict';
 import { Given, Then, When } from '@cucumber/cucumber';
 import type { Fuente, ItemContenido } from '../../../src/aplicacion/contenido.ts';
 import { presente } from '../soporte/comprobar.ts';
-import { comoEnDisco, itemAprobado, piezaEnElBorrador, sinPropiedad } from '../soporte/escenario-material.ts';
+import {
+  aprobadoEnDisco,
+  comoEnDisco,
+  fuenteDeLosApuntes,
+  itemAprobado,
+  piezaEnElBorrador,
+  sinPropiedad,
+  tareaDePrueba,
+} from '../soporte/escenario-material.ts';
 import { aceptado, mundo } from '../soporte/mundo.ts';
 import type { Mundo } from '../soporte/mundo.ts';
 
@@ -145,32 +153,47 @@ When('pulsa «Deshacer»', () => {
   aceptado(actual.aplicacion().deshacer({ dominio: actual.dominio }));
 });
 
-// --- MATE-5: solo las piezas sin marca se aprueban en bloque -----------------------------------------
+// --- MATE-4.11: la tarea aprobada entra en el orden que dice su «antes de» ---------------------------
 
-Then('la revisión ofrece «Aprobar las {int} sin marca»', (cantidad: number) => {
-  assert.ok(cantidad > 0, 'Aprobar en bloque solo se ofrece si hay alguna pieza sin marca');
-  assert.equal(presente(mundo().material.revision, 'la revisión del material').aprobablesEnBloque, cantidad);
+Given('que contenido\\/ficticio.json tiene las tareas {ids}, en ese orden', (ids: string[]) => {
+  mundo().contenido().fijarTareas(ids);
 });
+
+/** Una tarea pendiente que cita la frase de los antecedentes; `antesDe` es lo que dice su «antes de». */
+function dejarTareaPendiente(tarea: string, antesDe?: string): void {
+  const actual = mundo();
+  const { material } = actual;
+  const pendiente = tareaDePrueba(tarea, fuenteDeLosApuntes(material.frase));
+  // `TareaContenido` aún no declara `antes_de` (MATE-4.11): se añade sin exceso de propiedades.
+  material.borrador.tareas = [
+    ...material.borrador.tareas,
+    antesDe === undefined ? pendiente : Object.assign({}, pendiente, { antes_de: antesDe }),
+  ];
+  material.dejarBorrador(actual);
+}
+
+Given(
+  'que contenido\\/borradores\\/ficticio.json tiene la tarea {tarea}, pendiente, que va antes de {tarea}',
+  dejarTareaPendiente,
+);
+
+Given('que contenido\\/borradores\\/ficticio.json tiene la tarea {tarea}, pendiente, sin {texto}', (tarea: string) => {
+  dejarTareaPendiente(tarea);
+});
+
+Then('contenido\\/ficticio.json tiene las tareas {ids}, en ese orden', (ids: string[]) => {
+  assert.deepEqual(
+    aprobadoEnDisco(mundo()).tareas.map((tarea) => tarea.id),
+    ids,
+  );
+});
+
+// --- MATE-5.5: la revisión no ofrece ninguna acción en bloque ----------------------------------------
 
 Then('la revisión no ofrece aprobar ninguna pieza en bloque', () => {
-  assert.equal(presente(mundo().material.revision, 'la revisión del material').aprobablesEnBloque, 0);
-});
-
-When('la persona pulsa «Aprobar las {int} sin marca»', (cantidad: number) => {
   const actual = mundo();
-  const app = actual.aplicacion();
-  // El botón dice cuántas aprobará: se comprueba antes de pulsarlo (MATE-5.1).
-  assert.equal(aceptado(app.abrirRevision({ dominio: actual.dominio })).aprobablesEnBloque, cantidad);
-  aceptado(app.aprobarSinMarca({ dominio: actual.dominio }));
-});
-
-Then('contenido\\/ficticio.json tiene {ids}, cada uno con su fuente', (ids: string[]) => {
-  const actual = mundo();
-  ids.forEach((item) => {
-    aprobadoConFuente(item, comoEnDisco(itemInicial(actual, item).fuente) as Fuente);
-  });
-});
-
-Then('contenido\\/borradores\\/ficticio.json sigue teniendo {ids}, pendientes', (ids: string[]) => {
-  ids.forEach(comprobarPendiente);
+  const revision = presente(actual.material.revision, 'la revisión del material');
+  // Ni la revisión cuenta piezas «aprobables en bloque» ni la aplicación sabe aprobarlas.
+  assert.ok(!('aprobablesEnBloque' in revision), 'La revisión ofrece aprobar piezas en bloque');
+  assert.ok(!('aprobarSinMarca' in actual.aplicacion()), 'La aplicación aprueba piezas en bloque');
 });
