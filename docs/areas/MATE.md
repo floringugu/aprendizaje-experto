@@ -10,45 +10,7 @@ Solo en las áreas con arquitectura: MATE, PLAN (ts-fsrs) y las que añaden pant
 
 Cómo funciona por dentro, en prosa: qué datos entran, qué módulo hace qué, qué queda guardado y dónde. Es el texto que el dueño aprobó antes de escribir `src/`.
 
-## Interfaces descartadas y por qué
-
-Las dos interfaces que se compararon («diseñarlo dos veces»): cuál se eligió, cuál se descartó y la razón.
-
-- **Elegida:** …
-- **Descartada:** … Motivo: …
-
-## Deuda pagada
-
-Partidas de `docs/deuda-diseno.md` que se pagaron en esta área, con el commit que las cierra. Si no se pagó ninguna, «Ninguna».
-
-## Mutación
-
-Puntuación de `make mutacion` al cerrar el área, y los mutantes supervivientes que se aceptaron con su motivo.
-
-- **Puntuación:** … %
-- **Supervivientes aceptados:** …
-
-## Bloqueos del hook Stop
-
-Salida de `make bloqueos A=<ÁREA>` al cerrar el área, y una frase sobre el bloqueo que más costó, si lo hubo.
-
-```text
-…
-```
-
-## Relevo
-
-**Hecho.** Las etapas 2 y 3 de MATE están commiteadas (`f94f8c8`, `da95ef0`, `bd7972c`, `495f471`, `ca31c89`). Los casos de uso de `src/aplicacion/material.ts` y `src/aplicacion/claude-code.ts` lanzan «Sin implementar», y MATE vuelve a estar fuera de `config/alcance.json`.
-
-**Falta.** Toda la etapa 4 (docs/plan.md §16): meter MATE en alcance, elegir la deuda que se paga, el paso «Mecanismo» y el código.
-
-**Paso siguiente.** El paso 1 de la etapa 4: la propuesta que saca MATE de `areas_fuera_de_alcance` y las partidas de `docs/deuda-diseno.md` que se proponen pagar.
-
-**Leer primero:**
-
-- `features/material.feature`;
-- `src/aplicacion/material.ts`, `src/aplicacion/claude-code.ts` y `src/aplicacion/puertos.ts`;
-- `tests/aceptacion/soporte/externos.ts`, `tests/aceptacion/soporte/claude-code.ts` y `tests/aceptacion/soporte/escenario-material.ts`.
+### Datos de partida (etapa 3)
 
 **Lo que fijan los steps** (y el mecanismo debe respetar):
 
@@ -68,3 +30,70 @@ Salida de `make bloqueos A=<ÁREA>` al cerrar el área, y una frase sobre el blo
 
 - el texto de un HTML se saca con código propio, sin dependencia;
 - el formato del borrador descrito arriba.
+
+## Interfaces descartadas y por qué
+
+Las dos interfaces que se compararon («diseñarlo dos veces»): cuál se eligió, cuál se descartó y la razón.
+
+**Validación del contenido** (D16, `src/aplicacion/formato-contenido.ts`):
+
+- **Elegida:** funciones que devuelven el primer fallo, con la pieza y la propiedad.
+- **Descartada:** un esquema declarativo y un intérprete genérico. Motivo: sería una librería de validación en miniatura, y el formato quedaría escrito dos veces, en los tipos y en el esquema, sin que el compilador los ate.
+
+**Mecanismo del área:**
+
+- **Elegida:** …
+- **Descartada:** … Motivo: …
+
+## Deuda pagada
+
+Partidas de `docs/deuda-diseno.md` que se pagaron en esta área, con el commit que las cierra. Si no se pagó ninguna, «Ninguna».
+
+- **D16** y **D17**, en el commit «refactor: validate domain content when it is read (D16, D17)». El contenido se valida en `enDominio`, que rechaza la petición si no cumple el formato; `respuestaMostrada` ya no lanza, y `respuestasAceptadas` deja de exportarse.
+
+## Mutación
+
+Puntuación de `make mutacion` al cerrar el área, y los mutantes supervivientes que se aceptaron con su motivo.
+
+- **Puntuación:** … %
+- **Supervivientes aceptados:** …
+
+## Bloqueos del hook Stop
+
+Salida de `make bloqueos A=<ÁREA>` al cerrar el área, y una frase sobre el bloqueo que más costó, si lo hubo.
+
+```text
+…
+```
+
+## Relevo
+
+**Hecho.**
+
+- D16 y D17 están pagadas en `src/` y `tests/unidad/`, con `make check` en verde y MATE fuera de alcance. La validación está en `src/aplicacion/formato-contenido.ts`: la usa `enDominio`, que rechaza un contenido que no cumple el formato. «Interfaces descartadas» y «Deuda pagada» ya están rellenas.
+- El dueño tiene un bloque `sh` con: el commit `refactor:`, la aplicación de `reports/propuestas/2026-10-24-alcance-mate-impl.patch`, `make sumas`, el commit «chore: bring MATE into scope» (que incluye este fichero) y `npm run --silent integridad`.
+
+**Pendiente de decidir.** Por dentro, `formato-contenido.ts` usa listas de reglas (`Molde`, `Regla`, `exigir('instruccion', …)`). Eso se parece al esquema declarativo que se descartó: los nombres de las propiedades se escriben como textos que el compilador no relaciona con `contenido.ts`. La interfaz pública sí es la elegida. Si el dueño no ejecutó el bloque por esto, el paso siguiente es reescribir esas funciones por dentro como funciones directas por pieza, con los mismos tests (`tests/unidad/formato-contenido.test.ts`).
+
+**Falta.**
+
+1. Quitar D16 y D17 de `docs/deuda-diseno.md`. Es una ruta protegida, así que va con una propuesta.
+2. El paso «Mecanismo» (plan §16): explicarlo en prosa, esbozar dos interfaces y parar con `[DECISIÓN PENDIENTE]`.
+3. Escribir el código del área.
+
+Con MATE en alcance, `make check` falla en `aceptacion` hasta que el área esté hecha. El hook Stop deja parar si el árbol de trabajo coincide con HEAD.
+
+**Paso siguiente.** Con `git log`, comprueba si están los dos commits. Si están, prepara la propuesta de `docs/deuda-diseno.md` y después pasa a «Mecanismo». Si no están, pregunta al dueño.
+
+**Notas del implementador.**
+
+- «Texto no vacío» es `!== ''`, así que un texto con solo espacios pasa.
+- Una respuesta que trae `opciones` y `aceptadas` valida las dos.
+- El test unitario importa `BorradorContenido` de `tests/aceptacion/soporte/contenido.ts`. Así, si el contenido de los escenarios deja de cumplir el formato, el test falla.
+
+**Leer primero:**
+
+- este relevo y la sección «Mecanismo» de este fichero;
+- `features/material.feature`;
+- `src/aplicacion/material.ts`, `src/aplicacion/claude-code.ts` y `src/aplicacion/puertos.ts`;
+- `tests/aceptacion/soporte/externos.ts`, `tests/aceptacion/soporte/claude-code.ts` y `tests/aceptacion/soporte/escenario-material.ts`.
