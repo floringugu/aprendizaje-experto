@@ -10,7 +10,7 @@ import { EstadoPersona } from './estado.ts';
 import type { CasosDeExportacion } from './exportacion.ts';
 import type { CasosDeHoras } from './horas.ts';
 import { crearInicioSesion } from './inicio-sesion.ts';
-import type { CasosDeMaterial } from './material.ts';
+import { anadirMaterial, listarMaterial, type CasosDeMaterial } from './material.ts';
 import { evaluarNivelExperto } from './nivel-experto.ts';
 import { iniciarSesion } from './practica.ts';
 import { consultarProgreso } from './progreso.ts';
@@ -33,10 +33,8 @@ export type Aplicacion = CasosDeDominio &
   CasosDeMaterial &
   CasosDeClaudeCode;
 
-/** El material propio (MATE), todavía sin implementar. */
-const CASOS_DE_MATERIAL: CasosDeMaterial = {
-  anadirMaterial: sinImplementar,
-  listarMaterial: sinImplementar,
+/** Lo que falta del material propio (MATE). */
+const CASOS_DE_MATERIAL: Omit<CasosDeMaterial, 'anadirMaterial' | 'listarMaterial'> = {
   redactarBorrador: sinImplementar,
   abrirRevision: sinImplementar,
   verFuente: sinImplementar,
@@ -80,6 +78,8 @@ export const crearAplicacion: (dependencias: Dependencias) => Aplicacion = (depe
     evaluarNivelExperto: (peticion) => evaluarNivelExperto(entorno, peticion),
     exportarCsv: (peticion) => exportarCsv(entorno, peticion),
     listarExportaciones: sinImplementar,
+    anadirMaterial: (peticion) => anadirMaterial(dependencias, peticion),
+    listarMaterial: (peticion) => listarMaterial(dependencias.ficheros, peticion),
     ...CASOS_DE_MATERIAL,
     ...crearInicioSesion(dependencias.claudeCode, dependencias.temporizador),
   };

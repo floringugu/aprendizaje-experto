@@ -24,3 +24,8 @@ export function rechazar(motivo: string): Resultado<never> {
 export function rechazarElCampo(campo: string, motivo: string): Resultado<never> {
   return { ok: false, motivo, campo };
 }
+
+/** Rechaza por algo que no es un dato de la petición: `causa` es el código que la interfaz distingue. */
+export function rechazarPorCausa(causa: string, motivo: string): Resultado<never> {
+  return { ok: false, motivo, causa };
+}

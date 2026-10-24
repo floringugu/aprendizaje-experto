@@ -7,7 +7,7 @@ import type {
   TareaContenido,
 } from './contenido.ts';
 import { falloDeLaPiezaSuelta, type FalloDeFormato, type TipoDePieza } from './formato-contenido.ts';
-import { aceptar, rechazarElCampo, type Resultado } from './resultado.ts';
+import { aceptar, rechazarElCampo, rechazarPorCausa, type Resultado } from './resultado.ts';
 
 // La revisión del material (MATE-4, MATE-5): cómo pasa cada pieza del borrador al contenido aprobado.
 // Es lógica pura sobre la pareja borrador–aprobado; leer y escribir los ficheros, y guardar lo que había
@@ -249,8 +249,6 @@ function aprobarEnBloque(mesa: Mesa, marcas: Marcador): Resultado<Mesa> {
 
 // --- Rechazos ---
 
-const rechazarPor = (causa: string, motivo: string): Resultado<never> => ({ ok: false, motivo, causa });
-
 /** Busca la pieza en el borrador y le aplica la acción; si no está, `pieza_no_encontrada`. */
 function sobrePieza(
   mesa: Mesa,
@@ -259,7 +257,7 @@ function sobrePieza(
 ): Resultado<Mesa> {
   const pendiente = pendientesDelBorrador(mesa.borrador).find(({ pieza }) => pieza.id === id);
   return pendiente === undefined
-    ? rechazarPor('pieza_no_encontrada', `«${id}» no está entre las piezas pendientes de revisar.`)
+    ? rechazarPorCausa('pieza_no_encontrada', `«${id}» no está entre las piezas pendientes de revisar.`)
     : accion(mesa, pendiente);
 }
 
@@ -330,7 +328,7 @@ function sinLoQueCuelga(mesa: Mesa, objetivo: string): Mesa {
 function aprobarPieza(mesa: Mesa, pendiente: Pendiente): Resultado<Mesa> {
   const sinAprobar = objetivoSinAprobar(mesa, pendiente);
   if (sinAprobar !== undefined) {
-    return rechazarPor(
+    return rechazarPorCausa(
       'objetivo_pendiente',
       `No se puede aprobar «${pendiente.pieza.id}»: su objetivo ${sinAprobar} sigue pendiente. Aprueba antes el objetivo.`,
     );
