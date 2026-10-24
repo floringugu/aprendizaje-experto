@@ -12,6 +12,11 @@
 // Espera: si quedan subagentes trabajando en segundo plano (el implementador), no comprueba
 // nada, porque vería sus ficheros a medio escribir. Claude Code despierta a Claude cuando
 // terminan, y el hook vuelve a ejecutarse al parar de nuevo.
+//
+// Sin cambios: si el árbol de trabajo no difiere del último commit, no hay trabajo que comprobar
+// (la conversación ha sido una consulta, o el dueño ya ha commiteado lo que había), y Claude
+// para sin ejecutar make. Exigirle la comprobación lo empujaría a trabajar en una etapa que
+// nadie le ha pedido. Ni las esperas ni estas paradas se anotan en el registro.
 import { leerAreasFueraDeAlcance } from '../../scripts/arnes/comun/alcance.ts';
 import { subagentesEnCurso } from '../../scripts/arnes/comun/enrutador.ts';
 import { campo, campoTexto, ejecutarHook, leerEntradaHook, responder } from '../../scripts/arnes/comun/entrada-hook.ts';
@@ -22,6 +27,7 @@ import {
   motivoDeBloqueo,
   pasoQueFalla,
 } from '../../scripts/arnes/comun/freno-stop.ts';
+import { hayCambiosSinCommitear } from '../../scripts/arnes/comun/git.ts';
 import { ejecutarObjetivo } from '../../scripts/arnes/comun/make.ts';
 import { faseDeEntorno } from '../../scripts/arnes/comun/protegidas.ts';
 import { RAIZ } from '../../scripts/arnes/comun/raiz.ts';
@@ -54,6 +60,10 @@ ejecutarHook('exigir-check', async () => {
     return;
   }
   const objetivo = OBJETIVO_POR_FASE[datos.fase];
+  if (!hayCambiosSinCommitear(RAIZ)) {
+    responder({ systemMessage: `Sin cambios respecto al último commit: Claude para sin ejecutar make ${objetivo}.` });
+    return;
+  }
   const make = ejecutarObjetivo(RAIZ, objetivo);
   if (make.verde) {
     anotarParada(RAIZ, { ...datos, resultado: 'verde' });

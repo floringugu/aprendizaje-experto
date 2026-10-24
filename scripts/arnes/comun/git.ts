@@ -30,6 +30,13 @@ export function hayCommits(raiz: string): boolean {
   return git(raiz, ['rev-parse', '--verify', '--quiet', 'HEAD']).codigo === 0;
 }
 
+/** ¿El árbol de trabajo difiere del último commit? Cuenta los ficheros cambiados, borrados y nuevos, no los ignorados. */
+export function hayCambiosSinCommitear(raiz: string): boolean {
+  const { codigo, salida } = git(raiz, ['status', '--porcelain']);
+  if (codigo !== 0) throw new Error('git status ha fallado. ¿Estás dentro del repositorio?');
+  return salida.trim() !== '';
+}
+
 /** Contenido de un fichero en un commit o en el índice («:ruta»). undefined si no existe. */
 export function contenidoEnGit(raiz: string, referencia: string): Buffer | undefined {
   const resultado = spawnSync('git', ['show', referencia], { cwd: raiz, maxBuffer: 64 * 1024 * 1024 });

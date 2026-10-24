@@ -346,6 +346,8 @@ El mensaje del bloqueo cambia según el fallo (`scripts/arnes/comun/freno-stop.t
 
 **Espera.** Si quedan subagentes trabajando en segundo plano, como el implementador, no comprueba nada, porque vería sus ficheros a medio escribir; ves el aviso «Claude espera a N subagente(s)». Claude Code despierta a Claude cuando terminan, y el hook se ejecuta de nuevo al parar. Las esperas no se anotan en el registro.
 
+**Sin cambios.** Si el árbol de trabajo no difiere del último commit (`git status` no muestra nada), no hay trabajo que comprobar: la conversación ha sido una consulta, o ya has commiteado lo que había. Claude para sin ejecutar make y ves el aviso «Sin cambios respecto al último commit». Exigirle la comprobación lo empujaría a trabajar en una etapa que nadie le ha pedido. Estas paradas tampoco se anotan.
+
 Cada parada queda en `.claude/registro-stop.jsonl` (fuera de git): la conversación (`session_id`), la fase, el resultado, el paso que falla y las áreas fuera de alcance en ese momento. De ahí salen la cuenta del freno y `make bloqueos A=<ÁREA>`, que resume las paradas de la fase impl mientras el área estaba en curso.
 
 ### SubagentStop: `exigir-check-implementador.ts`
@@ -581,6 +583,7 @@ Se activa con `npm ci`: el script `prepare` ejecuta `git config core.hooksPath .
 - **Un implementador cada vez es una instrucción**, no un bloqueo. Dos a la vez podrían pisarse los ficheros, y la comprobación de uno vería los cambios a medias del otro.
 - **Claude podría escribir código con otro subagente** (`general-purpose`, por ejemplo), cuyo modelo el enrutador no toca. Lo frenan CLAUDE.md y tu revisión.
 - **`make bloqueos` no cuenta los bloqueos del implementador:** están en `.claude/registro-enrutador.jsonl`.
+- **Un árbol limpio deja parar sin comprobar.** Si Claude commiteara su propio trabajo en rojo, el hook Stop lo dejaría parar. Lo frenan sus instrucciones (no commitea si no se lo pides), el `make check` que ejecutas después de cada commit y tu revisión.
 - **Que pasen los tests no demuestra eficacia pedagógica.** Lo dirá el README de la etapa 5.
 
 ---
