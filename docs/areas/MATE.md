@@ -175,7 +175,11 @@ Salida de `make bloqueos A=<ÁREA>` al cerrar el área, y una frase sobre el blo
   - un ejemplo que está dentro de un objetivo pendiente da `objetivo_pendiente` al aprobarlo;
   - un ejemplo aprobado se reconstruye solo con `id`, `pasos` y `fuente`;
   - `ejemplos_resueltos` de la raíz no se crea vacío.
-- **Duda abierta:** dos piezas con el mismo id (un `E1` en dos objetivos) hacen ambigua la acción, y gana la primera. ¿Hace falta una regla de ids únicos?
+- **Decidido por el dueño (24-10-2026): los ids son únicos.** Dos piezas con el mismo id (un `E1` en dos objetivos) harían ambigua una acción de la revisión. Falta decidir el alcance y hacerlo:
+  - **Alcance:** ¿en todo el dominio, contando el aprobado y el borrador y todos los tipos de pieza? Recomiendo que sí.
+  - **Dónde se hace cumplir:** en `validarContenido`, para el aprobado y el borrador, con `falta` `id`. `redactarBorrador` ya cambia los ids que chocan (MATE-2.2), y al aprobar no puede haber choque si el borrador valida contra el aprobado.
+  - **Antes de tocarlo,** mira si el contenido de prueba (`tests/aceptacion/soporte/contenido.ts`) repite ids de ejemplos entre objetivos: si los repite, la regla rompería escenarios de otras áreas, y `tests/aceptacion/` está protegido.
+  - **Va al plan:** la regla se escribe en «Formato del contenido» del §0 de `docs/plan.md`, con una propuesta.
 
 **Falta.**
 
@@ -194,7 +198,7 @@ Salida de `make bloqueos A=<ÁREA>` al cerrar el área, y una frase sobre el blo
    - `verFuente`: MATE-7.1 la exige rechazada mientras el ítem presentado no tenga respuesta (`intentarVerFuente` en `borradores-en-sesiones.ts:191`), así que necesita el estado de la persona;
    - `anadirMaterial`, con `pdftotext`, y `redactarBorrador`.
 
-**Paso siguiente.** Revisa `src/aplicacion/revision.ts` y las decisiones del implementador. Después escribe las firmas de `inicio-sesion.ts`.
+**Paso siguiente.** Revisa `src/aplicacion/revision.ts` y las decisiones del implementador. Luego, la regla de los ids únicos (arriba): firma y comentario en `formato-contenido.ts`, y la propuesta del §0. Después escribe las firmas de `inicio-sesion.ts`.
 
 **Leer primero:**
 
