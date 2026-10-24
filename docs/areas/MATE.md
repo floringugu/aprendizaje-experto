@@ -10,7 +10,7 @@ Si una conversación del área llega al umbral de contexto (docs/plan.md §5, «
 
 ### Cómo funciona por dentro
 
-Todo lo que se guarda pasa por el puerto `Ficheros`, con rutas relativas a la carpeta de datos. Lo que sigue usa `material/<dominio>/` (§17.8.3, más abajo).
+Todo lo que se guarda pasa por el puerto `Ficheros`, con rutas relativas a la carpeta de datos. Lo que sigue usa `material/<dominio>/` (decisión 3, más abajo).
 
 1. **Añadir material** (`anadirMaterial`, asíncrono). El tipo se saca de la extensión del nombre: `.pdf`, `.pptx` y `.docx`; cualquier otra rechaza con `tipo_no_admitido`. Un PPTX o un DOCX pide antes `libreOffice.instalado()` y, si no está, rechaza con `falta_libreoffice`. Se guardan el original y, si lo hay, el PDF convertido. De ese PDF se saca el texto una sola vez, página a página, y se guarda como JSON (`["texto de la página 1", …]`). Las citas y «Ver fuente» leen ese JSON y no vuelven a abrir el PDF: por eso pueden ser síncronas.
 2. **URL.** `web.descargar(url)` da los bytes y el `Content-Type`. Se guarda la copia tal cual (MATE-1.5: después da igual que la página cambie o desaparezca). Si es HTML, el texto se saca con código propio (decisión de la etapa 3): fuera `script` y `style`, las etiquetas de bloque pasan a saltos de línea y se decodifican las entidades. Se usa el `charset` del `Content-Type` y, si no hay, UTF-8. Si es `application/pdf`, se trata como un PDF. Cualquier otro tipo, o una URL que no se puede descargar, se rechaza. El texto de una URL es una sola «página», con `lugar` `'página web'`.
@@ -24,7 +24,7 @@ Todo lo que se guarda pasa por el puerto `Ficheros`, con rutas relativas a la ca
    - `cita_no_encontrada`: el documento no está en el material, o el fragmento no aparece en su texto. Para compararlos, cada tramo de espacios, tabuladores y saltos de línea cuenta como un solo espacio, en el fragmento y en el texto, y nada más se normaliza;
    - las páginas se unen con un salto de línea, así que una cita que cruza de una página a otra se encuentra.
 6. **Revisión** (el módulo central, `src/aplicacion/revision.ts`). Lee el borrador y el contenido aprobado, agrupa las piezas pendientes por objetivo y aplica aprobar, aprobar en bloque, descartar y corregir. Escribe los dos ficheros enteros. Hay una regla que la feature no cubre: una pieza que cuelga de un objetivo aún pendiente (un ítem de O4) no se aprueba antes que su objetivo, porque el contenido aprobado quedaría con un objetivo que no existe. Rechaza con `objetivo_pendiente`. Las dos interfaces posibles están más abajo.
-7. **Ver fuente.** Busca la primera página que contiene el fragmento, con la misma normalización, y la hoja trae el texto entero de esa página. Si no aparece en ninguna, usa la página que dice `lugar` («página 12», «diapositiva 3»), si es un número válido. Si tampoco, rechaza con `cita_no_encontrada`. Se busca por el fragmento antes que por `lugar` porque la IA puede contar las páginas impresas, y en un libro no coinciden con las del PDF. Lo mismo vale para lo aprobado, y en una sesión solo después de responder (MATE-7.1).
+7. **Ver fuente.** Busca la primera página que contiene el fragmento, con la misma normalización, y la hoja trae el texto entero de esa página; si la cita cruza de una página a otra, trae todas las que abarca, para que una pieza sin marca siempre se pueda abrir. Si no aparece en ninguna, usa la página que dice `lugar` («página 12», «diapositiva 3»), si es un número válido. Si tampoco, rechaza con `cita_no_encontrada`. Se busca por el fragmento antes que por `lugar` porque la IA puede contar las páginas impresas, y en un libro no coinciden con las del PDF. Lo mismo vale para lo aprobado, y en una sesión solo después de responder (MATE-7.1).
 8. **Deshacer.** Antes de cada acción de la revisión se guarda en memoria, por dominio, lo que había en los dos ficheros; deshacer los vuelve a escribir. Es un único hueco, así que solo se deshace la última acción (MATE-4.10). No sobrevive a reiniciar el servidor, y no hace falta.
 9. **Inicio de sesión de Claude Code** (`src/aplicacion/inicio-sesion.ts`). Es un estado en memoria (en marcha, enlace, pide código) con el proceso y la cancelación del temporizador. De cada evento `salida` solo se saca la primera URL `https://` y el texto se tira (MATE-8.7). El código que escribe la persona va a `proceso.enviar` y no se guarda en ningún sitio (MATE-8.6). Al lanzarlo se programan 5 minutos con `Temporizador`; al vencer, o con «Cancelar», se llama a `cortar()`. Ajustes solo devuelve `estado().iniciada`.
 
@@ -131,6 +131,11 @@ Las dos interfaces que se compararon («diseñarlo dos veces»): cuál se eligi�
 - **Elegida:** A, una sola entrada `aplicar(mesa, accion)` sobre la pareja borrador–aprobado.
 - **Descartada:** B, primitivas `localizar`, `quitar`, `poner` y `sustituir` que compone cada caso de uso. Motivo: parte entre dos funciones cómo se mueve cada tipo de pieza, y cada caso de uso repite la secuencia que guarda el estado para deshacer.
 
+**Citas** (`src/dominio/citas.ts`):
+
+- **Elegida:** `marcadorDelMaterial(textos)` devuelve el `Marcador` que recibe la revisión, y `contextoDeLaCita(cita, textos)` da el texto de «Ver fuente». Las reglas (sin fuente, documento ausente, fragmento que no aparece, página de `lugar`) y la normalización de los espacios quedan dentro, y el marcador normaliza cada documento una sola vez.
+- **Descartada:** un documento indexado, `documentoCitable(paginas)`, con `buscar(fragmento)` que da las páginas donde está. Motivo: es más general, pero deja fuera, en `revision.ts` y en `material.ts`, qué cuenta como marca y cuándo se usa `lugar`, y las dos tendrían que tratar igual el documento que no está en el material.
+
 ## Deuda pagada
 
 Partidas de `docs/deuda-diseno.md` que se pagaron en esta área, con el commit que las cierra. Si no se pagó ninguna, «Ninguna».
@@ -156,21 +161,44 @@ Salida de `make bloqueos A=<ÁREA>` al cerrar el área, y una frase sobre el blo
 
 **Hecho.**
 
-- D16 y D17 están pagadas y fuera de `docs/deuda-diseno.md` (commit 9932284).
-- El mecanismo está aprobado entero (sección «Mecanismo»), y la interfaz descartada, anotada.
-- `aceptacion` y `cobertura-ids` fallan solo por MATE: 75 escenarios de `features/material.feature`, «Sin implementar».
+- La propuesta del plan está commiteada (d0f98ac y 3e75f5b).
+- `src/dominio/citas.ts` y `tests/unidad/citas.test.ts`: en verde, revisados, mutación 96,47 % con 3 equivalentes. Sin commitear.
+- `src/aplicacion/revision.ts` (interfaz A: `Mesa`, `Accion`, `revisar`, `aplicar`; firmas mías, cuerpos del implementador con Sonnet) y `tests/unidad/revision.test.ts`: en verde, con tipos y knip limpios. Sin commitear. Aún no lo he revisado a fondo, ni he medido su mutación. El fichero tiene 411 líneas, y el test está justo en el límite de 300.
+- `formato-contenido.ts` exporta `TipoDePieza`, `FalloDeFormato` y `falloDeLaPiezaSuelta`, con sus tests.
+- Los tipos de la revisión (`BorradorDominio`, `EjemploDeObjetivoAprobado`, `FiltroRevision`, `Revision`) pasan de `material.ts` a `revision.ts`, para que no haya un ciclo. `material.ts` reexporta los dos primeros para los steps, porque `tests/aceptacion/` está protegido. `Marca` sale de `src/dominio/citas.ts`.
+- Reglas que la feature no cubre, escritas en el comentario de `aplicar`:
+  - al aprobar un objetivo, entra sin sus ejemplos, que siguen pendientes y pasan a ir aparte;
+  - al descartar un objetivo, se van con él sus ejemplos y sus ítems del borrador;
+  - `corregir` rechaza con `campo` `id` si cambia el id;
+  - en el bloque, una pieza sin marca que cuelga de un objetivo marcado no entra ni cuenta.
+- Decisiones del implementador, sin revisar todavía:
+  - un ejemplo que está dentro de un objetivo pendiente da `objetivo_pendiente` al aprobarlo;
+  - un ejemplo aprobado se reconstruye solo con `id`, `pasos` y `fuente`;
+  - `ejemplos_resueltos` de la raíz no se crea vacío.
+- **Duda abierta:** dos piezas con el mismo id (un `E1` en dos objetivos) hacen ambigua la acción, y gana la primera. ¿Hace falta una regla de ids únicos?
 
 **Falta.**
 
-1. Pasar a `docs/plan.md` las decisiones aprobadas: las cuatro de §17.8 (quitarlas de «Por decidir»), las dos de la etapa 3 (el texto de un HTML con código propio y el formato del borrador) y las cuatro reglas que la feature no cubre. Van en §0 y es una ruta protegida: va con una propuesta, aparte del código.
-2. El código: `src/dominio/citas.ts`, `src/aplicacion/revision.ts`, `inicio-sesion.ts` y los casos de uso de `material.ts`, en el orden de §16 (firmas y comentarios primero, cuerpos al `implementador`).
+1. Revisar `revision.ts`. Si hay supervivientes que no sean equivalentes, `make mutacion` sobre ese fichero.
+2. `src/aplicacion/inicio-sesion.ts`, ya pensado:
+   - `crearInicioSesion(claudeCode, temporizador): CasosDeClaudeCode`, con el estado en memoria por lanzamiento. Ignora los eventos de un proceso que ya no es el actual.
+   - Un segundo «Iniciar» corta el proceso anterior.
+   - De `salida` solo toma la primera URL `https://`, sin la puntuación del final.
+   - `enviarCodigo` sin un inicio en marcha rechaza; `cancelar` sin un inicio en marcha acepta.
+   - Ajustes devuelve solo `{ sesionClaudeCode }`.
+   - Los 5 minutos van a `src/dominio/unidades.ts` (`MS_PARA_INICIAR_SESION`), porque fuera de ese fichero no se permiten números sueltos.
+   - Se cablea en `aplicacion.ts`.
+   - Los steps están en `tests/aceptacion/pasos/claude-code.ts`, y el doble en `tests/aceptacion/soporte/claude-code.ts`.
+3. Los casos de uso de `material.ts`:
+   - la revisión: leer y escribir el borrador y el aprobado, y deshacer con un único hueco por dominio;
+   - `verFuente`: MATE-7.1 la exige rechazada mientras el ítem presentado no tenga respuesta (`intentarVerFuente` en `borradores-en-sesiones.ts:191`), así que necesita el estado de la persona;
+   - `anadirMaterial`, con `pdftotext`, y `redactarBorrador`.
 
-**Paso siguiente.** Prepara la propuesta de `docs/plan.md` y dale al dueño los bloques `sh`. Después escribe las firmas de `src/dominio/citas.ts`.
-
-**Sin mirar todavía.** Cómo comprueban los steps de MATE-7.1 que no hay «Ver fuente» antes de responder: puede ser una acción del ítem presentado o un rechazo de `verFuente`. Búscalo antes de diseñar esa parte. Los steps de MATE-2, MATE-4 a MATE-7 están en `tests/aceptacion/pasos/` (`redaccion.ts`, `revision.ts`, `aprobacion.ts`, `borradores-en-sesiones.ts`).
+**Paso siguiente.** Revisa `src/aplicacion/revision.ts` y las decisiones del implementador. Después escribe las firmas de `inicio-sesion.ts`.
 
 **Leer primero:**
 
-- este relevo y «Mecanismo» de este fichero;
-- `src/aplicacion/material.ts`, `claude-code.ts`, `puertos.ts`, `dependencias.ts` y la cabecera de `formato-contenido.ts`;
-- `tests/aceptacion/soporte/escenario-material.ts` y `externos.ts`.
+- este relevo y «Mecanismo»;
+- el comentario de `aplicar` y `revisar` en `src/aplicacion/revision.ts` (líneas 55-112);
+- `src/aplicacion/claude-code.ts`;
+- `src/aplicacion/aplicacion.ts`.

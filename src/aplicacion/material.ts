@@ -1,52 +1,17 @@
-import type { ContenidoDominio, EjemploResueltoContenido } from './contenido.ts';
 import type { PeticionDominio } from './peticiones.ts';
 import type { Resultado } from './resultado.ts';
+import type { FiltroRevision, Revision } from './revision.ts';
 
 // Material del dominio y borradores que redacta una IA (MATE, plan §17.6). Nada de lo que está en el
 // borrador llega a una sesión: las sesiones solo leen `contenido/<dominio>.json` (MATE-6).
 
-/** Un ejemplo resuelto del borrador para un objetivo que ya está aprobado: va aparte, con su objetivo. */
-export interface EjemploDeObjetivoAprobado extends EjemploResueltoContenido {
-  readonly objetivo: string;
-}
-
-/**
- * `contenido/borradores/<dominio>.json`: el formato del contenido, con las piezas pendientes de revisar.
- * Los ejemplos de un objetivo nuevo van dentro de él; los de un objetivo ya aprobado, en `ejemplos_resueltos`.
- */
-export interface BorradorDominio extends ContenidoDominio {
-  readonly ejemplos_resueltos?: readonly EjemploDeObjetivoAprobado[];
-}
+// Los escenarios leen el borrador con estos tipos; se definen en revision.ts, que es quien lo mueve.
+export type { BorradorDominio, EjemploDeObjetivoAprobado } from './revision.ts';
 
 /** Material que añade la persona: un fichero (PDF, PPTX o DOCX) o una URL (MATE-1.1). */
 type PeticionMaterial =
   | { readonly dominio: string; readonly nombre: string; readonly bytes: Uint8Array }
   | { readonly dominio: string; readonly url: string };
-
-/** Marcas que pone la aplicación, no la IA (MATE-3): «No está en tu material» y «Cita no encontrada». */
-type Marca = 'sin_fuente' | 'cita_no_encontrada';
-
-/** Filtros de la revisión (MATE-4.2): todas las pendientes, o solo las que llevan una marca. */
-type FiltroRevision = 'pendientes' | Marca;
-
-interface PiezaPendiente {
-  readonly id: string;
-  readonly tipo: 'objetivo' | 'ejemplo' | 'item' | 'tarea';
-  readonly marcas: readonly Marca[];
-}
-
-interface GrupoRevision {
-  /** Objetivo del que cuelgan las piezas; ausente en las que no cuelgan de ninguno, como las tareas. */
-  readonly objetivo?: string;
-  readonly piezas: readonly PiezaPendiente[];
-}
-
-/** La pantalla «Revisión del material»: las piezas pendientes, agrupadas por objetivo (MATE-4.1). */
-interface Revision {
-  readonly grupos: readonly GrupoRevision[];
-  /** Las piezas sin marca, que son las que se aprueban en bloque; 0 si no hay ninguna (MATE-5). */
-  readonly aprobablesEnBloque: number;
-}
 
 /** La hoja de «Ver fuente»: el fragmento dentro del texto de su lugar (MATE-4.3). */
 interface FuenteAbierta {

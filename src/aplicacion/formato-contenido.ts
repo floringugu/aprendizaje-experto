@@ -3,7 +3,7 @@
 import type { ContenidoValidado } from './contenido.ts';
 
 /** Qué propiedad del formato falta o no es válida, y en qué pieza. */
-interface FalloDeFormato {
+export interface FalloDeFormato {
   /**
    * La pieza que falla, como la buscaría el autor en el fichero: «el ítem I9», «la tarea T3», «el
    * ejemplo resuelto E1 de O2», «la fuente del ítem I9». Una pieza sin `id` válido se nombra por su
@@ -43,9 +43,40 @@ export function validarContenido(leido: unknown): Validacion<ContenidoValidado> 
   return fallo === undefined ? { ok: true, valor: leido as ContenidoValidado } : { ok: false, fallo };
 }
 
+/** Las piezas que se revisan una a una en el borrador (MATE-2.3, MATE-4). Las categorías no se revisan. */
+export type TipoDePieza = 'objetivo' | 'ejemplo' | 'item' | 'tarea';
+
+/**
+ * El primer fallo de una pieza suelta del borrador, o `undefined` si cumple el formato, con las mismas
+ * reglas que `validarContenido`: un objetivo con los ejemplos que lleva dentro, y cada pieza con su
+ * fuente si la trae. Sirve para apartar las piezas que entrega la IA (MATE-2.3) y para rechazar una
+ * corrección (MATE-4.8). Las propiedades de más se ignoran, como el `objetivo` de un ejemplo que va
+ * aparte. La pieza se nombra como la primera de su lista: «el ítem 1» si no tiene `id` válido.
+ */
+export function falloDeLaPiezaSuelta(tipo: TipoDePieza, pieza: unknown): FalloDeFormato | undefined {
+  switch (tipo) {
+    case 'objetivo':
+      return falloDelObjetivo(pieza, 0);
+    case 'ejemplo':
+      return falloDelEjemplo(pieza, 0, nombreDelObjetivoDelEjemplo(pieza));
+    case 'item':
+      return falloDelItem(pieza, 0);
+    case 'tarea':
+      return falloDeLaTarea(pieza, 0);
+  }
+}
+
+/**
+ * Un ejemplo que va aparte lleva el `objetivo` del que cuelga; uno que aún está dentro de su objetivo no
+ * lo lleva, y entonces solo se sabe que es de «su objetivo».
+ */
+function nombreDelObjetivoDelEjemplo(ejemplo: unknown): string {
+  const objetivo = esRegistro(ejemplo) ? ejemplo['objetivo'] : undefined;
+  return esTextoNoVacio(objetivo) ? objetivo : 'su objetivo';
+}
+
 // Una función por pieza. Cada una devuelve el primer fallo de la pieza, o `undefined` si cumple el
 // formato. `posicion` es su índice en la lista, desde 0, para nombrarla cuando no tiene `id` válido.
-// No se exportan hasta que MATE las use para validar las piezas del borrador una a una.
 
 function falloDelObjetivo(objetivo: unknown, posicion: number): FalloDeFormato | undefined {
   return falloDeLaPieza(objetivo, nombrarPieza('el objetivo', objetivo, posicion), MOLDE_DEL_OBJETIVO);
