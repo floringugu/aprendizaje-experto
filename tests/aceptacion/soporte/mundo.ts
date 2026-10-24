@@ -23,6 +23,8 @@ import type {
   TareaPresentada,
 } from '../../../src/aplicacion/tareas.ts';
 import { BorradorContenido } from './contenido.ts';
+import { Externos } from './externos.ts';
+import { EscenarioMaterial } from './escenario-material.ts';
 import { PlanificadorFsrsDePrueba } from './planificador.ts';
 import { RelojDePrueba, instanteUtc } from './reloj.ts';
 
@@ -35,6 +37,11 @@ function leerParametrosDelRepositorio(): ParametrosJson {
   const ruta = join(process.cwd(), 'config', 'parametros.json');
   return JSON.parse(readFileSync(ruta, 'utf8')) as ParametrosJson;
 }
+
+/** Una acción de la preparación: las asíncronas esperan a lo externo (añadir material, MATE). */
+type Preparacion =
+  | { readonly asincrona: false; readonly accion: () => void }
+  | { readonly asincrona: true; readonly accion: () => Promise<void> };
 
 /** Devuelve el valor de un resultado aceptado; si la aplicación lo rechazó, falla el paso. */
 export function aceptado<T>(resultado: Resultado<T>): T {
@@ -120,7 +127,11 @@ export class Mundo {
   readonly correcciones: { readonly esperada: boolean; readonly recibida: boolean }[] = [];
   private readonly diagnosticosHechos = new Set<string>();
   private readonly aplicaciones: Aplicacion[] = [];
-  private pendientes: (() => void)[] = [];
+  /** Los dobles de lo externo de MATE. El contenido aprobado es el que preparan los pasos. */
+  readonly externos = new Externos(this.reloj, (dominio) => this.contenidos.get(dominio)?.toContenido());
+  /** Lo que recuerdan los pasos de MATE entre el «Dado», el «Cuando» y el «Entonces». */
+  readonly material = new EscenarioMaterial(DOMINIO_POR_DEFECTO);
+  private pendientes: Preparacion[] = [];
   private preparando = false;
 
   constructor() {
@@ -151,15 +162,28 @@ export class Mundo {
     const nueva = crearAplicacion({
       reloj: this.reloj,
       leerParametros: () => this.parametros,
-      leerContenido: (dominio): ContenidoDominio | undefined => this.contenidos.get(dominio)?.toContenido(),
+      // Si la aplicación ya ha escrito el contenido aprobado (MATE-4.4), manda lo que escribió.
+      leerContenido: (dominio): ContenidoDominio | undefined =>
+        this.externos.ficheros.contenidoEscrito(dominio) ?? this.contenidos.get(dominio)?.toContenido(),
       planificadorFsrs: this.planificador,
+      ficheros: this.externos.ficheros,
+      leerIa: () => this.externos.leerIa(),
+      libreOffice: this.externos.libreOffice,
+      web: this.externos.web,
+      claudeCode: this.externos.claudeCode,
+      temporizador: this.externos.temporizador,
     });
     this.aplicaciones[persona] = nueva;
     return nueva;
   }
 
   preparar(accion: () => void): void {
-    this.pendientes.push(accion);
+    this.pendientes.push({ asincrona: false, accion });
+  }
+
+  /** Como `preparar`, para lo que espera a lo externo. Solo la ejecuta `listoAsincrono`. */
+  prepararAsincrono(accion: () => Promise<void>): void {
+    this.pendientes.push({ asincrona: true, accion });
   }
 
   /**
@@ -167,7 +191,7 @@ export class Mundo {
    * pasó antes que lo de los «Dado» anteriores: así el reloj de prueba solo avanza y nunca retrocede.
    */
   prepararAntes(accion: () => void): void {
-    this.pendientes.unshift(accion);
+    this.pendientes.unshift({ asincrona: false, accion });
   }
 
   /** La persona abre el dominio y termina el diagnóstico sin marcar ningún ítem (una sola vez). */
@@ -184,22 +208,52 @@ export class Mundo {
 
   /** Ejecuta la preparación pendiente, en orden, y devuelve la aplicación de la persona habitual. */
   listo(): Aplicacion {
-    if (!this.preparando) {
-      this.preparando = true;
-      if (this.diagnosticoPrevio) {
-        this.terminarDiagnosticoSinItems();
-      }
-      const cola = this.pendientes;
-      this.pendientes = [];
+    const cola = this.tomarCola();
+    if (cola !== undefined) {
       try {
-        cola.forEach((accion) => {
-          accion();
+        cola.forEach((preparacion) => {
+          if (preparacion.asincrona) {
+            throw new Error('Hay preparación asíncrona pendiente: el paso debe usar listoAsincrono()');
+          }
+          preparacion.accion();
         });
       } finally {
         this.preparando = false;
       }
     }
     return this.aplicacion();
+  }
+
+  /** Como `listo`, esperando a cada acción asíncrona antes de pasar a la siguiente. */
+  async listoAsincrono(): Promise<Aplicacion> {
+    const cola = this.tomarCola();
+    if (cola !== undefined) {
+      try {
+        for (const preparacion of cola) {
+          await preparacion.accion();
+        }
+      } finally {
+        this.preparando = false;
+      }
+    }
+    return this.aplicacion();
+  }
+
+  /**
+   * Empieza a preparar: hace el diagnóstico previo y vacía la cola. `undefined` si ya se está preparando
+   * (una acción de la cola que pide la aplicación no vuelve a ejecutar la cola).
+   */
+  private tomarCola(): Preparacion[] | undefined {
+    if (this.preparando) {
+      return undefined;
+    }
+    this.preparando = true;
+    if (this.diagnosticoPrevio) {
+      this.terminarDiagnosticoSinItems();
+    }
+    const cola = this.pendientes;
+    this.pendientes = [];
+    return cola;
   }
 }
 

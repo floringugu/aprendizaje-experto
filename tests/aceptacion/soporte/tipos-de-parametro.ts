@@ -1,4 +1,5 @@
 import { defineParameterType } from '@cucumber/cucumber';
+import type { Fuente } from '../../../src/aplicacion/contenido.ts';
 import { instanteUtc } from './reloj.ts';
 
 /** Número escrito con coma decimal («0,70», «7,5») como número de JavaScript. */
@@ -11,9 +12,9 @@ function textosEntreComillas(texto: string): string[] {
   return [...texto.matchAll(/«([^»]*)»/g)].map((coincidencia) => coincidencia[1] ?? '');
 }
 
-/** «O1, O2 y O3» → ['O1', 'O2', 'O3'] */
+/** «O1, O2 y O3» → ['O1', 'O2', 'O3']; también «I9 e I10», como se escribe ante una «i». */
 function identificadores(texto: string): string[] {
-  return texto.split(/, | y /);
+  return texto.split(/, | y | e /);
 }
 
 // «ficticio» → ficticio. Los textos entre comillas latinas son nombres, respuestas o fases.
@@ -68,7 +69,7 @@ defineParameterType({ name: 'tarea', regexp: /T\d+/, transformer: (id: string) =
 defineParameterType({ name: 'categoria', regexp: /C\d+/, transformer: (id: string) => id });
 defineParameterType({ name: 'grupo', regexp: /G\d+/, transformer: (id: string) => id });
 defineParameterType({ name: 'item', regexp: /[A-Z]\d+/, transformer: (id: string) => id });
-defineParameterType({ name: 'ids', regexp: /[A-Z]\d+(?:(?:, | y )[A-Z]\d+)*/, transformer: identificadores });
+defineParameterType({ name: 'ids', regexp: /[A-Z]\d+(?:(?:, | y | e )[A-Z]\d+)*/, transformer: identificadores });
 defineParameterType({ name: 'fecha', regexp: /\d{4}-\d{2}-\d{2}/, transformer: (fecha: string) => fecha });
 defineParameterType({ name: 'fichero', regexp: /[a-z_]+\.csv/, transformer: (nombre: string) => nombre });
 defineParameterType({ name: 'horizonte', regexp: /1 semana|1 año/, transformer: (nombre: string) => nombre });
@@ -136,4 +137,76 @@ defineParameterType({
   regexp: /un «\d+» en «[^»]+»(?: y un «\d+» en «[^»]+»)*/,
   transformer: (frase: string) =>
     Object.fromEntries([...frase.matchAll(/un «(\d+)» en «([^»]+)»/g)].map((m) => [m[2] ?? '', Number(m[1])])),
+});
+
+const FUENTE = /«([^»]+)», página (\d+), «([^»]*)»/;
+
+/** «apuntes.pdf», página 12, «La regla…» → la fuente de una pieza; «sin fuente» → `undefined` (MATE). */
+export function leerFuente(texto: string): Fuente | undefined {
+  const partes = FUENTE.exec(texto);
+  if (partes === null) {
+    if (texto.trim() !== 'sin fuente') {
+      throw new Error(`«${texto}» no es una fuente`);
+    }
+    return undefined;
+  }
+  const [, documento = '', pagina = '', fragmento = ''] = partes;
+  return { documento, lugar: `página ${pagina}`, fragmento };
+}
+
+defineParameterType({
+  name: 'fuente',
+  regexp: FUENTE,
+  transformer: (documento: string, pagina: string, fragmento: string): Fuente => ({
+    documento,
+    lugar: `página ${pagina}`,
+    fragmento,
+  }),
+});
+
+/** Una página de un documento del material y la frase que dice: «apuntes.pdf», cuya página 12 dice «…». */
+export interface PaginaCitada {
+  readonly documento: string;
+  readonly pagina: number;
+  readonly frase: string;
+}
+
+defineParameterType({
+  name: 'pagina_citada',
+  regexp: /«([^»]+)», cuya página (\d+) dice «([^»]*)»/,
+  transformer: (documento: string, pagina: string, frase: string): PaginaCitada => ({
+    documento,
+    pagina: Number(pagina),
+    frase,
+  }),
+});
+
+// Las piezas que redacta la IA (MATE-2.1) y las que entrega sin el formato del contenido (MATE-2.3).
+defineParameterType({
+  name: 'pieza_redactada',
+  regexp: /un objetivo|un ejemplo resuelto de O1|un ítem de O1|una tarea con rúbrica/,
+  transformer: (frase: string) => frase,
+});
+
+defineParameterType({
+  name: 'pieza_incompleta',
+  regexp:
+    /un ítem de O1 sin respuesta|un ítem de O1 sin feedback|un ejemplo resuelto de O1 sin pasos|una tarea sin rúbrica|una tarea con un nivel de la rúbrica sin descriptor|un objetivo sin instrucción/,
+  transformer: (frase: string) => frase,
+});
+
+/** Lo que le falta a una pieza → la propiedad del formato del contenido (`campo` o `falta`, MATE-2.3, MATE-4.8). */
+const PROPIEDAD_QUE_FALTA: Readonly<Record<string, string>> = {
+  'la respuesta': 'respuesta',
+  'el feedback': 'feedback',
+  'los pasos': 'pasos',
+  'la rúbrica': 'rubrica',
+  'el descriptor del nivel': 'descriptor',
+  'la instrucción': 'instruccion',
+};
+
+defineParameterType({
+  name: 'falta',
+  regexp: /la respuesta|el feedback|los pasos|la rúbrica|el descriptor del nivel|la instrucción/,
+  transformer: (frase: string) => PROPIEDAD_QUE_FALTA[frase] ?? frase,
 });
