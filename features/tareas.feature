@@ -119,7 +119,7 @@ Característica: Tareas representativas y evaluación externa
         | T3    | 2026-04-15 | 90        | evaluada sin ocultar quién la hizo |
         | T1    | 2026-04-15 | 90        | evaluada a ciegas                  |
 
-    @TARE-3.3 @evidencia-4
+    @TARE-3.3 @evidencia-4 @extrapolacion
     Escenario: Una tarea practicada en la aplicación no cuenta como caso nuevo
       Dado que T1 se evalúa a ciegas el 2026-04-15 con el percentil 95
       Cuando la aplicación evalúa el nivel experto

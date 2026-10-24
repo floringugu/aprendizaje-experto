@@ -96,7 +96,7 @@ Característica: Material del dominio y borradores
     elegir la repetida contaría como acierto.
 
     Un objetivo o un ejemplo resuelto puede traer un diagrama, que acompaña a su texto (codificación
-    dual, sección 3: prometedora, sin metaanálisis verificado; el campo es extrapolación). Es un SVG
+    dual, sección 3: «Prometedor», sin metaanálisis verificado; el campo es extrapolación). Es un SVG
     escrito como texto y se enseña como imagen, así que no ejecuta nada; uno que no es SVG no entra.
 
     @MATE-2.1 @extrapolacion

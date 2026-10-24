@@ -7,7 +7,8 @@ Característica: Criterio de dominio
   confianza ni con la autoevaluación (sección 2.5). El umbral del 85 % es de la Fase 1 y es
   extrapolación del autor (sección 4).
 
-  El acierto sin ayuda de un objetivo es la fracción de sus ítems cuyo último intento fue correcto.
+  El acierto sin ayuda de un objetivo es la fracción de sus ítems no reservados cuyo último intento
+  fue correcto. Los ítems reservados miden la transferencia a casos nuevos y no cuentan (MAST-8).
   Un intento es sin ayuda cuando, mientras la persona responde, no ve ningún ejemplo resuelto ni la
   respuesta, aunque haya estudiado un ejemplo justo antes. Esta definición es decisión del autor.
   Hay una excepción: el intento de exploración de un objetivo nuevo (AYUD-5) no cuenta como intento,
@@ -47,7 +48,7 @@ Característica: Criterio de dominio
       Y O1 queda dominado
 
     @MAST-1.3 @evidencia-2.3
-    Escenario: Un objetivo no se evalúa hasta que todos sus ítems tienen un intento
+    Escenario: Un objetivo no se evalúa hasta que todos sus ítems no reservados tienen un intento
       Dado que la persona ha acertado 19 ítems de O1
       Y que nunca ha respondido el ítem I20 de O1
       Cuando la aplicación evalúa O1
@@ -154,6 +155,7 @@ Característica: Criterio de dominio
     Antecedentes:
       Dado que el umbral de dominio configurado es del 85 %
       Y que el umbral de paso a la fase avanzada configurado es del 85 %
+      Y que el umbral de transferencia configurado es del 85 %
 
     @MAST-6.1 @evidencia-4 @extrapolacion
     Escenario: Dominar todos los objetivos lleva a la fase intermedia
@@ -168,6 +170,7 @@ Característica: Criterio de dominio
       Y que el dominio tiene 20 ítems de tipo «problema» en categorías intercalables
       Y que cada uno tiene al menos un intento en sesiones intercaladas
       Y que en su último intento intercalado acertó <aciertos> de ellos
+      Y que el dominio tiene además 10 problemas reservados en categorías intercalables, todos respondidos y acertados
       Cuando la aplicación evalúa la fase
       Entonces la fase es «<fase>»
 
@@ -189,6 +192,7 @@ Característica: Criterio de dominio
       Y que la persona está en la fase «intermedio»
       Y que el dominio tiene 20 ítems de tipo «problema» en categorías intercalables
       Y que en su último intento intercalado acertó 16 de ellos
+      Y que el dominio tiene además 10 problemas reservados en categorías intercalables, todos respondidos y acertados
       Cuando la aplicación evalúa la fase
       Entonces la fase es «avanzado_experto»
 
@@ -205,10 +209,61 @@ Característica: Criterio de dominio
       Dado que la persona está en la fase «intermedio»
       Y que O1, O2 y O3 tienen 20 ítems de tipo «problema» en categorías intercalables
       Y que en su último intento intercalado acertó los 20
+      Y que el dominio tiene además 10 problemas reservados en categorías intercalables, todos respondidos y acertados
       Y que O4 se aprobó en la revisión del material con problemas en categorías intercalables
       Y que la persona acertó el problema de exploración de O4
       Cuando la aplicación evalúa la fase
       Entonces la fase sigue siendo «intermedio»
+
+    @MAST-6.7 @evidencia-4 @extrapolacion
+    Esquema del escenario: La fase avanzada exige además acierto en los problemas reservados
+      Dado que la persona está en la fase «intermedio»
+      Y que el dominio tiene 20 ítems de tipo «problema» en categorías intercalables
+      Y que cada uno tiene al menos un intento en sesiones intercaladas
+      Y que en su último intento intercalado acertó los 20
+      Y que el dominio tiene además 10 problemas reservados en categorías con grupo de parecidas, todos respondidos
+      Y que la persona acertó <aciertos> de ellos
+      Cuando la aplicación evalúa la fase
+      Entonces la fase es «<fase>»
+
+      Ejemplos:
+        | aciertos | fase             |
+        | 9        | avanzado_experto |
+        | 8        | intermedio       |
+
+    @MAST-6.8 @extrapolacion
+    Escenario: Sin todos los problemas reservados respondidos, la fase no avanza
+      Dado que la persona está en la fase «intermedio»
+      Y que el dominio tiene 20 ítems de tipo «problema» en categorías intercalables
+      Y que cada uno tiene al menos un intento en sesiones intercaladas
+      Y que en su último intento intercalado acertó los 20
+      Y que el dominio tiene además 10 problemas reservados en categorías con grupo de parecidas
+      Y que la persona acertó 9 de ellos y nunca ha respondido el décimo
+      Cuando la aplicación evalúa la fase
+      Entonces la fase sigue siendo «intermedio»
+
+    @MAST-6.9 @extrapolacion
+    Escenario: Sin ningún problema reservado, la fase no avanza y se avisa
+      Dado que la persona está en la fase «intermedio»
+      Y que el dominio tiene 20 ítems de tipo «problema» en categorías intercalables
+      Y que cada uno tiene al menos un intento en sesiones intercaladas
+      Y que en su último intento intercalado acertó los 20
+      Y que el dominio no tiene ningún problema reservado en categorías con grupo de parecidas
+      Cuando la aplicación evalúa la fase
+      Entonces la fase sigue siendo «intermedio»
+      Y la aplicación indica que faltan casos nuevos para medir la transferencia
+
+    @MAST-6.10 @extrapolacion
+    Escenario: El umbral de transferencia se lee de la configuración
+      Dado que se cambia en config/parametros.json «umbral_transferencia» a 0,75
+      Y que la persona está en la fase «intermedio»
+      Y que el dominio tiene 20 ítems de tipo «problema» en categorías intercalables
+      Y que cada uno tiene al menos un intento en sesiones intercaladas
+      Y que en su último intento intercalado acertó los 20
+      Y que el dominio tiene además 10 problemas reservados en categorías con grupo de parecidas, todos respondidos
+      Y que la persona acertó 8 de ellos
+      Cuando la aplicación evalúa la fase
+      Entonces la fase es «avanzado_experto»
 
   @MAST-7 @evidencia-4 @extrapolacion
   Regla: La retención se mide en diferido
@@ -236,3 +291,81 @@ Característica: Criterio de dominio
       Cuando O1 queda dominado el 2026-03-02
       Entonces se programa una prueba de retención de O1 para el 2026-03-16
       Y otra para el 2026-04-27
+
+  @MAST-8 @evidencia-2.2 @evidencia-4 @extrapolacion
+  Regla: Los casos nuevos se miden con ítems reservados
+    La sección 4 pone la transferencia a casos nuevos entre las métricas de la Fase 2, y la sección
+    2.2 recuerda que la transferencia de la práctica de recuperación es menor (d = 0,40; fuente
+    secundaria). Un ítem reservado (`reservado: true` en el contenido) es un caso que la persona no
+    practica: se le presenta una sola vez. Sirve para pasar a la fase avanzada (MAST-6.7) y en las
+    pruebas de retención, y nunca para dominar un objetivo. Medir la transferencia con ítems
+    reservados, y no con las evaluaciones externas, y repartirlos así es decisión del autor.
+
+    El reparto (MAST-8.3): los problemas reservados de categorías con grupo van a la mezcla
+    (INTE-5). Los demás reservados (hechos, y problemas de categorías sin grupo) se reparten a
+    partes iguales entre las pruebas de retención de las semanas configuradas, en el orden del
+    contenido; si no sale exacto, las primeras pruebas llevan uno más. En la prueba de retención un
+    reservado solo se registra: no cambia el dominio ni la fase (MAST-8.4).
+
+    Antecedentes:
+      Dado que el umbral de dominio configurado es del 85 %
+      Y que las semanas de retención diferida configuradas son 1 y 4
+
+    @MAST-8.1 @extrapolacion
+    Esquema del escenario: Solo se presentan reservados donde se mide la transferencia
+      Dado que la persona está en la fase «intermedio» con O1, O2 y O3 dominados
+      Y que O4 se aprobó en la revisión del material con un ítem I5 reservado
+      Y que I5 también está marcado para el diagnóstico
+      Cuando <momento>
+      Entonces I5 no se presenta
+      Y I5 se acepta con «reservado» y «diagnostico» a la vez, sin error de formato
+
+      Ejemplos:
+        | momento                                         |
+        | se prepara el diagnóstico del dominio           |
+        | empieza una sesión de práctica de O4            |
+        | se prepara un repaso programado de O4           |
+        | la persona hace el intento de exploración de O4 |
+
+    @MAST-8.2 @extrapolacion
+    Escenario: Un reservado no cuenta para el dominio
+      Dado que O1 tiene 20 ítems, 4 de ellos reservados
+      Y que la persona ha respondido los 16 ítems no reservados de O1 y acertó 14 en su último intento
+      Y que nunca ha respondido ninguno de los 4 reservados
+      Cuando la aplicación evalúa O1
+      Entonces el acierto sin ayuda de O1 es del 87,5 %
+      Y O1 queda dominado
+      Y la aplicación no indica que falte responder ningún ítem de O1
+
+    @MAST-8.3 @extrapolacion
+    Escenario: Los reservados van a la mezcla o a las pruebas de retención
+      Dado que C1 y C2 son de un grupo de parecidas y C5 no tiene grupo
+      Y que O1 tiene estos ítems reservados, en este orden:
+        | ítem | tipo     | categoría |
+        | I14  | problema | C1        |
+        | I15  | hecho    | C1        |
+        | I16  | problema | C5        |
+        | I17  | hecho    | C5        |
+        | I18  | hecho    | C2        |
+        | I19  | problema | C5        |
+      Cuando O1 queda dominado el 2026-03-02
+      Entonces I14 entra en la mezcla de las sesiones intercaladas (INTE-5)
+      Y la prueba de retención de O1 del 2026-03-09 incluye I15, I16 e I17
+      Y la prueba de retención de O1 del 2026-03-30 incluye I18 e I19
+      Y ninguna prueba de retención de O1 incluye I14
+
+    @MAST-8.4 @extrapolacion
+    Escenario: Fallar un reservado en una prueba de retención no quita el dominio
+      Dado que O1 está dominado con un acierto sin ayuda del 85 %
+      Y que el ítem I19 de O1 es un reservado de la prueba de retención del 2026-03-30
+      Cuando la persona falla I19 en esa prueba de retención
+      Entonces el resultado queda registrado en respuestas.csv con el contexto «transferencia»
+      Y O1 sigue dominado
+      Y el acierto sin ayuda de O1 sigue siendo del 85 %
+
+    @MAST-8.5 @extrapolacion
+    Escenario: Un reservado se presenta una sola vez
+      Dado que la persona respondió el reservado I15 de O1 en la prueba de retención del 2026-03-09
+      Cuando se prepara la prueba de retención de O1 del 2026-03-30
+      Entonces la prueba no incluye I15
+      Y I15 no se presenta en ninguna sesión de práctica, repaso ni sesión intercalada

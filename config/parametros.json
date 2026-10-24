@@ -32,12 +32,20 @@
     "nota": "La sección 3 dice «retirar pasos a medida que sube el rendimiento» y el bucle semanal de la sección 4 dice «si el acierto sin ayuda es alto, retirar ayuda; si cae, reintroducirla», sin dar ritmo. Retirar o devolver un paso por semana, empezando por los últimos, es decisión del autor."
   },
   "umbral_paso_a_avanzado": {
-    "descripcion": "Acierto sin ayuda en problemas intercalados sin pista del tipo a partir del cual se pasa de la fase intermedia a la avanzada-experta.",
+    "descripcion": "Acierto sin ayuda en problemas intercalados sin pista del tipo a partir del cual se pasa de la fase intermedia a la avanzada-experta, además de llegar a «umbral_transferencia».",
     "valor": 0.85,
     "seccion": ["4"],
     "nivel_evidencia": "extrapolación del autor",
     "extrapolacion": true,
-    "nota": "La sección 4 da tres métricas para la Fase 2: el «rendimiento en problemas mezclados sin pista del tipo», la transferencia a casos nuevos y la calibración. El paso de fase usa solo la primera; la transferencia la cubren las evaluaciones externas (TARE) y la calibración se muestra sin afectar al progreso (CALI). La sección 4 declara extrapolación «los umbrales de transición (85 %, percentil 80–90)». Aplicar el 85 % a esa métrica es decisión del autor."
+    "nota": "La sección 4 da tres métricas para la Fase 2: el «rendimiento en problemas mezclados sin pista del tipo», la transferencia a casos nuevos y la calibración. El paso de fase usa las dos primeras: esta y «umbral_transferencia» (MAST-6). La calibración se muestra sin afectar al progreso (CALI). La sección 4 declara extrapolación «los umbrales de transición (85 %, percentil 80–90)». Aplicar el 85 % a esa métrica es decisión del autor."
+  },
+  "umbral_transferencia": {
+    "descripcion": "Acierto en los problemas reservados (casos nuevos que no se practican) que hace falta, además de «umbral_paso_a_avanzado», para pasar de la fase intermedia a la avanzada-experta.",
+    "valor": 0.85,
+    "seccion": ["4", "2.2"],
+    "nivel_evidencia": "extrapolación del autor",
+    "extrapolacion": true,
+    "nota": "La sección 4 pone la «transferencia a casos nuevos» entre las métricas de la Fase 2 y, en la definición de nivel experto, «resuelve casos nuevos no vistos (transferencia cercana dentro del dominio)», sin dar cifra. La sección 2.2 recuerda que la transferencia de la práctica de recuperación a preguntas, formatos o contextos nuevos es menor (d = 0,40; Pan y Rickard, 2018, fuente secundaria). Son decisiones del autor medirla con ítems reservados del propio contenido y usar el mismo 85 % que los demás umbrales de transición, que la sección 4 declara extrapolación."
   },
   "fase_intercalado": {
     "descripcion": "Única fase en la que se intercalan categorías parecidas.",

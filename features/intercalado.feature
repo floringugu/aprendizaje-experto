@@ -105,3 +105,43 @@ Característica: Intercalado de categorías parecidas
       Dado que O4 queda dominado
       Cuando empieza una sesión intercalada del grupo G1
       Entonces la sesión mezcla problemas de C1 y de C2, incluidos los de O4
+
+  @INTE-5 @evidencia-4 @extrapolacion
+  Regla: Los problemas reservados entran en la mezcla tras los demás del grupo y una sola vez
+    La sección 4 pone la transferencia a casos nuevos entre las métricas de la Fase 2. Los problemas
+    reservados de categorías intercalables (MAST-8) se presentan en las sesiones intercaladas, sin
+    pista del tipo, como el resto de la Fase 2. Entran cuando la persona ya ha practicado la
+    discriminación con todos los problemas del grupo, y una sola vez, porque después ya no son casos
+    nuevos. Que se midan en la mezcla y no en una prueba aparte, y cuándo entran, es decisión del
+    autor.
+
+    Antecedentes:
+      Dado que la fase de intercalado configurada es «intermedio»
+      Y que la persona está en la fase «intermedio» con O1 y O2 dominados
+      Y que el ítem I15 de O1 es un problema reservado de la categoría C1
+
+    @INTE-5.1 @extrapolacion
+    Escenario: Mientras queden problemas del grupo sin intento intercalado, el reservado no entra
+      Dado que un problema no reservado de C2 aún no tiene ningún intento intercalado
+      Cuando empieza una sesión intercalada del grupo G1
+      Entonces la sesión no incluye I15
+
+    @INTE-5.2 @evidencia-4 @extrapolacion
+    Escenario: Cuando todos los problemas del grupo tienen un intento intercalado, el reservado entra sin marca
+      Dado que todos los problemas no reservados de C1 y de C2 tienen un intento intercalado
+      Cuando empieza una sesión intercalada del grupo G1
+      Entonces la sesión incluye I15
+      Y I15 se presenta como los demás problemas, sin nada que lo distinga como reservado
+
+    @INTE-5.3 @extrapolacion
+    Escenario: Un problema reservado ya respondido no vuelve a la mezcla
+      Dado que todos los problemas no reservados de C1 y de C2 tienen un intento intercalado
+      Y que la persona ya respondió I15 en una sesión intercalada
+      Cuando empieza otra sesión intercalada del grupo G1
+      Entonces la sesión no incluye I15
+
+    @INTE-5.4 @extrapolacion
+    Escenario: La respuesta a un problema reservado se registra como transferencia
+      Dado que todos los problemas no reservados de C1 y de C2 tienen un intento intercalado
+      Cuando la persona responde I15 en una sesión intercalada
+      Entonces el intento queda registrado en respuestas.csv con el contexto «transferencia»

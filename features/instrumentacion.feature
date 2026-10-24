@@ -44,13 +44,15 @@ Característica: Instrumentación y exportación CSV
       Entonces su fila en respuestas.csv tiene el contexto «<contexto>»
 
       Ejemplos:
-        | dónde                        | contexto    |
-        | en el diagnóstico            | diagnostico |
-        | en una sesión de práctica    | practica    |
-        | en un repaso programado      | repaso      |
-        | en una sesión intercalada    | intercalado |
-        | en una prueba de retención   | retencion   |
-        | en un intento de exploración | exploracion |
+        | dónde                                                  | contexto      |
+        | en el diagnóstico                                      | diagnostico   |
+        | en una sesión de práctica                              | practica      |
+        | en un repaso programado                                | repaso        |
+        | no reservado en una sesión intercalada                 | intercalado   |
+        | en una prueba de retención                             | retencion     |
+        | en un intento de exploración                           | exploracion   |
+        | reservado de tipo «problema» en una sesión intercalada | transferencia |
+        | reservado en una prueba de retención                   | transferencia |
 
     @INST-1.4 @evidencia-4 @extrapolacion
     Escenario: Una evaluación externa ocupa una fila por criterio de la rúbrica

@@ -37,6 +37,7 @@ Cada exigencia empieza por su id. Si la persona corrige una pieza, puede citarlo
 - **I5.** En un problema, el `enunciado` no nombra la regla ni la categoría que hay que aplicar.
 - **I6.** Pon a un ítem una categoría aprobada si su descripción encaja. Crea una categoría nueva solo si ninguna aprobada sirve.
 - **I8.** Puedes pedir que se elija una opción o que se escriba la respuesta. Con respuesta escrita, `aceptadas` lleva todas las formas correctas, con la que se enseña como correcta en primer lugar. La corrección no distingue las mayúsculas ni los espacios repetidos, pero sí las tildes: si una palabra vale con tilde y sin ella, pon las dos formas.
+- **I9.** Marca con `reservado: true` uno de cada cinco ítems que redactes para un objetivo, y al menos un problema de cada categoría con `grupo_parecidas`. La persona no los practica: se le presentan una sola vez, para medir si sabe aplicar lo aprendido a un caso que no ha visto. Un problema reservado es del mismo tipo que los demás de su categoría, pero con otro caso; no basta con cambiar los números o los nombres de otro ítem. Un hecho reservado pregunta lo mismo que otro ítem del objetivo, pero de otra forma o en otro contexto.
 
 ## Tarea con rúbrica
 
