@@ -14,10 +14,19 @@ Característica: Ayuda adaptativa con retirada progresiva
   Antes de los ejemplos y los problemas de AYUD-1, la primera sesión de un objetivo no dominado
   lleva su instrucción (AYUD-4). En las fases intermedia y avanzada empieza además con un problema
   de exploración (AYUD-5) y pide una autoexplicación tras la instrucción (AYUD-6). El diagrama de
-  un objetivo o de un ejemplo resuelto se muestra junto a su texto (AYUD-7). La secuencia entera es
+  un objetivo o de un ejemplo resuelto se muestra junto a su texto, salvo el de un ejemplo con pasos
+  retirados (AYUD-7). La secuencia entera es
   extrapolación: el informe avisa de que el uso combinado de todas las técnicas no es
   necesariamente aditivo (sección 4, «Qué es extrapolación del autor»; sección 6, «Aditividad»).
-  Separar la autoexplicación de los ejemplos resueltos es lectura del autor.
+
+  La autoexplicación y los ejemplos resueltos van en la misma sesión. Barbieri et al. (sección 2.2)
+  vieron que añadir instrucciones de autoexplicación a los ejemplos resueltos redujo su beneficio,
+  y por eso aquí va sobre la instrucción y antes del ejemplo, nunca sobre él (AYUD-3.1, AYUD-6.6),
+  en la línea de la sección 3: «usar con texto conceptual; cautela al combinarla con ejemplos resueltos».
+  Separarlas por sesiones dejaría la primera sesión de un objetivo nuevo sin ejemplo resuelto, que
+  es «bien establecido» (g = 0,48), para proteger una técnica de nivel «prometedor» marcada [verificar].
+  Las dos secuencias son extrapolación por igual. Que la misma sesión no reproduzca la interacción
+  es lectura del autor.
 
   Antecedentes:
     Dado el dominio de prueba «ficticio» con los objetivos O1, O2 y O3, en ese orden
@@ -140,7 +149,7 @@ Característica: Ayuda adaptativa con retirada progresiva
     sección 2.3 lo apoya en Kirschner et al. (2006), marcado con (†) en la bibliografía, que no puede
     sostener una decisión central: la regla es extrapolación, y «solo la primera vez» también.
     En la fase novato la instrucción va además antes de cualquier problema (AYUD-4.1).
-    En las fases intermedia y avanzada la instrucción llega justo después del intento de exploración
+    En las fases intermedia y avanzada la instrucción llega tras el intento de exploración y su feedback
     (AYUD-5), pero antes de cualquier ejemplo.
 
     @AYUD-4.1 @evidencia-4 @extrapolacion
@@ -195,7 +204,7 @@ Característica: Ayuda adaptativa con retirada progresiva
         | empieza una sesión de práctica con O1   |
         | hace un repaso programado de O1         |
 
-  @AYUD-5 @evidencia-3 @evidencia-2.3 @evidencia-4 @extrapolacion
+  @AYUD-5 @evidencia-3 @evidencia-2.3 @evidencia-2.2 @evidencia-4 @extrapolacion
   Regla: En las fases intermedia y avanzada, un objetivo nuevo empieza con un intento de exploración
     El fracaso productivo (sección 3: «prometedor-sólido»; sección 2.3, Sinha y Kapur, 2021) pide
     intentar el problema antes de la instrucción y recibir siempre la instrucción después. El informe
@@ -203,8 +212,21 @@ Característica: Ayuda adaptativa con retirada progresiva
     es la fase, porque en las fases intermedia y avanzada todos los objetivos anteriores están
     dominados. Son extrapolación esa señal, la fase avanzada (el informe lo pone en la intermedia), un
     solo problema en lugar de 15–30 minutos y aplicarlo a los objetivos que llegan con MATE.
-    Que el intento no cuente para el dominio (MAST-1) ni para el ajuste semanal (AYUD-2) es
-    decisión del autor.
+
+    El intento pide la confianza y da feedback como cualquier ítem (CALI-1, RECU-2): el feedback
+    correctivo eleva el efecto de la recuperación (sección 2.2), y la instrucción sigue llegando
+    después (AYUD-5.3), que es lo que exige la sección 2.3. Que el intento lleve feedback es
+    extrapolación. La confianza se pide porque el feedback llega después de declararla (CALI-1.1);
+    se registra, pero no entra en la calibración (CALI-2.3). Es decisión del autor.
+
+    Lo que se intenta antes de la instrucción no mide lo aprendido. Por eso el intento no cuenta para
+    el dominio (MAST-1) ni para el ajuste semanal (AYUD-2). Tampoco cuenta en el paso 1 del bucle
+    (BUCL-2.4), porque su acierto sin ayuda es el de MAST; ni en la calibración semanal (CALI-2.3),
+    que mira lo ya estudiado; ni en el paso a la fase avanzada (MAST-6.6), donde solo cuentan los
+    intentos intercalados. Es decisión del autor.
+
+    Un objetivo sin ítems de tipo «problema» empieza por la instrucción (AYUD-5.7): el fracaso
+    productivo es «intentar el problema» (sección 3), y un hecho no enseñado solo se adivina.
 
     Antecedentes:
       Dado que O4 se aprobó en la revisión del material, sin dominarlo ni practicarlo, con la instrucción «La regla R4 se aplica cuando el caso cumple A y B.» y el ejemplo resuelto E4
@@ -236,7 +258,7 @@ Característica: Ayuda adaptativa con retirada progresiva
       Dado que la persona está en la fase «intermedio» con O1, O2 y O3 dominados
       Y que O4 tiene problemas
       Cuando la persona practica O4 y <resultado> el problema de exploración
-      Entonces lo siguiente que presenta la sesión es la instrucción «La regla R4 se aplica cuando el caso cumple A y B.»
+      Entonces tras el feedback del problema, lo siguiente que presenta la sesión es la instrucción «La regla R4 se aplica cuando el caso cumple A y B.»
 
       Ejemplos:
         | resultado |
@@ -251,7 +273,7 @@ Característica: Ayuda adaptativa con retirada progresiva
       Cuando la persona practica O4
       Entonces la sesión no presenta ningún problema de exploración
 
-    @AYUD-5.5 @evidencia-4 @extrapolacion
+    @AYUD-5.5 @extrapolacion
     Escenario: El intento de exploración se registra con su propio contexto
       Dado que la persona está en la fase «intermedio» con O1, O2 y O3 dominados
       Y que O4 tiene problemas
@@ -277,13 +299,27 @@ Característica: Ayuda adaptativa con retirada progresiva
       Entonces la sesión no presenta ningún problema de exploración
       Y lo primero que ve es la instrucción de O4
 
+    @AYUD-5.8 @evidencia-2.2 @evidencia-3 @evidencia-4 @extrapolacion
+    Escenario: El intento de exploración pide la confianza y da feedback como cualquier ítem
+      Dado que la persona está en la fase «intermedio» con O1, O2 y O3 dominados
+      Y que O4 tiene problemas
+      Cuando la persona practica O4 y responde el problema de exploración
+      Entonces no ve si ha acertado ni el feedback del problema hasta declarar su confianza
+      Y después de declararla ve si su respuesta es correcta, la respuesta correcta y el feedback del problema
+
   @AYUD-6 @evidencia-3 @evidencia-4 @evidencia-2.2 @extrapolacion
   Regla: En las fases intermedia y avanzada, tras la instrucción se pide una autoexplicación
-    La autoexplicación es «prometedora», con utilidad «moderada» y marcada [verificar] (sección 3), y
+    La autoexplicación tiene el nivel «Prometedor», con utilidad «moderada» y marcada [verificar]
+    (sección 3; Dunlosky, marcado con (†) en la bibliografía), y
     la Fase 2 la pide «en material conceptual» (sección 4). Barbieri et al. (2023, sección 2.2)
     vieron que añadirla a los ejemplos resueltos redujo el beneficio, así que aquí va sobre el texto
-    de la instrucción y nunca sobre un ejemplo (AYUD-3). Que no se corrija ni cuente para nada, y que
+    de la instrucción y nunca sobre un ejemplo (AYUD-3). Que no se corrija ni cuente para el dominio, la ayuda ni la fase, y que
     se registre, es decisión del autor; el sitio exacto y la fase avanzada son extrapolación.
+
+    La autoexplicación no puede quedar en blanco: se rechaza el texto vacío o hecho solo de espacios
+    (AYUD-6.8). Cualquier otro texto vale, también «No sé.», y no se corrige. No hay longitud mínima,
+    y el aviso no sugiere ninguna respuesta. Es decisión del autor, con una suposición que el informe
+    no trata: si fuera opcional y no contara para nada, casi nadie la escribiría.
 
     Antecedentes:
       Dado que O4 se aprobó en la revisión del material, sin dominarlo ni practicarlo, con la instrucción «La regla R4 se aplica cuando el caso cumple A y B.» y el ejemplo resuelto E4
@@ -308,14 +344,14 @@ Característica: Ayuda adaptativa con retirada progresiva
         | intermedio       |
         | avanzado_experto |
 
-    @AYUD-6.3 @evidencia-4 @extrapolacion
+    @AYUD-6.3 @extrapolacion
     Escenario: La autoexplicación se registra
       Dado que la persona está en la fase «intermedio» con O1, O2 y O3 dominados
       Y que O4 tiene problemas
       Cuando la persona practica O4 por primera vez y escribe la autoexplicación «Porque hace falta A y también B.»
       Entonces la autoexplicación queda registrada en autoexplicaciones.csv
 
-    @AYUD-6.4 @evidencia-3 @evidencia-4 @evidencia-2.2 @extrapolacion
+    @AYUD-6.4 @evidencia-3 @evidencia-4 @extrapolacion
     Escenario: La autoexplicación no se corrige ni cuenta para el dominio, la ayuda ni la fase
       Dado que la persona está en la fase «intermedio» con O1, O2 y O3 dominados
       Y que O4 tiene problemas
@@ -359,14 +395,30 @@ Característica: Ayuda adaptativa con retirada progresiva
         | intermedio       |
         | avanzado_experto |
 
+    @AYUD-6.8 @extrapolacion
+    Esquema del escenario: Una autoexplicación en blanco no se acepta
+      Dado que la persona está en la fase «intermedio» con O1, O2 y O3 dominados
+      Y que O4 tiene problemas
+      Cuando la persona practica O4 por primera vez y envía como autoexplicación <texto>
+      Entonces la aplicación no la acepta y vuelve a pedirle que explique con sus palabras el porqué de la instrucción
+      Y la sesión no pasa al ejemplo resuelto E4
+      Y autoexplicaciones.csv no recibe ninguna fila
+
+      Ejemplos:
+        | texto              |
+        | un texto vacío     |
+        | solo tres espacios |
+
   @AYUD-7 @evidencia-3 @evidencia-2.2 @extrapolacion
   Regla: El diagrama de un objetivo o de un ejemplo resuelto se muestra junto a su texto
-    La codificación dual es «prometedora» y «no verificado aquí» (sección 3); la técnica es
+    La codificación dual tiene el nivel «Prometedor» y «no verificado aquí» (sección 3); la técnica es
     «diagramas integrados con el texto (no “por estilo”)». Por eso el diagrama se muestra a todas
     las personas y la aplicación nunca pregunta por un estilo de aprendizaje: los estilos de
     aprendizaje son un mito (sección 5). Que el diagrama sea el campo `diagrama` del contenido es
-    extrapolación, y también no mostrar el de un ejemplo con pasos retirados (AYUD-7.3), decisión del
-    autor para no dar el paso retirado.
+    extrapolación, y también no mostrar el de un ejemplo con pasos retirados (AYUD-7.3). Esto último
+    es decisión del autor: según G3 de config/peticion-ia.md, el diagrama de un ejemplo «muestra lo
+    mismo que» sus pasos, así que daría el paso retirado. Que no se vea mientras se responde (AYUD-7.4)
+    es también decisión del autor: un diagrama visible haría que el intento no fuera sin ayuda (MAST).
 
     Antecedentes:
       Dado que la instrucción de O1 y su ejemplo resuelto E1 tienen cada uno su diagrama
@@ -392,7 +444,7 @@ Característica: Ayuda adaptativa con retirada progresiva
       Y no muestra el paso P3
       Y no muestra el diagrama de E1, que podría dar el paso retirado
 
-    @AYUD-7.4 @evidencia-3 @extrapolacion
+    @AYUD-7.4 @extrapolacion
     Escenario: No se ve ningún diagrama mientras se responde un problema
       Dado que O1 tiene la ayuda completa
       Cuando la persona practica O1

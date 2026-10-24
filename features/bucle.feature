@@ -72,6 +72,15 @@ Característica: Bucle semanal de retroalimentación
       Entonces las fechas de repaso pendientes se recalculan con FSRS y la configuración actual
       Y el paso 4 muestra cuántos repasos tocan en los próximos 7 días, los de la periodicidad configurada
 
+    @BUCL-2.4 @evidencia-4 @extrapolacion
+    Escenario: El paso 1 no cuenta el intento de exploración
+      Dado que la persona está en la fase «intermedio» con O1, O2 y O3 dominados
+      Y que O4 se aprobó en la revisión del material, sin dominarlo ni practicarlo, con problemas
+      Y que en la última semana la persona falló el problema de exploración de O4
+      Y que después acertó 3 de 4 intentos sin ayuda de O4
+      Cuando se ejecuta el bucle semanal
+      Entonces el paso 1 muestra un acierto sin ayuda del 75 % en O4
+
   @BUCL-3 @evidencia-4 @evidencia-2.4 @evidencia-2.1 @extrapolacion
   Regla: El quinto paso revisa el plan con intenciones de implementación y protege el sueño
     Las intenciones de implementación están «bien establecidas en conducta general» (tabla de la

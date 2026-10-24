@@ -58,6 +58,17 @@ Característica: Calibración de la confianza
       Cuando se ejecuta el bucle semanal
       Entonces el paso de calibración indica que no hay respuestas para calibrar
 
+    @CALI-2.3 @evidencia-4 @extrapolacion
+    Escenario: El intento de exploración no entra en la calibración
+      Dado que en la última semana la persona respondió estos ítems:
+        | ítem | contexto    | confianza | correcta |
+        | I1   | practica    | 80        | sí       |
+        | I2   | practica    | 60        | no       |
+        | I3   | exploracion | 90        | no       |
+      Cuando se ejecuta el bucle semanal
+      Entonces el paso de calibración muestra una confianza media del 70 %
+      Y un acierto del 50 %
+
   @CALI-3 @evidencia-2.5 @evidencia-5
   Regla: La confianza nunca afecta al progreso
 

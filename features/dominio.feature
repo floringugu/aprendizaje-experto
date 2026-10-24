@@ -145,6 +145,11 @@ Característica: Criterio de dominio
 
   @MAST-6 @evidencia-4 @extrapolacion
   Regla: La fase cambia según el dominio y no retrocede
+    Lo que se intenta antes de la instrucción no mide lo aprendido (AYUD-5): para pasar a la fase
+    avanzada solo cuentan los intentos intercalados (MAST-6.2). Por eso un objetivo nuevo con
+    problemas en categorías intercalables retrasa el paso a la fase avanzada hasta que sus problemas
+    se han intercalado (MAST-6.6). Si no, no se intercalarían nunca, porque la fase avanzada no
+    intercala (INTE-1.1). Es decisión del autor.
 
     Antecedentes:
       Dado que el umbral de dominio configurado es del 85 %
@@ -194,6 +199,16 @@ Característica: Criterio de dominio
       Cuando consulta su nivel
       Entonces no figura como experta
       Y la aplicación indica que el nivel experto lo deciden las evaluaciones externas
+
+    @MAST-6.6 @evidencia-3 @evidencia-4 @extrapolacion
+    Escenario: Mientras los problemas de un objetivo nuevo no se han intercalado, la fase no avanza
+      Dado que la persona está en la fase «intermedio»
+      Y que O1, O2 y O3 tienen 20 ítems de tipo «problema» en categorías intercalables
+      Y que en su último intento intercalado acertó los 20
+      Y que O4 se aprobó en la revisión del material con problemas en categorías intercalables
+      Y que la persona acertó el problema de exploración de O4
+      Cuando la aplicación evalúa la fase
+      Entonces la fase sigue siendo «intermedio»
 
   @MAST-7 @evidencia-4 @extrapolacion
   Regla: La retención se mide en diferido
