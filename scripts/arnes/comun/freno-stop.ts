@@ -7,7 +7,10 @@
 //   - tercer bloqueo seguido del mismo paso: antes de seguir, escribe en una frase el
 //     mecanismo del fallo, o para si la causa está en la especificación o en el entorno;
 //   - cualquier otro fallo: el mensaje normal, «arregla la causa».
-// Separado del hook para poder probarlo con tests unitarios.
+// También el del hook SubagentStop cuando el implementador no deja verde make check-implementador
+// (.claude/hooks/exigir-check-implementador.ts).
+// Separado de los hooks para poder probarlo con tests unitarios.
+import { OBJETIVO_DEL_IMPLEMENTADOR } from './fases.ts';
 
 export const MARCA_DECISION_PENDIENTE = '[DECISIÓN PENDIENTE]';
 
@@ -67,8 +70,11 @@ export interface Fallo {
 }
 
 export function motivoDeBloqueo(fallo: Fallo): string {
-  const ultimas = fallo.salida.trimEnd().split('\n').slice(-LINEAS_DE_SALIDA).join('\n');
-  return `${instruccion(fallo)}\n\nÚltimas líneas de make ${fallo.objetivo}:\n\n${ultimas}`;
+  return `${instruccion(fallo)}\n\nÚltimas líneas de make ${fallo.objetivo}:\n\n${ultimasLineas(fallo.salida)}`;
+}
+
+function ultimasLineas(salida: string): string {
+  return salida.trimEnd().split('\n').slice(-LINEAS_DE_SALIDA).join('\n');
 }
 
 function instruccion(fallo: Fallo): string {
@@ -105,5 +111,51 @@ function instruccionFreno(fallo: Fallo): string {
     'Si la causa está en tu código, arréglala a partir de esa frase. Si está en la especificación (un escenario, ' +
     'un step o un parámetro), en el arnés o en el entorno, no es tu código: explícaselo al dueño, dale los comandos ' +
     `que tendría que ejecutar y para con ${MARCA_DECISION_PENDIENTE}.`
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Hook SubagentStop del implementador
+// ---------------------------------------------------------------------------
+
+/**
+ * Bloqueos que el hook SubagentStop hace al implementador. Al siguiente fallo le deja devolver el
+ * encargo en rojo, y la conversación principal puede reencargarlo con un modelo más capaz (enrutador.ts).
+ */
+export const BLOQUEOS_DEL_IMPLEMENTADOR = 2;
+
+export interface FalloDelImplementador {
+  readonly paso: string;
+  readonly entorno: ErrorDeEntorno | undefined;
+  /** Número de este bloqueo al subagente, desde 1. */
+  readonly bloqueo: number;
+  /** Salida completa de make. */
+  readonly salida: string;
+}
+
+export function motivoDeBloqueoDelImplementador(fallo: FalloDelImplementador): string {
+  return (
+    `${instruccionAlImplementador(fallo)}\n\n` +
+    `Últimas líneas de make ${OBJETIVO_DEL_IMPLEMENTADOR}:\n\n${ultimasLineas(fallo.salida)}`
+  );
+}
+
+function instruccionAlImplementador(fallo: FalloDelImplementador): string {
+  if (fallo.entorno !== undefined) {
+    return (
+      `make ${OBJETIVO_DEL_IMPLEMENTADOR} falla por un problema del entorno (${fallo.entorno.codigo}): ` +
+      `${fallo.entorno.explicacion}. No es tu código: no lo toques. Devuelve el encargo con lo que has visto ` +
+      `y termina con ${MARCA_DECISION_PENDIENTE}.`
+    );
+  }
+  const instruccion =
+    `make ${OBJETIVO_DEL_IMPLEMENTADOR} falla en el paso «${fallo.paso}» y no puedes devolver el encargo ` +
+    'hasta que pase. Arregla la causa en los ficheros de tu encargo, no la comprobación. Si la causa está ' +
+    'fuera de ellos, en las firmas o en la especificación, explícalo y termina con ' +
+    `${MARCA_DECISION_PENDIENTE}.`;
+  if (fallo.bloqueo < BLOQUEOS_DEL_IMPLEMENTADOR) return instruccion;
+  return (
+    `${instruccion} Es tu último intento. Antes de cambiar nada, escribe en una sola frase el mecanismo ` +
+    'exacto del fallo. Si aun así sigue fallando, devuelve el encargo en ROJO con esa frase.'
   );
 }

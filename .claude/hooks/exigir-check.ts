@@ -8,9 +8,13 @@
 // Freno: si el fallo es del entorno, de las sumas, o es el tercer bloqueo seguido del mismo
 // paso, el mensaje cambia (scripts/arnes/comun/freno-stop.ts). Cada parada se anota en
 // .claude/registro-stop.jsonl (scripts/arnes/comun/registro-stop.ts).
-import { spawnSync } from 'node:child_process';
+//
+// Espera: si quedan subagentes trabajando en segundo plano (el implementador), no comprueba
+// nada, porque vería sus ficheros a medio escribir. Claude Code despierta a Claude cuando
+// terminan, y el hook vuelve a ejecutarse al parar de nuevo.
 import { leerAreasFueraDeAlcance } from '../../scripts/arnes/comun/alcance.ts';
-import { campoTexto, ejecutarHook, leerEntradaHook, responder } from '../../scripts/arnes/comun/entrada-hook.ts';
+import { subagentesEnCurso } from '../../scripts/arnes/comun/enrutador.ts';
+import { campo, campoTexto, ejecutarHook, leerEntradaHook, responder } from '../../scripts/arnes/comun/entrada-hook.ts';
 import { OBJETIVO_POR_FASE } from '../../scripts/arnes/comun/fases.ts';
 import {
   errorDeEntorno,
@@ -18,12 +22,11 @@ import {
   motivoDeBloqueo,
   pasoQueFalla,
 } from '../../scripts/arnes/comun/freno-stop.ts';
+import { ejecutarObjetivo } from '../../scripts/arnes/comun/make.ts';
 import { faseDeEntorno } from '../../scripts/arnes/comun/protegidas.ts';
 import { RAIZ } from '../../scripts/arnes/comun/raiz.ts';
 import { anotarParada, bloqueosSeguidos, leerRegistro } from '../../scripts/arnes/comun/registro-stop.ts';
 import type { ParadaStop } from '../../scripts/arnes/comun/registro-stop.ts';
-
-const BYTES_MAXIMOS_DE_SALIDA = 64 * 1024 * 1024;
 
 /** Lo que se anota en todas las paradas, pase o no la comprobación. */
 type DatosDeParada = Pick<ParadaStop, 'fecha' | 'sesion' | 'fase' | 'areasFueraDeAlcance'>;
@@ -43,17 +46,20 @@ ejecutarHook('exigir-check', async () => {
     });
     return;
   }
+  const subagentes = subagentesEnCurso(campo(entrada, 'background_tasks'));
+  if (subagentes > 0) {
+    responder({
+      systemMessage: `Claude espera a ${String(subagentes)} subagente(s) en segundo plano; la comprobación se hará cuando terminen.`,
+    });
+    return;
+  }
   const objetivo = OBJETIVO_POR_FASE[datos.fase];
-  const make = spawnSync('sh', ['-c', `make --no-print-directory ${objetivo} 2>&1`], {
-    cwd: RAIZ,
-    encoding: 'utf8',
-    maxBuffer: BYTES_MAXIMOS_DE_SALIDA,
-  });
-  if (make.status === 0) {
+  const make = ejecutarObjetivo(RAIZ, objetivo);
+  if (make.verde) {
     anotarParada(RAIZ, { ...datos, resultado: 'verde' });
     return;
   }
-  bloquear(datos, objetivo, make.stdout);
+  bloquear(datos, objetivo, make.salida);
 });
 
 function bloquear(datos: DatosDeParada, objetivo: string, salida: string): void {

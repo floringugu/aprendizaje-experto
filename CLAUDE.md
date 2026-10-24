@@ -49,4 +49,5 @@ Después del commit se deshace con `git revert --no-edit HEAD`. Claude no aplica
 - El aviso de SessionStart dice la fase al empezar. Si no es la que pide la tarea, para y dale el comando para cambiarla.
 - Al empezar un área, copia `docs/areas/plantilla.md` a `docs/areas/<ÁREA>.md`.
 - En MATE, PLAN y las áreas con una pantalla nueva, el paso «Mecanismo» (plan §16) va antes de tocar `src/`: explica el mecanismo en prosa, esboza dos interfaces y para con `[DECISIÓN PENDIENTE]`.
+- En la fase impl, escribe tú los comentarios de interfaz y las firmas, y encarga los cuerpos y los tests unitarios al subagente `implementador`, con las líneas `Tarea: <ÁREA>-<n>` y `Ficheros: <rutas>` en el prompt (plan §7). El modelo lo elige el hook. Un encargo cada vez: espera a que termine antes de tocar sus ficheros. Lo que devuelva en rojo después de Sonnet, y los arreglos de una o dos líneas, los haces tú.
 - Al cerrar el área, completa su archivo con la interfaz descartada, la deuda pagada, la puntuación de mutación y la salida de `make bloqueos A=<ÁREA>`.

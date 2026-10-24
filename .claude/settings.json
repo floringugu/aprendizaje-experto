@@ -32,6 +32,16 @@
             "timeout": 30
           }
         ]
+      },
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/enrutar-modelo.ts\"",
+            "timeout": 30
+          }
+        ]
       }
     ],
     "PostToolUse": [
@@ -74,6 +84,18 @@
           {
             "type": "command",
             "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/exigir-check.ts\"",
+            "timeout": 600
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "implementador",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/exigir-check-implementador.ts\"",
             "timeout": 600
           }
         ]

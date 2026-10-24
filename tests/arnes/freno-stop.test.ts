@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { errorDeEntorno, motivoDeBloqueo, pasoQueFalla } from '../../scripts/arnes/comun/freno-stop.ts';
-import type { Fallo } from '../../scripts/arnes/comun/freno-stop.ts';
+import {
+  errorDeEntorno,
+  motivoDeBloqueo,
+  motivoDeBloqueoDelImplementador,
+  pasoQueFalla,
+} from '../../scripts/arnes/comun/freno-stop.ts';
+import type { Fallo, FalloDelImplementador } from '../../scripts/arnes/comun/freno-stop.ts';
 
 const SALIDA_UNIDAD =
   'FAIL tests/unidad/a.test.ts\n✗ Falla el paso «unidad».\nmake: *** [Makefile:40: check] Error 1\n';
@@ -81,5 +86,33 @@ describe('motivoDeBloqueo', () => {
     expect(motivo).toMatch(/línea 251\n/);
     expect(motivo).not.toMatch(/línea 250\n/);
     expect(motivo.endsWith('línea 400')).toBe(true);
+  });
+});
+
+function falloDelImplementador(cambios: Partial<FalloDelImplementador> = {}): FalloDelImplementador {
+  return { paso: 'unidad', entorno: undefined, bloqueo: 1, salida: SALIDA_UNIDAD, ...cambios };
+}
+
+describe('motivoDeBloqueoDelImplementador', () => {
+  it('en el primer bloqueo pide arreglar la causa en los ficheros del encargo y añade la salida de make', () => {
+    const motivo = motivoDeBloqueoDelImplementador(falloDelImplementador());
+    expect(motivo).toMatch(/^make check-implementador falla en el paso «unidad»/);
+    expect(motivo).toMatch(/Arregla la causa en los ficheros de tu encargo/);
+    expect(motivo).not.toMatch(/último intento/);
+    expect(motivo).toMatch(/Últimas líneas de make check-implementador:\n\nFAIL tests\/unidad\/a\.test\.ts/);
+  });
+
+  it('en el segundo bloqueo avisa de que es el último intento y pide el mecanismo del fallo', () => {
+    const motivo = motivoDeBloqueoDelImplementador(falloDelImplementador({ bloqueo: 2 }));
+    expect(motivo).toMatch(/Es tu último intento/);
+    expect(motivo).toMatch(/en una sola frase el mecanismo/);
+    expect(motivo).toMatch(/devuelve el encargo en ROJO/);
+  });
+
+  it('si el fallo es del entorno, pide devolver el encargo sin tocar nada', () => {
+    const motivo = motivoDeBloqueoDelImplementador(falloDelImplementador({ entorno: errorDeEntorno('EACCES') }));
+    expect(motivo).toMatch(/problema del entorno \(EACCES\)/);
+    expect(motivo).toMatch(/No es tu código: no lo toques/);
+    expect(motivo).toMatch(/\[DECISIÓN PENDIENTE\]/);
   });
 });

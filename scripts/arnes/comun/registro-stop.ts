@@ -6,9 +6,9 @@
 //     se implementaba el área («make bloqueos A=<ÁREA>»).
 // El fichero está en .gitignore: es local, como reports/, pero vive en .claude/ para que
 // Claude no pueda borrarlo ni editarlo (la ruta está protegida).
-import { appendFileSync, existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { BLOQUEOS_PARA_FRENAR } from './freno-stop.ts';
+import { anotarLinea, leerLineas, parsearLineas } from './jsonl.ts';
 import type { Fase } from './protegidas.ts';
 
 // Fuera de git (.gitignore): cada copia del repositorio lleva su propio registro.
@@ -36,30 +36,15 @@ export interface ParadaStop {
 }
 
 export function anotarParada(raiz: string, parada: ParadaStop): void {
-  appendFileSync(path.join(raiz, RUTA_REGISTRO_STOP), `${JSON.stringify(parada)}\n`);
+  anotarLinea(path.join(raiz, RUTA_REGISTRO_STOP), parada);
 }
 
 export function leerRegistro(raiz: string): ParadaStop[] {
-  const ruta = path.join(raiz, RUTA_REGISTRO_STOP);
-  return existsSync(ruta) ? parsearRegistro(readFileSync(ruta, 'utf8')) : [];
+  return leerLineas(path.join(raiz, RUTA_REGISTRO_STOP), esParada);
 }
 
 export function parsearRegistro(texto: string): ParadaStop[] {
-  return texto.split('\n').flatMap((linea) => {
-    const parada = leerLinea(linea);
-    return parada === undefined ? [] : [parada];
-  });
-}
-
-function leerLinea(linea: string): ParadaStop | undefined {
-  if (linea.trim() === '') return undefined;
-  try {
-    const valor: unknown = JSON.parse(linea);
-    return esParada(valor) ? valor : undefined;
-  } catch {
-    // Una línea cortada (por ejemplo, si se llenó el disco) no debe impedir leer las demás.
-    return undefined;
-  }
+  return parsearLineas(texto, esParada);
 }
 
 function esParada(valor: unknown): valor is ParadaStop {
