@@ -6,6 +6,11 @@ Característica: Intercalado de categorías parecidas
   después de un aprendizaje inicial por bloques (tabla de la sección 3; Fase 2 de la sección 4). Que
   sea solo la fase intermedia es parte de la secuencia de fases, que es extrapolación (sección 4).
 
+  Solo se intercalan problemas de objetivos dominados: un objetivo nuevo se aprende por bloques, y
+  entra en la mezcla cuando se domina (INTE-4). El informe pide ese aprendizaje inicial por bloques
+  antes de intercalar (sección 4, Fase 2), pero no dice cuándo entra un objetivo en la mezcla: eso
+  es extrapolación del autor.
+
   Antecedentes:
     Dado el dominio de prueba «ficticio» con estas categorías:
       | categoría | grupo de parecidas |
@@ -29,10 +34,10 @@ Característica: Intercalado de categorías parecidas
       Entonces la sesión <resultado>
 
       Ejemplos:
-        | fase             | resultado                                                 |
-        | novato           | presenta los ítems por bloques, todos del objetivo actual |
-        | intermedio       | intercala problemas de categorías parecidas               |
-        | avanzado_experto | no intercala                                              |
+        | fase             | resultado                                                          |
+        | novato           | presenta los ítems por bloques, todos del objetivo actual          |
+        | intermedio       | intercala problemas de categorías parecidas de objetivos dominados |
+        | avanzado_experto | no intercala                                                       |
 
     @INTE-1.2 @extrapolacion
     Escenario: La fase de intercalado se lee de la configuración
@@ -76,3 +81,27 @@ Característica: Intercalado de categorías parecidas
       Cuando se le presenta un problema en una sesión intercalada
       Entonces no ve el nombre de su categoría ni el de su objetivo
       Y el intento queda registrado en respuestas.csv con el contexto «intercalado»
+
+  @INTE-4 @evidencia-3 @evidencia-4 @extrapolacion
+  Regla: Un objetivo nuevo se practica por bloques hasta dominarlo
+
+    Antecedentes:
+      Dado que la fase de intercalado configurada es «intermedio»
+      Y que la persona está en la fase «intermedio» con O1 y O2 dominados
+      Y que O4 se aprobó en la revisión del material, sin dominarlo ni practicarlo, con problemas de C1 y de C2
+
+    @INTE-4.1 @evidencia-3 @evidencia-4 @extrapolacion
+    Escenario: Una sesión intercalada no incluye problemas del objetivo nuevo
+      Cuando empieza una sesión intercalada del grupo G1
+      Entonces la sesión no incluye ningún problema de O4
+
+    @INTE-4.2 @evidencia-3 @evidencia-4 @extrapolacion
+    Escenario: El objetivo nuevo se practica por bloques
+      Cuando la persona practica O4
+      Entonces sus problemas se presentan por bloques, sin mezclar con otras categorías
+
+    @INTE-4.3 @evidencia-3 @evidencia-4 @extrapolacion
+    Escenario: Al dominar el objetivo nuevo, entra en la mezcla
+      Dado que O4 queda dominado
+      Cuando empieza una sesión intercalada del grupo G1
+      Entonces la sesión mezcla problemas de C1 y de C2, incluidos los de O4

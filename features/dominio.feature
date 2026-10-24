@@ -10,6 +10,8 @@ Característica: Criterio de dominio
   El acierto sin ayuda de un objetivo es la fracción de sus ítems cuyo último intento fue correcto.
   Un intento es sin ayuda cuando, mientras la persona responde, no ve ningún ejemplo resuelto ni la
   respuesta, aunque haya estudiado un ejemplo justo antes. Esta definición es decisión del autor.
+  Hay una excepción: el intento de exploración de un objetivo nuevo (AYUD-5) no cuenta como intento,
+  ni para el acierto ni para saber si el ítem tiene ya un intento. También es decisión del autor.
 
   Antecedentes:
     Dado el dominio de prueba «ficticio» con los objetivos O1, O2 y O3, en ese orden
@@ -51,6 +53,24 @@ Característica: Criterio de dominio
       Cuando la aplicación evalúa O1
       Entonces O1 no queda dominado
       Y la aplicación indica que falta responder 1 ítem de O1
+
+    @MAST-1.4 @extrapolacion
+    Escenario: El intento de exploración no cuenta como intento del ítem
+      Dado que la persona está en la fase «intermedio» con O1, O2 y O3 dominados
+      Y que O4 se aprobó en la revisión del material, sin dominarlo ni practicarlo, con 20 ítems
+      Y que la persona acierta el ítem I1 de O4 como intento de exploración
+      Cuando la aplicación evalúa O4
+      Entonces O4 no queda dominado
+      Y la aplicación indica que faltan 20 ítems de O4
+
+    @MAST-1.5 @extrapolacion
+    Escenario: El intento posterior a la exploración sí cuenta
+      Dado que la persona está en la fase «intermedio» con O1, O2 y O3 dominados
+      Y que O4 se aprobó en la revisión del material, sin dominarlo ni practicarlo, con 20 ítems
+      Y que la persona acierta el ítem I1 de O4 como intento de exploración
+      Cuando la persona responde de nuevo I1 de O4 y lo acierta
+      Entonces ese intento cuenta como el primero de I1
+      Y la aplicación indica que faltan 19 ítems de O4
 
   @MAST-2 @evidencia-2.3 @evidencia-3 @extrapolacion
   Regla: No se avanza sin dominar

@@ -7,6 +7,8 @@ Característica: Instrumentación y exportación CSV
   fijas. La forma de los ficheros es decisión del autor.
 
   Los CSV usan coma como separador, una fila de cabecera, UTF-8, fechas ISO 8601 y punto decimal.
+  Un texto libre, como el de una autoexplicación, que contenga comas o saltos de línea sale entre
+  comillas dobles (INST-1.6).
 
   Antecedentes:
     Dado el dominio de prueba «ficticio» con los objetivos O1, O2 y O3, en ese orden
@@ -27,6 +29,7 @@ Característica: Instrumentación y exportación CSV
         | cambios_fase.csv          | fecha,dominio,fase_anterior,fase_nueva                                                           |
         | evaluaciones_externas.csv | fecha,dominio,tarea,percentil,a_ciegas,practicada,criterio,nivel                                 |
         | horas.csv                 | fecha,dominio,minutos                                                                            |
+        | autoexplicaciones.csv     | fecha,dominio,objetivo,texto                                                                     |
 
     @INST-1.2 @evidencia-4
     Escenario: Cada respuesta registra acierto, latencia y confianza
@@ -41,12 +44,13 @@ Característica: Instrumentación y exportación CSV
       Entonces su fila en respuestas.csv tiene el contexto «<contexto>»
 
       Ejemplos:
-        | dónde                      | contexto    |
-        | en el diagnóstico          | diagnostico |
-        | en una sesión de práctica  | practica    |
-        | en un repaso programado    | repaso      |
-        | en una sesión intercalada  | intercalado |
-        | en una prueba de retención | retencion   |
+        | dónde                        | contexto    |
+        | en el diagnóstico            | diagnostico |
+        | en una sesión de práctica    | practica    |
+        | en un repaso programado      | repaso      |
+        | en una sesión intercalada    | intercalado |
+        | en una prueba de retención   | retencion   |
+        | en un intento de exploración | exploracion |
 
     @INST-1.4 @evidencia-4 @extrapolacion
     Escenario: Una evaluación externa ocupa una fila por criterio de la rúbrica
@@ -56,6 +60,24 @@ Característica: Instrumentación y exportación CSV
         | fecha      | dominio  | tarea | percentil | a_ciegas | practicada | criterio      | nivel |
         | 2026-01-15 | ficticio | T2    | 85        | true     | false      | Planteamiento | 2     |
         | 2026-01-15 | ficticio | T2    | 85        | true     | false      | Resultado     | 1     |
+
+    @INST-1.5 @extrapolacion
+    Escenario: Cada autoexplicación ocupa una fila
+      Dado que el 2026-03-02 a las 10:00:00 la persona explica en O1 «Porque hace falta A.»
+      Cuando exporta autoexplicaciones.csv
+      Entonces tiene la fila «2026-03-02T10:00:00,ficticio,O1,Porque hace falta A.»
+
+    @INST-1.6 @extrapolacion
+    Esquema del escenario: Un texto con comas o saltos de línea sale entre comillas dobles
+      Dado que la persona explica en O1 un texto con <rasgo>
+      Cuando exporta autoexplicaciones.csv
+      Entonces el texto sale entre comillas dobles
+      Y el fichero tiene una sola fila de datos
+
+      Ejemplos:
+        | rasgo             |
+        | una coma          |
+        | un salto de línea |
 
   @INST-2 @extrapolacion
   Regla: La exportación es completa y ordenada
@@ -75,6 +97,6 @@ Característica: Instrumentación y exportación CSV
       Y la segunda es la del 2026-03-03, del dominio «ficticio»
 
     @INST-2.3 @extrapolacion
-    Escenario: Se pueden exportar los seis CSV
+    Escenario: Se pueden exportar los siete CSV
       Cuando la persona abre la exportación
-      Entonces puede descargar respuestas.csv, cambios_ayuda.csv, objetivos_dominados.csv, cambios_fase.csv, evaluaciones_externas.csv y horas.csv
+      Entonces puede descargar respuestas.csv, cambios_ayuda.csv, objetivos_dominados.csv, cambios_fase.csv, evaluaciones_externas.csv, horas.csv y autoexplicaciones.csv

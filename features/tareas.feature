@@ -8,6 +8,10 @@ Característica: Tareas representativas y evaluación externa
   80–90 de profesionales acreditados, en dos evaluaciones separadas al menos 3 meses y con casos no
   vistos. Esos umbrales son una convención propuesta, no un estándar validado.
 
+  La aplicación no mide la dificultad de las tareas: las presenta en el orden del contenido, que el
+  autor escribe de menos a más difícil. Que ese orden sea el de dificultad creciente es lectura del
+  autor de la «práctica con tareas representativas cada vez más difíciles» de la sección 4.
+
   La aplicación no puntúa las tareas ni calcula percentiles: registra lo que da el evaluador externo.
   El informe habla de una «batería» de tareas; que cada evaluación sea de una sola tarea es decisión
   del autor.
@@ -23,8 +27,8 @@ Característica: Tareas representativas y evaluación externa
   @TARE-1 @evidencia-4 @evidencia-2.2
   Regla: En la fase avanzada se practica con tareas representativas
 
-    @TARE-1.1 @evidencia-4
-    Escenario: Las tareas se presentan en el orden del autor, con su rúbrica
+    @TARE-1.1 @evidencia-4 @extrapolacion
+    Escenario: Las tareas se presentan en el orden del contenido, de menos a más difícil, con su rúbrica
       Dado que la persona está en la fase «avanzado_experto»
       Cuando pide una tarea de práctica
       Entonces se le presenta T1 con su enunciado y su rúbrica
@@ -42,6 +46,20 @@ Característica: Tareas representativas y evaluación externa
       Cuando la persona consulta la evaluación de T1
       Entonces ve en el criterio «Planteamiento» el nivel «1», con el descriptor «lo identifica, pero elige mal datos»
       Y ve el descriptor del nivel más alto, «lo identifica y elige bien los datos»
+
+    @TARE-1.4 @evidencia-4 @extrapolacion
+    Escenario: Tras practicar las primeras tareas, la siguiente es la que sigue en el orden
+      Dado que la persona está en la fase «avanzado_experto»
+      Y que ha practicado T1 y T2
+      Cuando pide una tarea de práctica
+      Entonces se le presenta T3 con su enunciado y su rúbrica
+
+    @TARE-1.5 @evidencia-4 @extrapolacion
+    Escenario: Una tarea parte de un texto profesional y su enunciado lo nombra
+      Dado que T3 parte del texto profesional «informe-2025.pdf»
+      Cuando la persona pide la tarea T3
+      Entonces se le presenta el texto profesional «informe-2025.pdf»
+      Y el enunciado de T3 nombra «informe-2025.pdf»
 
   @TARE-2 @evidencia-4 @extrapolacion
   Regla: Se registran evaluaciones externas fechadas

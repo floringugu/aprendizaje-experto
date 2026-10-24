@@ -26,12 +26,12 @@ Filas: cada técnica de la tabla del §3, cada técnica y cada métrica de las f
 | 7 | Mastery learning | §3 | Bien establecido; aula; 0,52 DE; criterio 80–90 %; novato–intermedio | MAST-1, MAST-2 | cubierto | El 85 % es extrapolación (plan §15.3). |
 | 8 | Tutoría / tutoría inteligente | §3 | Bien establecido; aula; inteligente 0,76; esperar 0,3–0,8 DE; todas | — | hueco 4 (O4) | Hay una razón a medias, pero en la feature y no en el plan: «la IA… nunca interviene en las sesiones» (descripción de MATE). RECU-2 corrige respuesta a respuesta, no paso a paso. |
 | 9 | Entrenamiento en aprendizaje autorregulado | §3 | Bien establecido; programas extensos en aula universitaria; g = 0,38; todas | BUCL-2, BUCL-3 | cubierto | El bucle es la rutina de planificar, hacer y revisar con métricas. No está probado que un bucle automático rinda como esos programas. |
-| 10 | Fracaso productivo | §3 | Prometedor-sólido; aula, en parte cuasiexperimental; d = 0,36 conceptual; intermedio | — | por escribir O2 | |
+| 10 | Fracaso productivo | §3 | Prometedor-sólido; aula, en parte cuasiexperimental; d = 0,36 conceptual; intermedio | AYUD-5, AYUD-4 | cubierto | El intento de exploración es un problema, solo en las fases intermedia y avanzada y solo la primera vez (AYUD-5.1 a 5.4). No cuenta para el dominio (MAST-1.4, MAST-1.5) ni para el ajuste semanal (AYUD-5.6). Un solo problema en lugar de 15–30 minutos y la fase avanzada son extrapolación. |
 | 11 | Intenciones de implementación | §3 | Bien establecido en conducta general; d = 0,27–0,66 (§2.4; Gollwitzer, marcado (†)); todas | BUCL-3 | cubierto | Una intención por semana, en el paso 5 del bucle (plan §0, «Bucle semanal»). |
 | 12 | Efecto de generación | §3 | Bien establecido en laboratorio; d = 0,40; novato–intermedio; §2.2: «su aplicación a materias complejas no está directamente probada» | RECU-3 (solo cómo se corrige) | deliberado (O11) | Plan §17.6, I8: no se prefiere la respuesta escrita, porque la corrección es automática y distingue las tildes. RECU-1 y RECU-4 presentan opciones, que es reconocer. |
-| 13 | Autoexplicación / interrogación elaborativa | §3 | Prometedor; «utilidad moderada» [verificar] (Dunlosky, marcado (†)); intermedio; «cautela al combinarla con ejemplos resueltos» | AYUD-3 (solo la regla negativa) | por escribir O3 | Falta la regla positiva, con texto conceptual. |
+| 13 | Autoexplicación / interrogación elaborativa | §3 | Prometedor; «utilidad moderada» [verificar] (Dunlosky, marcado (†)); intermedio; «cautela al combinarla con ejemplos resueltos» | AYUD-3, AYUD-6 | cubierto | AYUD-6 pide la autoexplicación tras la instrucción, con texto conceptual, en las fases intermedia y avanzada, y la guarda en autoexplicaciones.csv (INST-1.5). AYUD-3 la quita de los ejemplos resueltos por defecto (§2.2, Barbieri). Dejarla en blanco está sin decidir. |
 | 14 | Práctica deliberada | §3 | Necesaria, no suficiente; correlacional; experto | TARE-1 | hueco 4 (O5 b) | Hay tareas con rúbrica y feedback del evaluador, pero no práctica centrada en los puntos débiles. |
-| 15 | Codificación dual | §3 | Prometedor; «no verificado aquí»; todas | MATE-2.7 (solo el formato del campo) | por escribir O8 | El §4 no la nombra. |
+| 15 | Codificación dual | §3 | Prometedor; «no verificado aquí»; todas | MATE-2.7, AYUD-7 | cubierto | El diagrama se muestra con la instrucción y con cada ejemplo resuelto (AYUD-7.1, 7.2) y no mientras se responde (AYUD-7.4). AYUD-7.3 no lo muestra si el ejemplo tiene pasos retirados. El §4 no la nombra. AYUD-7.5 descarta los estilos de aprendizaje (§5, mito 3). |
 | 16 | Siestas / proteger el sueño | §3 | Bien establecido en laboratorio; siesta d = 0,38 (Leong 2022, marcada (†) en plan §15.6); todas | BUCL-3.3 | excluido O10 | El recordatorio de no recortar sueño está; la siesta corta tras sesiones densas, no. |
 | 17 | Ejercicio agudo | §3 | Prometedor / discutido; «complemento, no estrategia central»; todas | — | excluido O9 | El §4 no lo nombra, aunque el §3 lo da para todas las fases. |
 | 18 | F0: prueba de recuperación del núcleo conceptual | §4 F0 | Recuperación, bien establecido; conocimiento previo r = 0,53 | DIAG-1 | cubierto | |
@@ -40,27 +40,27 @@ Filas: cada técnica de la tabla del §3, cada técnica y cada métrica de las f
 | 21 | F0: ruta personalizada | §4 F0 | Sin nivel | DIAG-2 | cubierto | |
 | 22 | F0: estimación honesta del tiempo | §4 F0 | El propio §4 la lista como no probada | DIAG-3 (la prohíbe) | deliberado | Plan §15.4 y §0, «Estimación del tiempo en el diagnóstico». |
 | 23 | F1: ejemplos resueltos con retirada progresiva | §4 F1 | Como la fila 3 | AYUD-1, AYUD-2 | cubierto | |
-| 24 | F1: instrucción explícita | §4 F1 | Sin fila en el §3; el §2.3 cita a Kirschner 2006, marcado (†), que no puede sostenerla | — | por escribir O1 | El contenido exige una `instruccion` por objetivo, pero ninguna regla dice que se muestre antes de practicar. |
+| 24 | F1: instrucción explícita | §4 F1 | Sin fila en el §3; el §2.3 cita a Kirschner 2006, marcado (†), que no puede sostenerla | AYUD-4 | cubierto | La primera sesión de un objetivo no dominado empieza por su instrucción (AYUD-4.1, 4.2). No se repite (AYUD-4.3), no se ve al responder (AYUD-4.4) ni se muestra en un objetivo dominado en el diagnóstico (AYUD-4.5). El (†) de Kirschner hace extrapolación la regla y «solo la primera vez». |
 | 25 | F1: recuperación frecuente con feedback | §4 F1 | Como las filas 1 y 5 | RECU-1, RECU-2 | cubierto | |
 | 26 | F1: espaciado con SRS para vocabulario y hechos nucleares | §4 F1 | Espaciado, bien establecido; el algoritmo, prometedor, y FSRS sin evidencia de aula verificada (§2.5 y §6) | PLAN-1, PLAN-2 | cubierto | |
 | 27 | F1: mastery learning con criterio de ~85 % | §4 F1 | Como la fila 7 | MAST-1, MAST-2 | cubierto | |
-| 28 | F1: evitar el descubrimiento sin guía | §4 F1 | Como la fila 24 | AYUD-1 (implícito) | por escribir O1 | Con la ayuda completa siempre hay ejemplo, pero ninguna regla lo dice. Se decide con la instrucción explícita. |
-| 29 | F1: evitar el intercalado prematuro | §4 F1 | Como la fila 6; §3: «después de un aprendizaje inicial por bloques» | INTE-1 | por escribir O12 | INTE-1.1 intercala toda la fase intermedia, también un objetivo nuevo que llega con MATE y aún no se ha practicado por bloques. |
+| 28 | F1: evitar el descubrimiento sin guía | §4 F1 | Como la fila 24 | AYUD-4, AYUD-1 | cubierto | La instrucción va antes de cualquier problema y de cualquier ejemplo (AYUD-4.1, 4.2); después AYUD-1 alterna ejemplo y problema. |
+| 29 | F1: evitar el intercalado prematuro | §4 F1 | Como la fila 6; §3: «después de un aprendizaje inicial por bloques» | INTE-1.1, INTE-4 | cubierto | La fase intermedia solo intercala problemas de objetivos dominados (INTE-1.1). Un objetivo nuevo se practica por bloques hasta dominarlo (INTE-4.1 a 4.3). |
 | 30 | F1, métrica: precisión en recuperación sin ayuda | §4 F1 | Sin nivel | MAST-1, BUCL-2.2 | cubierto | |
 | 31 | F1, métrica: precisión en problemas canónicos | §4 F1 | Sin nivel | AYUD-2 | cubierto | AYUD-2 mide cada semana el acierto en problemas de cada objetivo. Se toma como canónico todo ítem «problema» del objetivo, que es lectura del autor. El bucle no lo enseña como métrica aparte. |
 | 32 | F1, métrica: retención a 1 y 4 semanas | §4 F1 | Sin nivel | MAST-7 | cubierto | Se mide con los mismos ítems que se practican: eso es el hueco 3. |
 | 33 | F2: intercalado de tipos de problema | §4 F2 | Como la fila 6 | INTE-1, INTE-2, INTE-3 | cubierto | |
-| 34 | F2: fracaso productivo seguido de instrucción | §4 F2 | Como la fila 10; §2.3: instrucción explícita «siempre» después | — | por escribir O2 | |
-| 35 | F2: autoexplicación en material conceptual | §4 F2 | Como la fila 13 | AYUD-3 (solo la regla negativa) | por escribir O3 | |
+| 34 | F2: fracaso productivo seguido de instrucción | §4 F2 | Como la fila 10; §2.3: instrucción explícita «siempre» después | AYUD-5, AYUD-4 | cubierto | El intento de exploración va primero y la instrucción siempre después (AYUD-5.3), en las fases intermedia y avanzada. Que el §4 lo ponga en la Fase 2 y no en la avanzada es extrapolación. |
+| 35 | F2: autoexplicación en material conceptual | §4 F2 | Como la fila 13 | AYUD-6, AYUD-3 | cubierto | Como la fila 13: autoexplicación de la instrucción en AYUD-6, y no en los ejemplos resueltos (AYUD-3). |
 | 36 | F2: reducir la guía cuando el acierto sin ayuda supera el umbral | §4 F2 | Como la fila 4 | AYUD-2 | cubierto | |
 | 37 | F2: tutoría o tutoría inteligente | §4 F2 | Como la fila 8 | — | hueco 4 (O4) | |
 | 38 | F2, métrica: problemas mezclados sin pista del tipo | §4 F2 | Sin nivel | MAST-6, INTE-3 | cubierto | |
 | 39 | F2, métrica: transferencia a casos nuevos | §4 F2 | Sin nivel en el §4 | TARE-3.3 (solo en las evaluaciones externas) | hueco 3 | En la fase 2 no hay ni métrica ni regla. |
 | 40 | F2, métrica: calibración | §4 F2 | §2.5 | CALI-1, CALI-2, CALI-3 | cubierto | |
-| 41 | F3: tareas representativas cada vez más difíciles | §4 F3 | Práctica deliberada (fila 14) | TARE-1, MATE-4.11 (solo el orden en el borrador) | por escribir O5 a | Se presentan «en el orden del autor», sin decir que vayan de menor a mayor dificultad. |
+| 41 | F3: tareas representativas cada vez más difíciles | §4 F3 | Práctica deliberada (fila 14) | TARE-1, MATE-4.11 | cubierto | Las tareas se presentan en el orden del contenido, de menos a más difícil (TARE-1.1, TARE-1.4). La aplicación no mide la dificultad: depende del orden que escribe la IA (MATE-4.11). |
 | 42 | F3: feedback de expertos o de resultados reales | §4 F3 | Práctica deliberada (fila 14) | TARE-2 (solo el del evaluador externo) | hueco 4 | |
 | 43 | F3: análisis de errores | §4 F3 | Sin fila en el §3; sin nivel | — | hueco 4 (O6) | |
-| 44 | F3: lectura y producción a nivel de investigación o práctica profesional | §4 F3 | Sin fila en el §3; sin nivel | — | por escribir O7 | |
+| 44 | F3: lectura y producción a nivel de investigación o práctica profesional | §4 F3 | Sin fila en el §3; sin nivel | TARE-1 | cubierto | T3 parte de un texto profesional y su enunciado lo nombra (TARE-1.5). |
 | 45 | F3, métrica: rendimiento frente a profesionales, a ciegas | §4 F3 | Convención propuesta (§4) | TARE-2, TARE-3 | cubierto | La aplicación registra el percentil del evaluador, no lo calcula (plan §0). |
 | 46 | F3, métrica: reproducibilidad en el tiempo | §4 F3 | Convención propuesta (§4) | TARE-3 | cubierto | |
 | 47 | Bucle: cada semana | §4 bucle | Sin nivel | BUCL-1 | cubierto | |
@@ -88,7 +88,6 @@ Cada olvido se decide aparte: o se incluye (área, evidencia y fase de la person
   - En la fase novato, la instrucción va primero (AYUD-4).
   - En las fases intermedia y avanzada, primero el problema de exploración (AYUD-5), después la instrucción y su autoexplicación (AYUD-6), y luego los ejemplos y problemas de AYUD-1, sin autoexplicación en los ejemplos (AYUD-3).
   - La secuencia entera es extrapolación: el §4 dice que el uso combinado de todas las técnicas no es necesariamente aditivo, y el §6 trata la «Aditividad». Separar la autoexplicación de los ejemplos es lectura del autor.
-  - Los ids AYUD-4 a AYUD-6 son provisionales hasta escribir las reglas.
 
 | Olvido | Filas | Qué falta | Decisión |
 |---|---|---|---|
