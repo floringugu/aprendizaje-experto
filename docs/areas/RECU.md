@@ -2,7 +2,7 @@
 
 ## Mecanismo
 
-Dominio puro: sin paso de mecanismo. RECU no añade ninguna pantalla, porque `src/interfaz` aún no existe (§17.8, punto 5, sin decidir).
+Dominio puro: sin paso de mecanismo. RECU no añade ninguna pantalla, porque `src/interfaz` aún no existe (§17.8, punto 2, sin decidir).
 
 ## Interfaces descartadas y por qué
 

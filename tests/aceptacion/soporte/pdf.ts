@@ -1,5 +1,5 @@
 // PDF mínimo de verdad, sin dependencias: lo lee cualquier herramienta que saque el texto de un PDF
-// (la que use la aplicación es una decisión abierta, plan §17.8). Cada línea del texto es una línea
+// (la aplicación usa pdftotext, plan §0). Cada línea del texto es una línea
 // del PDF, así que los escenarios deciden dónde se parte una frase (MATE-3.3, MATE-3.4).
 
 /** Un carácter que el PDF de prueba no sabe escribir: de control o fuera de Latin-1. */
