@@ -173,22 +173,25 @@ Salida de `make bloqueos A=<ÁREA>` al cerrar el área, y una frase sobre el blo
 …
 ```
 
+
 ## Relevo
 
-**Hecho:** MATE-1 a MATE-10. MATE-10 es «Ver fuente» (`verFuente` en `src/aplicacion/revision-del-material.ts`), con la regla de MATE-7.1 que aprobó el dueño: un ítem aprobado no abre su fuente mientras está en curso (`EstadoDominio.enCurso`, que marca `presentarItem` y quitan `registrarIntento` y `cerrarDiagnostico`). `revision.ts` llegaba al límite de 300 líneas, así que la mesa (`Mesa`, `BorradorDominio`, `pendientesDelBorrador`, `idRepetido` y `buscarPieza`) pasó a `src/aplicacion/mesa.ts`, y `FuenteAbierta`, a `revision-del-material.ts` para evitar un ciclo con `material.ts`. Si el dueño no ha commiteado MATE-10, `git status` lo dice: dale otra vez el bloque del último mensaje.
+**Hecho:** MATE-1 a MATE-10, commiteados (b6f9552). `redactarBorrador` sigue **bloqueado**: §0 de docs/plan.md no recoge el hueco 1 (qué se le pide a la IA en MATE y si se mantiene «Aprobar las N sin marca»). Se decide en una conversación en fase `specs`; hasta entonces, no lo empieces. Mientras, se adelantó el cierre del área. Sin commitear: `citas.ts` sin el `indice < 0` de sobra en `paginaDelLugar` (`paginas[-1]` ya es `undefined`) e `inicio-sesion.test.ts` fijando los 5 minutos con el número. Unidad 801/801, tipos y lint limpios.
 
-`npm run --silent aceptacion -- --tags @MATE`: 59 de 75. Fallan 12 escenarios de `redactarBorrador` (MATE-2.x), 3 de MATE-6.1 (`iniciarSesion` de retención e intercalada, de otras áreas) y 1 de MATE-6.2 (`pedirTarea`, de TARE).
+**Mutación** (salidas en `reports/mutacion-MATE-*.txt`):
+- `make mutacion` (dominio): 96,85 % antes de esos dos cambios. Supervivientes: los 3 equivalentes de siempre; `citas.ts:117` y `:179`, equivalentes (el elemento basura no cambia el resultado); `citas.ts:183`, ya quitado; `unidades.ts:15` ×2, que mata el test nuevo. Vuelve a pasarlo para la cifra final.
+- Aplicación (`npx stryker run --mutate src/aplicacion/{revision,mesa,inicio-sesion,revision-del-material}.ts --incrementalFile <scratchpad>/x.json --reporters clear-text,progress`): 93,59 %. Huecos de test reales: `inicio-sesion.ts:123` (eventos de un proceso ya sustituido), `:147` (vista sin enlace, con `toStrictEqual`), `:165` (URL seguida de «).»); `revision-del-material.ts:198` (fichero recortado o borrado antes de deshacer); `revision.ts:310` (ejemplo aparte sin fuente, `toStrictEqual`), `:386` (corrección que no es un objeto); y 7 textos de motivo vacíos (`inicio-sesion.ts:86,89`, `revision-del-material.ts:331,340`, `revision.ts:180,253,364`: que el helper `rechazado` exija motivo no vacío). Equivalentes que se aceptan: `inicio-sesion.ts:92,110,116,158`, `revision-del-material.ts:256,274`, `revision.ts:116,162,213,232,267,270,318,333`.
 
-**Falta, en este orden:**
+**revisor-codigo:** pasado; el informe está en `reports/revisor-codigo-MATE.md`.
 
-1. `redactarBorrador` («Mecanismo» 4) está **bloqueado**: docs/plan.md §0 no recoge el hueco pedagógico 1 (qué se le pide a la IA en MATE y si se mantiene «Aprobar las N sin marca»). Se decide en una conversación en fase `specs`. Hasta que esa fila esté en §0, no lo empieces: avisa al dueño y para.
-2. Después, `redactarBorrador` en un encargo al `implementador` (`Tarea: MATE-11`).
-3. Al cerrar el área:
-   - plantea MATE-6.3 con [DECISIÓN PENDIENTE], porque depende de `pedirTarea`, de TARE;
-   - cita MATE-6.2, MATE-6.4 y MATE-6.5 donde se cumplen;
-   - pasa la mutación de `revision.ts`, `mesa.ts`, `inicio-sesion.ts` y `revision-del-material.ts`;
-   - pasa el `revisor-codigo` y completa este archivo, con la partición de `revision.ts` en «Deuda pagada».
+**Falta, en este orden** (un encargo cada vez):
+1. `Tarea: MATE-12`: el motivo «de el ítem I7» de `rechazoDeFormato` (`revision.ts:385`), con una frase del `FalloDeFormato` compartida con `contenidoValidado`; `conObjetivoDelEjemplo` una sola vez; `esRegistro` exportado de `formato-contenido.ts`; los tests de mutación de `revision.ts` y `revision-del-material.ts`; los tests de `idRepetido` a `mesa.test.ts` y `escribirMesa` en `revision-fabricas.ts`. Opcional en el mismo encargo: `buscarPendiente` compartida y `colgadoDe` a `mesa.ts`.
+2. `Tarea: MATE-13`: `verFuente` busca primero en el aprobado y solo lee la mesa si no está, para que el borrador (`id_repetido`, un JSON roto) no llegue a una sesión (MATE-6).
+3. `Tarea: MATE-14`: `inicio-sesion.ts` de clase a cierre, como `crearRevisionDelMaterial`, con sus tests de mutación.
+4. Tú: `presentados`/`marcarPresentado` → `itemsEnCurso`/`marcarEnCurso`; los `@MATE-3.3` y `@MATE-1.1` mal citados en `texto-pdf.test.ts`, `texto-html.test.ts` y `material.test.ts`; quitar las listas copiadas en el comentario de `textoDelHtml`.
+5. Para el dueño, con [DECISIÓN PENDIENTE]: el aprobado leído por dos caminos (unificarlo toca `tests/aceptacion/soporte/mundo.ts`, protegida); `dominio` sin validar dentro de las rutas (`../`); y las partidas para `docs/deuda-diseno.md`, que es protegida (propuesta). Lo de `texto-pdf` sin puerto ya está en «Interfaces descartadas».
+6. Después de `redactarBorrador` (`Tarea: MATE-11`), lo que ya decía el relevo anterior: MATE-6.3 con [DECISIÓN PENDIENTE]; citar MATE-6.2, 6.4 y 6.5 donde se cumplen; completar «Mutación», «Deuda pagada» (la partición de `revision.ts`) y «Bloqueos». `leerBorrador` sin validar se decide con `redactarBorrador`, que es quien escribe el borrador.
 
-**Paso siguiente:** comprobar si §0 ya recoge el hueco 1 (`git grep -n "sin marca" -- docs/plan.md`, líneas 14-64).
+**Paso siguiente:** el punto 1.
 
-**Leer primero:** este relevo, `git log -3`, `git status` y, para `redactarBorrador`, «Mecanismo» 4 de este archivo y las reglas de MATE-2 en `features/material.feature`.
+**Leer primero:** este relevo, `git status`, `reports/revisor-codigo-MATE.md` y `reports/mutacion-MATE-aplicacion.txt` (busca `[Survived]`).

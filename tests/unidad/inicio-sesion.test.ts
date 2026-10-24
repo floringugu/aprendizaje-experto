@@ -102,7 +102,8 @@ describe('iniciarSesionClaudeCode', () => {
     const { claudeCode, temporizador, casos } = montar();
     expect(await casos.iniciarSesionClaudeCode()).toEqual({ ok: true, valor: null });
     expect(claudeCode.procesos).toHaveLength(1);
-    expect(temporizador.plazos).toEqual([MS_PARA_INICIAR_SESION]);
+    // Con el número y no con la constante: así el test fija los 5 minutos de la regla.
+    expect(temporizador.plazos).toEqual([5 * 60 * 1000]);
   });
 
   it('@MATE-8.3 corta el proceso a los 5 minutos exactos y no un milisegundo antes', async () => {

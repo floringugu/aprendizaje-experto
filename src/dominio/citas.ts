@@ -178,7 +178,7 @@ function paginaDePosicion(doc: DocumentoNormalizado, posicion: number): number {
 function paginaDelLugar(lugar: string, paginas: readonly string[]): string | undefined {
   const numeros = lugar.match(/\d+/g) ?? [];
   if (numeros.length !== 1) return undefined;
-  // La lista empieza en 0 y las páginas en 1, por eso se resta uno. Una página 0 da -1: no hay página.
-  const indice = Number(numeros[0]) - 1;
-  return indice < 0 ? undefined : paginas[indice];
+  // La lista empieza en 0 y las páginas en 1, por eso se resta uno. Una página 0 da -1, que no es una
+  // posición de la lista: no hay página.
+  return paginas[Number(numeros[0]) - 1];
 }
