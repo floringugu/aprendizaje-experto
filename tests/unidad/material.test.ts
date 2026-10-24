@@ -1,9 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { documentosDelMaterial, textosDelMaterial } from '../../src/aplicacion/material-guardado.ts';
 import { anadirMaterial, listarMaterial } from '../../src/aplicacion/material.ts';
-import type { Ficheros, LibreOffice, PaginaDescargada, Web } from '../../src/aplicacion/puertos.ts';
+import type { LibreOffice, PaginaDescargada, Web } from '../../src/aplicacion/puertos.ts';
 import type { Resultado } from '../../src/aplicacion/resultado.ts';
 import { pdfDePrueba } from '../aceptacion/soporte/pdf.ts';
+import { ficherosEnMemoria } from './ficheros-en-memoria.ts';
 
 const DOMINIO = 'ficticio';
 const URL_TEMA3 = 'https://ejemplo.org/tema3';
@@ -14,18 +15,6 @@ const NO_ES_UN_PDF = 'esto no es un PDF';
 
 function bytesDe(texto: string, codificacion: BufferEncoding = 'utf8'): Uint8Array {
   return new Uint8Array(Buffer.from(texto, codificacion));
-}
-
-/** Los ficheros de la aplicación, en memoria. Sin ficheros en el mapa, nadie ha escrito nada. */
-function ficherosEnMemoria() {
-  const contenidos = new Map<string, Uint8Array>();
-  const ficheros: Ficheros = {
-    leer: (ruta) => contenidos.get(ruta),
-    escribir: (ruta, bytes) => {
-      contenidos.set(ruta, bytes);
-    },
-  };
-  return { ficheros, contenidos };
 }
 
 interface LlamadaAConvertir {

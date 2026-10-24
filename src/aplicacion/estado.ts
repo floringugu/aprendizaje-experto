@@ -6,7 +6,7 @@ import type { ContenidoValidado } from './contenido.ts';
 import type { Dependencias } from './dependencias.ts';
 import { validarContenido } from './formato-contenido.ts';
 import type { Resultado } from './resultado.ts';
-import { rechazar } from './resultado.ts';
+import { aceptar, rechazar } from './resultado.ts';
 import type { ContextoRespuesta } from './sesiones.ts';
 
 /** Respuesta recogida que espera la confianza para corregirse. */
@@ -209,15 +209,24 @@ export function recorridoDeRuta(situacion: Situacion): RecorridoDeRuta {
 
 /**
  * Ejecuta el caso de uso con el dominio pedido. Si el dominio no existe, o su contenido no cumple el
- * formato (D16), rechaza la petición en vez de lanzar un error: un contenido mal escrito no tumba el
- * servidor, y el rechazo dice qué pieza hay que arreglar.
+ * formato (D16), rechaza la petición en vez de lanzar un error (ver `contenidoValidado`).
  */
 export function enDominio<T>(
   entorno: Entorno,
   dominio: string,
   caso: (situacion: Situacion) => Resultado<T>,
 ): Resultado<T> {
-  const leido = entorno.dependencias.leerContenido(dominio);
+  const contenido = contenidoValidado(dominio, entorno.dependencias.leerContenido(dominio));
+  return contenido.ok ? caso({ contenido: contenido.valor, estado: entorno.persona.estadoDe(dominio) }) : contenido;
+}
+
+/**
+ * El contenido aprobado del dominio, tal como se leyó (`undefined` si no existe), ya validado. Si no
+ * existe, o no cumple el formato (D16), rechaza: un contenido mal escrito no tumba el servidor, y el
+ * rechazo dice qué pieza hay que arreglar. Lo usan `enDominio` y la revisión del material, que lee
+ * `contenido/<dominio>.json` con el puerto `Ficheros` porque también lo escribe.
+ */
+export function contenidoValidado(dominio: string, leido: unknown): Resultado<ContenidoValidado> {
   if (leido === undefined) {
     return rechazar(`No existe el dominio «${dominio}».`);
   }
@@ -227,7 +236,7 @@ export function enDominio<T>(
     const enLaPieza = pieza === undefined ? '' : ` en ${pieza}`;
     return rechazar(`El contenido de «${dominio}» no cumple el formato: revisa «${falta}»${enLaPieza}.`);
   }
-  return caso({ contenido: contenido.valor, estado: entorno.persona.estadoDe(dominio) });
+  return aceptar(contenido.valor);
 }
 
 /** Hasta que la persona termina el diagnóstico de un dominio, no hace nada más en él (@DIAG-1.1). */

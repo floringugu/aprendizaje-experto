@@ -172,3 +172,56 @@ Salida de `make bloqueos A=<ÁREA>` al cerrar el área, y una frase sobre el blo
 ```text
 …
 ```
+
+## Relevo
+
+**Hecho:** MATE-5 a MATE-8 (añadir y listar material), el arreglo de `crearInicioSesion` y MATE-9, la revisión del material (`crearRevisionDelMaterial` en `src/aplicacion/revision-del-material.ts`). El dueño eligió commitear MATE-9 antes de seguir (24-10-2026), pero al escribir esto `git log` aún no lo muestra. Su commit es `feat: review, approve, correct and undo the material draft (MATE)`, con las rutas explícitas de sus nueve ficheros.
+
+Con MATE-9, `npm run --silent aceptacion -- --tags @MATE` pasa 53 de 75 escenarios. Los 22 que fallan esperan a `verFuente` (MATE-1.5, MATE-7.x y el paso de MATE-3), a `redactarBorrador` (MATE-2.x) y a áreas fuera de alcance (MATE-6.x).
+
+**MATE-10 (`verFuente`), empezado.** `revision.ts` no tenía sitio: estaba en 298 de las 300 líneas del lint, y el formateador la subía a 309. Por eso:
+
+- `src/aplicacion/mesa.ts` es nuevo. Recibe de `revision.ts` `EjemploDeObjetivoAprobado`, `BorradorDominio`, `Mesa`, `Pendiente`, `pendientesDelBorrador` e `idRepetido`. Tiene además la firma y el comentario de `buscarPieza(mesa, id): PiezaDeLaMesa | undefined` (`tipo`, `fuente`, `aprobada`), con el cuerpo «Sin implementar».
+- `revision.ts` importa de `mesa.ts`, y también lo hacen `tests/unidad/revision-fabricas.ts`, `revision-ids.test.ts` y `revision-aplicar.test.ts`. Sus 65 tests pasan.
+- Sin cambiar todavía, porque son ficheros de MATE-9: `material.ts:15` (reexporta `BorradorDominio` y `EjemploDeObjetivoAprobado`), `revision-del-material.ts:8-17` (`idRepetido`, `BorradorDominio`, `Mesa`) y `tests/unidad/revision-del-material.test.ts:6` (`Mesa`). Mientras no se cambien, `tipos` falla.
+
+**Falta, en este orden:**
+
+1. Mira `git log -3`. Si MATE-9 no está, dale al dueño otra vez el bloque y no toques sus ficheros. Su `git add` nombra las rutas, así que `mesa.ts` y `revision.ts` no entran en ese commit.
+2. Lleva a `mesa.ts` las tres importaciones de arriba y escribe las firmas que faltan de MATE-10 («Mecanismo» 7, diseño del 24-10-2026):
+   - **Regla de MATE-7.1, la que aprobó el dueño:** un ítem aprobado se rechaza solo mientras está en curso, es decir, presentado y sin feedback. Eso incluye el tramo entre `responderItem` y `declararConfianza`, porque la fuente va junto al feedback y no debe influir en la confianza. Uno aprobado que nunca se ha presentado sí se abre. `presentar()` ya da `acciones: ['responder']`.
+   - **`estado.ts`:** `EstadoDominio` guarda un `Set` de ítems presentados. `marcarPresentado(item)` lo llama `presentarItem` (`respuestas.ts:60`) cuando acepta el ítem. `registrarIntento` lo quita del conjunto, y `cerrarDiagnostico` lo vacía, igual que `pendientes`. `enCurso(item): boolean` lo consulta.
+   - **`revision-del-material.ts`:** `verFuente(entorno, peticion)`, una función aparte de `crearRevisionDelMaterial`, porque necesita el estado de la persona. Lee la mesa con `leerMesa` y busca la pieza con `buscarPieza`. Rechaza, en este orden:
+     - `pieza_no_encontrada`;
+     - `antes_de_responder` (causa nueva), si la pieza está aprobada, es un ítem y está `enCurso`;
+     - `sin_fuente` (MATE-7.3);
+     - `cita_no_encontrada`, si `contextoDeLaCita(fuente, textosDelMaterial(…))` da `undefined`.
+
+     Si no rechaza, da `FuenteAbierta` con la fuente y `texto`.
+   - **`aplicacion.ts`:** `verFuente: (peticion) => verFuente(entorno, peticion)`, y se quita de `CASOS_DE_MATERIAL`.
+   - **Pasos que lo usan:** `tests/aceptacion/pasos/revision.ts:191`, `material.ts:133` y `borradores-en-sesiones.ts:179-241`.
+3. Encárgaselo al `implementador` con `Tarea: MATE-10`. Ficheros:
+   - `src/aplicacion/mesa.ts`, `estado.ts`, `respuestas.ts`, `revision-del-material.ts` y `aplicacion.ts`;
+   - `tests/unidad/mesa.test.ts` y `tests/unidad/ver-fuente.test.ts`, los dos nuevos.
+4. Antes de `redactarBorrador`, comprueba que docs/plan.md §0 recoge el hueco pedagógico 1: qué se le pide a la IA en MATE y si se mantiene «Aprobar las N sin marca». Si no lo recoge, avisa al dueño y para.
+5. `redactarBorrador` («Mecanismo» 4), en un encargo aparte.
+
+Al cerrar el área:
+
+- Plantea MATE-6.3 con [DECISIÓN PENDIENTE], porque depende de `pedirTarea`, de TARE.
+- Cita MATE-6.2, MATE-6.4 y MATE-6.5 donde se cumplen.
+- Pasa la mutación de `revision.ts`, `mesa.ts`, `inicio-sesion.ts` y `revision-del-material.ts`.
+- Pasa el `revisor-codigo` y completa este archivo, que debe recoger también por qué se partió `revision.ts`.
+
+**Paso siguiente:** el punto 1.
+
+**Leer primero:**
+
+- este relevo;
+- `git log -3` y `git status`;
+- `src/aplicacion/mesa.ts`;
+- la firma de `verFuente` en `src/aplicacion/material.ts:52-57`;
+- `contextoDeLaCita` en `src/dominio/citas.ts:60`;
+- `leerMesa` en `src/aplicacion/revision-del-material.ts:149`;
+- `EstadoDominio` en `src/aplicacion/estado.ts:74`;
+- `presentarItem` en `src/aplicacion/respuestas.ts:60`.

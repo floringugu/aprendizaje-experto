@@ -4,7 +4,7 @@ import type { PeticionDominio } from './peticiones.ts';
 import type { Ficheros, LibreOffice, PaginaDescargada } from './puertos.ts';
 import type { Resultado } from './resultado.ts';
 import { aceptar, rechazarElCampo, rechazarPorCausa } from './resultado.ts';
-import type { FiltroRevision, Revision } from './revision.ts';
+import type { CasosDeRevision, PeticionPieza } from './revision-del-material.ts';
 import { textoDelHtml } from './texto-html.ts';
 import { textoDelPdf } from './texto-pdf.ts';
 
@@ -34,12 +34,8 @@ interface BorradorRedactado {
   readonly apartadas: readonly { readonly falta: string }[];
 }
 
-interface PeticionPieza {
-  readonly dominio: string;
-  readonly pieza: string;
-}
-
-export interface CasosDeMaterial {
+/** Los casos de la revisión están en revision-del-material.ts, con su hueco de deshacer. */
+export interface CasosDeMaterial extends CasosDeRevision {
   /**
    * Añade un fichero o una URL al material. PPTX y DOCX se guardan también en PDF, convertidos con
    * LibreOffice; de una URL se guarda una copia (MATE-1). Rechaza con `causa` `tipo_no_admitido`,
@@ -54,24 +50,11 @@ export interface CasosDeMaterial {
     readonly dominio: string;
     readonly documento: string;
   }): Promise<Resultado<BorradorRedactado>>;
-  abrirRevision(peticion: { readonly dominio: string; readonly filtro?: FiltroRevision }): Resultado<Revision>;
   /**
    * «Ver fuente» de una pieza del borrador o de un ítem aprobado. En una sesión, solo después de que la
    * persona responda (MATE-7.1); sin fuente, se rechaza (MATE-7.3).
    */
   verFuente(peticion: PeticionPieza): Resultado<FuenteAbierta>;
-  /** Pasa la pieza del borrador al contenido aprobado, con su fuente (MATE-4.4). */
-  aprobarPieza(peticion: PeticionPieza): Resultado<null>;
-  /** «Aprobar las N sin marca»: las marcadas siguen pendientes (MATE-5.2). */
-  aprobarSinMarca(peticion: PeticionDominio): Resultado<null>;
-  descartarPieza(peticion: PeticionPieza): Resultado<null>;
-  /**
-   * Sustituye la pieza por la corregida, que sigue pendiente (MATE-4.6). Si no cumple el formato del
-   * contenido, no la guarda y rechaza con el `campo` que falta (MATE-4.8).
-   */
-  corregirPieza(peticion: PeticionPieza & { readonly corregida: unknown }): Resultado<null>;
-  /** Deshace la última aprobación, descarte o corrección (MATE-4.9, MATE-4.10). */
-  deshacer(peticion: PeticionDominio): Resultado<null>;
 }
 
 /**
