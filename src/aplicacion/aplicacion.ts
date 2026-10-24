@@ -1,4 +1,5 @@
 import type { CasosDeBucle } from './bucle.ts';
+import type { CasosDeClaudeCode } from './claude-code.ts';
 import { consultarObjetivo, evaluarFase, evaluarObjetivo } from './criterio-dominio.ts';
 import { exportarCsv } from './csv.ts';
 import type { Dependencias } from './dependencias.ts';
@@ -8,6 +9,7 @@ import type { Entorno } from './estado.ts';
 import { EstadoPersona } from './estado.ts';
 import type { CasosDeExportacion } from './exportacion.ts';
 import type { CasosDeHoras } from './horas.ts';
+import type { CasosDeMaterial } from './material.ts';
 import { evaluarNivelExperto } from './nivel-experto.ts';
 import { iniciarSesion } from './practica.ts';
 import { consultarProgreso } from './progreso.ts';
@@ -26,7 +28,28 @@ export type Aplicacion = CasosDeDominio &
   CasosDeBucle &
   CasosDeHoras &
   CasosDeTareas &
-  CasosDeExportacion;
+  CasosDeExportacion &
+  CasosDeMaterial &
+  CasosDeClaudeCode;
+
+/** El material propio y el inicio de sesión de Claude Code (MATE), todavía sin implementar. */
+const CASOS_DE_MATERIAL: CasosDeMaterial & CasosDeClaudeCode = {
+  anadirMaterial: sinImplementar,
+  listarMaterial: sinImplementar,
+  redactarBorrador: sinImplementar,
+  abrirRevision: sinImplementar,
+  verFuente: sinImplementar,
+  aprobarPieza: sinImplementar,
+  aprobarSinMarca: sinImplementar,
+  descartarPieza: sinImplementar,
+  corregirPieza: sinImplementar,
+  deshacer: sinImplementar,
+  consultarAjustes: sinImplementar,
+  iniciarSesionClaudeCode: sinImplementar,
+  consultarInicioSesion: sinImplementar,
+  enviarCodigo: sinImplementar,
+  cancelarInicioSesion: sinImplementar,
+};
 
 /**
  * La etapa 4 implementa los casos de uso área por área. Los de las áreas que faltan lanzan «Sin
@@ -61,5 +84,6 @@ export const crearAplicacion: (dependencias: Dependencias) => Aplicacion = (depe
     evaluarNivelExperto: (peticion) => evaluarNivelExperto(entorno, peticion),
     exportarCsv: (peticion) => exportarCsv(entorno, peticion),
     listarExportaciones: sinImplementar,
+    ...CASOS_DE_MATERIAL,
   };
 };

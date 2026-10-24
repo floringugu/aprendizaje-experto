@@ -1,5 +1,15 @@
 import type { ContenidoDominio } from './contenido.ts';
-import type { ParametrosJson, PlanificadorFsrs, Reloj } from './puertos.ts';
+import type {
+  ClaudeCode,
+  Ficheros,
+  LibreOffice,
+  ParametrosJson,
+  PlanificadorFsrs,
+  RedactorIa,
+  Reloj,
+  Temporizador,
+  Web,
+} from './puertos.ts';
 
 /**
  * Todo lo que la aplicación necesita del exterior. Lo aporta quien la arranca: el servidor, con el
@@ -13,4 +23,11 @@ export interface Dependencias {
   /** Contenido del dominio, o `undefined` si no existe. También se lee en cada uso. */
   readonly leerContenido: (dominio: string) => ContenidoDominio | undefined;
   readonly planificadorFsrs: PlanificadorFsrs;
+  readonly ficheros: Ficheros;
+  /** La IA configurada en Ajustes, o `undefined` si no hay ninguna (MATE-2.4). Se lee en cada uso. */
+  readonly leerIa: () => RedactorIa | undefined;
+  readonly libreOffice: LibreOffice;
+  readonly web: Web;
+  readonly claudeCode: ClaudeCode;
+  readonly temporizador: Temporizador;
 }

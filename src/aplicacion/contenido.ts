@@ -3,6 +3,18 @@
 
 type TipoItem = 'hecho' | 'problema';
 
+/**
+ * De dónde sale una pieza redactada a partir del material (plan §0, campo `fuente`). Es opcional en
+ * objetivos, ítems, ejemplos resueltos y tareas: el contenido escrito a mano no la lleva.
+ */
+export interface Fuente {
+  readonly documento: string;
+  /** La página, la diapositiva o el apartado, en texto libre («página 12»). */
+  readonly lugar: string;
+  /** El texto citado tal cual. */
+  readonly fragmento: string;
+}
+
 /** Respuesta de un ítem: o se elige entre opciones, o se escribe una de las aceptadas. */
 type RespuestaContenido =
   { readonly opciones: readonly string[]; readonly correcta: string } | { readonly aceptadas: readonly string[] };
@@ -17,6 +29,7 @@ export interface ItemContenido {
   readonly enunciado: string;
   readonly respuesta: RespuestaContenido;
   readonly feedback: string;
+  readonly fuente?: Fuente;
 }
 
 /** Los ítems de un objetivo, en el orden del contenido. */
@@ -27,12 +40,15 @@ export function itemsDelObjetivo(items: readonly ItemContenido[], objetivo: stri
 export interface EjemploResueltoContenido {
   readonly id: string;
   readonly pasos: readonly string[];
+  readonly fuente?: Fuente;
 }
 
 export interface ObjetivoContenido {
   readonly id: string;
   readonly instruccion: string;
   readonly ejemplos_resueltos: readonly EjemploResueltoContenido[];
+  /** En un objetivo, cita de dónde sale su instrucción. */
+  readonly fuente?: Fuente;
 }
 
 /** Las categorías del mismo `grupo_parecidas` son las que se pueden intercalar entre sí. */
@@ -55,6 +71,7 @@ export interface TareaContenido {
   readonly id: string;
   readonly enunciado: string;
   readonly rubrica: readonly CriterioRubrica[];
+  readonly fuente?: Fuente;
 }
 
 export interface ContenidoDominio {

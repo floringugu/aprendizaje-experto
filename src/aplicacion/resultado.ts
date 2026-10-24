@@ -4,9 +4,12 @@
  * `campo` indica qué dato falta o no es válido, cuando el rechazo es por un dato concreto: es el
  * nombre de la propiedad de la petición (por ejemplo, `percentil` o `aCiegas`). Así la interfaz sabe
  * qué casilla señalar sin depender del texto de `motivo`.
+ * `causa` es un código que distingue rechazos que no son por un dato (por ejemplo, `falta_libreoffice`
+ * frente a `tipo_no_admitido` al añadir material), también sin depender del texto de `motivo`.
  */
 export type Resultado<T> =
-  { readonly ok: true; readonly valor: T } | { readonly ok: false; readonly motivo: string; readonly campo?: string };
+  | { readonly ok: true; readonly valor: T }
+  | { readonly ok: false; readonly motivo: string; readonly campo?: string; readonly causa?: string };
 
 export function aceptar<T>(valor: T): Resultado<T> {
   return { ok: true, valor };
