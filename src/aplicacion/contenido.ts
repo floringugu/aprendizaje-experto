@@ -15,9 +15,13 @@ export interface Fuente {
   readonly fragmento: string;
 }
 
+interface RespuestaDeOpciones {
+  readonly opciones: readonly string[];
+  readonly correcta: string;
+}
+
 /** Respuesta de un ítem: o se elige entre opciones, o se escribe una de las aceptadas. */
-type RespuestaContenido =
-  { readonly opciones: readonly string[]; readonly correcta: string } | { readonly aceptadas: readonly string[] };
+type RespuestaContenido = RespuestaDeOpciones | { readonly aceptadas: readonly string[] };
 
 export interface ItemContenido {
   readonly id: string;
@@ -80,4 +84,20 @@ export interface ContenidoDominio {
   readonly categorias: readonly CategoriaContenido[];
   readonly items: readonly ItemContenido[];
   readonly tareas: readonly TareaContenido[];
+}
+
+/**
+ * Un ítem del contenido ya validado. Si es de respuesta escrita, tiene al menos una aceptada: así el
+ * feedback siempre tiene una respuesta correcta que enseñar (@RECU-2.1).
+ */
+export interface ItemValidado extends ItemContenido {
+  readonly respuesta: RespuestaDeOpciones | { readonly aceptadas: readonly [string, ...string[]] };
+}
+
+/**
+ * Contenido que ha pasado `validarContenido` (formato-contenido.ts). Es el único que ven los casos de
+ * uso: lo que el fichero tenga mal se dice al leerlo, no cuando una sesión llega a la pieza (D16).
+ */
+export interface ContenidoValidado extends ContenidoDominio {
+  readonly items: readonly ItemValidado[];
 }

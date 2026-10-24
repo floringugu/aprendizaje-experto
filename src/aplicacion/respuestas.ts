@@ -1,5 +1,5 @@
 import { esCorrecta, respuestaMostrada } from '../dominio/correccion.ts';
-import type { ItemContenido } from './contenido.ts';
+import type { ItemContenido, ItemValidado } from './contenido.ts';
 import { registrarIntentoYReevaluar } from './criterio-dominio.ts';
 import type { Entorno, Situacion } from './estado.ts';
 import {
@@ -18,7 +18,7 @@ type PeticionItem = Parameters<CasosDeSesiones['presentarItem']>[0];
 type PeticionRespuesta = Parameters<CasosDeSesiones['responderItem']>[0];
 type PeticionConfianza = Parameters<CasosDeSesiones['declararConfianza']>[0];
 
-function buscarItem(situacion: Situacion, id: string): ItemContenido | undefined {
+function buscarItem(situacion: Situacion, id: string): ItemValidado | undefined {
   return situacion.contenido.items.find((item) => item.id === id);
 }
 
@@ -96,7 +96,6 @@ export function declararConfianza(entorno: Entorno, peticion: PeticionConfianza)
     if (pendiente === undefined || item === undefined) {
       return rechazar(`Primero hay que responder el ítem ${peticion.item}.`);
     }
-    // Todo lo que puede fallar va antes de tocar el estado, para no dejar un intento a medias.
     const correcta = esCorrecta(pendiente.respuesta, item.respuesta);
     const respuestaCorrecta = respuestaMostrada(item.respuesta);
     registrarIntentoYReevaluar(entorno, situacion, {

@@ -2,8 +2,9 @@ import { ultimoIntentoPorItem } from '../dominio/acierto.ts';
 import type { Fase } from '../dominio/fases.ts';
 import type { RecorridoDeRuta } from '../dominio/ruta.ts';
 import { recorrerRuta } from '../dominio/ruta.ts';
-import type { ContenidoDominio } from './contenido.ts';
+import type { ContenidoValidado } from './contenido.ts';
 import type { Dependencias } from './dependencias.ts';
+import { validarContenido } from './formato-contenido.ts';
 import type { Resultado } from './resultado.ts';
 import { rechazar } from './resultado.ts';
 import type { ContextoRespuesta } from './sesiones.ts';
@@ -197,7 +198,7 @@ export interface Entorno {
 
 /** El contenido de un dominio y el estado de la persona en él. */
 export interface Situacion {
-  readonly contenido: ContenidoDominio;
+  readonly contenido: ContenidoValidado;
   readonly estado: EstadoDominio;
 }
 
@@ -206,17 +207,27 @@ export function recorridoDeRuta(situacion: Situacion): RecorridoDeRuta {
   return situacion.estado.recorrerRuta(situacion.contenido.objetivos.map((objetivo) => objetivo.id));
 }
 
-/** Ejecuta el caso de uso con el dominio pedido; si el dominio no existe, rechaza la petición. */
+/**
+ * Ejecuta el caso de uso con el dominio pedido. Si el dominio no existe, o su contenido no cumple el
+ * formato (D16), rechaza la petición en vez de lanzar un error: un contenido mal escrito no tumba el
+ * servidor, y el rechazo dice qué pieza hay que arreglar.
+ */
 export function enDominio<T>(
   entorno: Entorno,
   dominio: string,
   caso: (situacion: Situacion) => Resultado<T>,
 ): Resultado<T> {
-  const contenido = entorno.dependencias.leerContenido(dominio);
-  if (contenido === undefined) {
+  const leido = entorno.dependencias.leerContenido(dominio);
+  if (leido === undefined) {
     return rechazar(`No existe el dominio «${dominio}».`);
   }
-  return caso({ contenido, estado: entorno.persona.estadoDe(dominio) });
+  const contenido = validarContenido(leido);
+  if (!contenido.ok) {
+    const { pieza, falta } = contenido.fallo;
+    const enLaPieza = pieza === undefined ? '' : ` en ${pieza}`;
+    return rechazar(`El contenido de «${dominio}» no cumple el formato: revisa «${falta}»${enLaPieza}.`);
+  }
+  return caso({ contenido: contenido.valor, estado: entorno.persona.estadoDe(dominio) });
 }
 
 /** Hasta que la persona termina el diagnóstico de un dominio, no hace nada más en él (@DIAG-1.1). */

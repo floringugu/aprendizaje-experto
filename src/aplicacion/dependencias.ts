@@ -1,4 +1,3 @@
-import type { ContenidoDominio } from './contenido.ts';
 import type {
   ClaudeCode,
   Ficheros,
@@ -20,8 +19,11 @@ export interface Dependencias {
   readonly reloj: Reloj;
   /** Se llama en cada evaluación: un cambio en `config/parametros.json` se nota enseguida. */
   readonly leerParametros: () => ParametrosJson;
-  /** Contenido del dominio, o `undefined` si no existe. También se lee en cada uso. */
-  readonly leerContenido: (dominio: string) => ContenidoDominio | undefined;
+  /**
+   * Lo que hay en `contenido/<dominio>.json`, tal cual, o `undefined` si no existe. Puede no cumplir el
+   * formato: lo valida `enDominio`. También se lee en cada uso.
+   */
+  readonly leerContenido: (dominio: string) => unknown;
   readonly planificadorFsrs: PlanificadorFsrs;
   readonly ficheros: Ficheros;
   /** La IA configurada en Ajustes, o `undefined` si no hay ninguna (MATE-2.4). Se lee en cada uso. */

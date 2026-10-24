@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { esCorrecta, respuestaMostrada, respuestasAceptadas } from '../../src/dominio/correccion.ts';
+import { esCorrecta, respuestaMostrada } from '../../src/dominio/correccion.ts';
 
-const ESCRITA = { aceptadas: ['a', 'b'] };
+const ESCRITA = { aceptadas: ['a', 'b'] } as const;
 const ELECCION = { opciones: ['x', 'y', 'z'], correcta: 'y' };
 
 describe('esCorrecta', () => {
@@ -19,7 +19,7 @@ describe('esCorrecta', () => {
   });
 
   describe('respuesta escrita', () => {
-    const REGLA = { aceptadas: ['regla de tres', 'proporción'] };
+    const REGLA = { aceptadas: ['regla de tres', 'proporción'] } as const;
 
     it('@RECU-3.1 no distingue mayúsculas de minúsculas', () => {
       expect(esCorrecta('PROPORCIÓN', REGLA)).toBe(true);
@@ -51,13 +51,6 @@ describe('esCorrecta', () => {
   });
 });
 
-describe('respuestasAceptadas', () => {
-  it('@DIAG-1.2 son las aceptadas, o la opción correcta', () => {
-    expect(respuestasAceptadas(ESCRITA)).toEqual(['a', 'b']);
-    expect(respuestasAceptadas(ELECCION)).toEqual(['y']);
-  });
-});
-
 describe('respuestaMostrada', () => {
   it('@RECU-2.1 en una pregunta de opciones es la opción correcta', () => {
     expect(respuestaMostrada(ELECCION)).toBe('y');
@@ -65,9 +58,5 @@ describe('respuestaMostrada', () => {
 
   it('@RECU-2.1 en una respuesta escrita es la primera de las aceptadas', () => {
     expect(respuestaMostrada(ESCRITA)).toBe('a');
-  });
-
-  it('@RECU-2.1 una respuesta escrita sin ninguna aceptada es un error del contenido', () => {
-    expect(() => respuestaMostrada({ aceptadas: [] })).toThrow('sin ninguna respuesta aceptada');
   });
 });
