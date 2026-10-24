@@ -1,6 +1,6 @@
 ---
 name: revisor-evidencia
-description: Revisor de solo lectura que contrasta features/, textos de la interfaz, valores por defecto y config/parametros.json con docs/investigacion.md. Úsalo después de escribir o cambiar especificaciones, parámetros o textos que vea la persona que aprende.
+description: Revisor de solo lectura que contrasta features/, textos de la interfaz, valores por defecto, config/parametros.json y config/peticion-ia.md con docs/investigacion.md. Úsalo después de escribir o cambiar especificaciones, parámetros, la petición a la IA o textos que vea la persona que aprende.
 tools: Read, Grep, Glob
 model: sonnet
 effort: high
@@ -14,6 +14,7 @@ Lo que te pidan, y si no te dicen nada, todo esto:
 
 - `features/**/*.feature`: cada Feature, Rule y Scenario.
 - `config/parametros.json`: cada parámetro.
+- `config/peticion-ia.md`: cada exigencia que se pide a la IA que redacta los borradores, contrastada con su origen en la tabla «Lo que se pide a la IA» de `docs/plan.md` (§17.6).
 - Los textos que ve la persona que aprende (`src/interfaz/` y cualquier catálogo de textos).
 - Los valores por defecto en `src/` (umbrales, intervalos, escalas, número de ítems…).
 

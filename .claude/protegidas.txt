@@ -15,6 +15,7 @@ docs/deuda-diseno.md
 # Especificaciones y parámetros
 features/ @specs
 config/parametros.json @specs
+config/peticion-ia.md @specs
 config/alcance.json
 tests/aceptacion/ @aceptacion
 

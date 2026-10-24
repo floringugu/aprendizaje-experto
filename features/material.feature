@@ -9,9 +9,12 @@ Característica: Material del dominio y borradores
   autor: la IA solo redacta borradores que la persona revisa, y nunca interviene en las sesiones.
 
   Los borradores van en contenido/borradores/<dominio>.json, con el formato del contenido. Cada pieza
-  (objetivo, ejemplo resuelto, ítem o tarea) trae su fuente: el documento, el lugar (la página, la
-  diapositiva o el apartado) y el fragmento citado tal cual. Las sesiones solo leen
+  (objetivo, categoría, ejemplo resuelto, ítem o tarea) trae su fuente: el documento, el lugar (la
+  página, la diapositiva o el apartado) y el fragmento citado tal cual. Las sesiones solo leen
   contenido/<dominio>.json. El contenido escrito a mano no lleva fuente.
+
+  Lo que la IA tiene que cumplir en cada pieza está en config/peticion-ia.md. Casi nada de eso se
+  puede comprobar sin leer la pieza, así que la persona aprueba las piezas una a una.
 
   Antecedentes:
     Dado el dominio de prueba «ficticio» con los objetivos O1, O2 y O3, en ese orden
@@ -86,6 +89,12 @@ Característica: Material del dominio y borradores
     La IA puede ser la API de Claude, la suscripción de Claude Code o un modelo local. Cuál se usa
     por defecto se decide al diseñar el mecanismo del área.
 
+    La IA nunca marca un ítem para el diagnóstico. Con un solo documento no sabe cuál es el núcleo
+    conceptual del dominio, y un ítem trivial marcado haría que un novato diera el objetivo por
+    dominado y empezara sin ejemplos resueltos. Las opciones de un ítem tienen que ser distintas
+    aunque se escriban con otros espacios o mayúsculas: la corrección no los distingue, así que
+    elegir la repetida contaría como acierto.
+
     @MATE-2.1 @extrapolacion
     Esquema del escenario: Cada pieza redactada va al borrador con su fuente
       Cuando la IA configurada redacta a partir de «apuntes.pdf» un borrador con <pieza>, que cita la página 12
@@ -98,6 +107,7 @@ Característica: Material del dominio y borradores
         | un ejemplo resuelto de O1 |
         | un ítem de O1             |
         | una tarea con rúbrica     |
+        | una categoría             |
 
     @MATE-2.2 @extrapolacion
     Escenario: Los ids del borrador no repiten los del contenido aprobado
@@ -120,6 +130,7 @@ Característica: Material del dominio y borradores
         | una tarea sin rúbrica                                    | la rúbrica               |
         | una tarea con un nivel de la rúbrica sin descriptor      | el descriptor del nivel  |
         | un objetivo sin instrucción                              | la instrucción           |
+        | una categoría sin descripción                            | la descripción           |
 
     @MATE-2.4 @extrapolacion
     Escenario: Sin una IA configurada no se redactan borradores
@@ -129,11 +140,28 @@ Característica: Material del dominio y borradores
       Entonces la aplicación no redacta ningún borrador e indica que hay que configurar una IA en Ajustes
       Y la persona sigue pudiendo añadir material y revisar I7
 
-  @MATE-3 @extrapolacion
+    @MATE-2.5 @extrapolacion
+    Escenario: Un ítem con dos opciones que solo cambian en los espacios o las mayúsculas no entra en el borrador
+      Cuando la IA configurada entrega un borrador con un ítem de O1 completo y un ítem de O1 con las opciones «La regla R1» y «la regla  R1»
+      Entonces contenido/borradores/ficticio.json tiene el ítem de O1 completo y ninguna otra pieza
+      Y la aplicación indica que ha apartado 1 pieza porque tiene dos opciones iguales
+
+    @MATE-2.6 @extrapolacion
+    Escenario: Un ítem que la IA marca para el diagnóstico entra en el borrador sin marcar
+      Cuando la IA configurada entrega un borrador con un ítem de O1 marcado para el diagnóstico
+      Entonces contenido/borradores/ficticio.json tiene ese ítem de O1, sin marcar para el diagnóstico
+
+  @MATE-3 @evidencia-3 @extrapolacion
   Regla: Las marcas las pone la aplicación, no la IA
     La aplicación las calcula a partir del borrador y del material. Al comparar una cita con su
     documento, cada tramo seguido de espacios, tabuladores y saltos de línea cuenta como un solo
     espacio; nada más se normaliza.
+
+    Las marcas solo comprueban lo que se ve sin leer la pieza: si trae fuente, si la cita está en su
+    documento y cuántos pasos tiene un ejemplo resuelto. Si la pieza es buena lo juzga la persona.
+    Un ejemplo resuelto se estudia paso a paso y sus pasos se retiran a medida que sube el
+    rendimiento (sección 3); con un solo paso no hay retirada gradual, porque la ayuda desaparece de
+    golpe. Que hagan falta al menos 2 es decisión del autor.
 
     @MATE-3.1 @extrapolacion
     Escenario: Una pieza sin fuente lleva la marca «No está en tu material»
@@ -174,6 +202,17 @@ Característica: Material del dominio y borradores
       Y que contenido/borradores/ficticio.json tiene el ítem I7 de O1, que cita de esa página «La regla R1 también se aplica a los casos límite.»
       Cuando la persona abre la revisión del material de «ficticio»
       Entonces I7 tiene la marca «Cita no encontrada»
+
+    @MATE-3.5 @evidencia-3 @extrapolacion
+    Esquema del escenario: Un ejemplo resuelto de un solo paso lleva la marca «Un solo paso»
+      Dado que contenido/borradores/ficticio.json tiene el ejemplo resuelto E9 de O1, con <pasos> y la fuente «apuntes.pdf», página 12, «La regla R1 también se aplica a los casos límite.»
+      Cuando la persona abre la revisión del material de «ficticio»
+      Entonces E9 <marca>
+
+      Ejemplos:
+        | pasos   | marca                         |
+        | 1 paso  | tiene la marca «Un solo paso» |
+        | 2 pasos | no tiene ninguna marca        |
 
   @MATE-4 @extrapolacion
   Regla: Cada pieza se revisa, por objetivo, y se aprueba, se corrige o se descarta
@@ -260,7 +299,10 @@ Característica: Material del dominio y borradores
       Y I8 sigue fuera de contenido/borradores/ficticio.json
 
   @MATE-5 @extrapolacion
-  Regla: Solo las piezas sin marca se aprueban en bloque; las marcadas, una a una
+  Regla: Cada pieza se aprueba una a una, también las que no tienen marca
+    Que una pieza no tenga marca solo dice que trae fuente y que su cita está en el documento, no
+    que la pieza sea buena: si el feedback informa sobre la tarea, si un problema da pista del tipo
+    o si una tarea es representativa lo juzga la persona al leerla. Por eso no se aprueba en bloque.
 
     Antecedentes:
       Dado que contenido/borradores/ficticio.json tiene estos ítems pendientes de O1:
@@ -269,17 +311,6 @@ Característica: Material del dominio y borradores
         | I8   | sin fuente                                                                     |
         | I9   | «apuntes.pdf», página 12, «La regla R2 también se aplica a los casos límite.»  |
         | I10  | «apuntes.pdf», página 12, «también se aplica a los casos límite»               |
-
-    @MATE-5.1 @extrapolacion
-    Escenario: El botón dice cuántas piezas sin marca hay
-      Cuando la persona abre la revisión del material de «ficticio»
-      Entonces la revisión ofrece «Aprobar las 2 sin marca»
-
-    @MATE-5.2 @extrapolacion
-    Escenario: Aprobar en bloque deja las piezas marcadas pendientes
-      Cuando la persona pulsa «Aprobar las 2 sin marca»
-      Entonces contenido/ficticio.json tiene I7 e I10, cada uno con su fuente
-      Y contenido/borradores/ficticio.json sigue teniendo I8 e I9, pendientes
 
     @MATE-5.3 @extrapolacion
     Esquema del escenario: Una pieza marcada se puede aprobar sola
@@ -292,9 +323,8 @@ Característica: Material del dominio y borradores
         | I8   | sin fuente                                                                           |
         | I9   | con la fuente «apuntes.pdf», página 12, «La regla R2 también se aplica a los casos límite.» |
 
-    @MATE-5.4 @extrapolacion
-    Escenario: Si todas las piezas pendientes tienen marca, no se ofrece aprobar en bloque
-      Dado que la persona ha aprobado I7 e I10
+    @MATE-5.5 @extrapolacion
+    Escenario: La revisión no ofrece aprobar en bloque, aunque haya piezas sin marca
       Cuando la persona abre la revisión del material de «ficticio»
       Entonces la revisión no ofrece aprobar ninguna pieza en bloque
 
