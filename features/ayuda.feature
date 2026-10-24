@@ -135,10 +135,11 @@ Característica: Ayuda adaptativa con retirada progresiva
       Y no le muestra ninguna instrucción de autoexplicación
 
   @AYUD-4 @evidencia-4 @extrapolacion
-  Regla: La primera sesión de un objetivo no dominado empieza por su instrucción
+  Regla: La primera sesión de un objetivo no dominado muestra su instrucción antes de cualquier ejemplo
     La Fase 1 pide «instrucción explícita» y evitar el «descubrimiento sin guía» (sección 4). La
     sección 2.3 lo apoya en Kirschner et al. (2006), marcado con (†) en la bibliografía, que no puede
     sostener una decisión central: la regla es extrapolación, y «solo la primera vez» también.
+    En la fase novato la instrucción va además antes de cualquier problema (AYUD-4.1).
     En las fases intermedia y avanzada la instrucción llega justo después del intento de exploración
     (AYUD-5), pero antes de cualquier ejemplo.
 
@@ -202,7 +203,8 @@ Característica: Ayuda adaptativa con retirada progresiva
     es la fase, porque en las fases intermedia y avanzada todos los objetivos anteriores están
     dominados. Son extrapolación esa señal, la fase avanzada (el informe lo pone en la intermedia), un
     solo problema en lugar de 15–30 minutos y aplicarlo a los objetivos que llegan con MATE.
-    Que el intento no cuente para el dominio es una excepción a MAST-1, decidida por el autor.
+    Que el intento no cuente para el dominio (MAST-1) ni para el ajuste semanal (AYUD-2) es
+    decisión del autor.
 
     Antecedentes:
       Dado que O4 se aprobó en la revisión del material, sin dominarlo ni practicarlo, con la instrucción «La regla R4 se aplica cuando el caso cumple A y B.» y el ejemplo resuelto E4
@@ -357,13 +359,14 @@ Característica: Ayuda adaptativa con retirada progresiva
         | intermedio       |
         | avanzado_experto |
 
-  @AYUD-7 @evidencia-3 @extrapolacion
+  @AYUD-7 @evidencia-3 @evidencia-2.2 @extrapolacion
   Regla: El diagrama de un objetivo o de un ejemplo resuelto se muestra junto a su texto
     La codificación dual es «prometedora» y «no verificado aquí» (sección 3); la técnica es
     «diagramas integrados con el texto (no “por estilo”)». Por eso el diagrama se muestra a todas
     las personas y la aplicación nunca pregunta por un estilo de aprendizaje: los estilos de
-    aprendizaje son un mito (sección 5). Aplicarlo en todas las fases y con el campo `diagrama` del
-    contenido es extrapolación.
+    aprendizaje son un mito (sección 5). Que el diagrama sea el campo `diagrama` del contenido es
+    extrapolación, y también no mostrar el de un ejemplo con pasos retirados (AYUD-7.3), decisión del
+    autor para no dar el paso retirado.
 
     Antecedentes:
       Dado que la instrucción de O1 y su ejemplo resuelto E1 tienen cada uno su diagrama
@@ -395,7 +398,7 @@ Característica: Ayuda adaptativa con retirada progresiva
       Cuando la persona practica O1
       Entonces mientras responde un problema no ve ningún diagrama
 
-    @AYUD-7.5 @evidencia-3 @evidencia-5 @extrapolacion
+    @AYUD-7.5 @evidencia-3 @evidencia-5 @evidencia-2.6 @extrapolacion
     Esquema del escenario: El diagrama se muestra igual en todas las fases y sin preguntar por el estilo de aprendizaje
       Dado que la persona está en la fase «<fase>»
       Y que O1 tiene la ayuda completa

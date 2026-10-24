@@ -8,7 +8,7 @@ Característica: Intercalado de categorías parecidas
 
   Solo se intercalan problemas de objetivos dominados: un objetivo nuevo se aprende por bloques, y
   entra en la mezcla cuando se domina (INTE-4). El informe pide ese aprendizaje inicial por bloques
-  antes de intercalar (sección 4, Fase 2), pero no dice cuándo entra un objetivo en la mezcla: eso
+  antes de intercalar (tabla de la sección 3; Fase 1 de la sección 4), pero no dice cuándo entra un objetivo en la mezcla: eso
   es extrapolación del autor.
 
   Antecedentes:
