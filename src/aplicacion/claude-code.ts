@@ -8,7 +8,7 @@ interface Ajustes {
 }
 
 /** Lo que muestra el móvil mientras dura el inicio de sesión (MATE-8.1). */
-interface InicioSesionEnCurso {
+export interface InicioSesionEnCurso {
   readonly enMarcha: boolean;
   /** El enlace que hay que abrir. Nada más de lo que escribe el proceso llega al móvil (MATE-8.7). */
   readonly enlace?: string;

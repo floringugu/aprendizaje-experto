@@ -162,67 +162,27 @@ Salida de `make bloqueos A=<ÁREA>` al cerrar el área, y una frase sobre el blo
 
 **Hecho.**
 
-- MATE-3 (implementador, Sonnet, VERDE), revisado:
-  - `idRepetido(mesa)` en `src/aplicacion/revision.ts`.
-  - Dos reglas nuevas en `corregir`, comprobadas en este orden: formato, `id` cambiado, `objetivo` inexistente (`campo` `objetivo`, solo ítems) e id repetido en la mesa resultante (`campo` `id`).
-  - Tests en `tests/unidad/revision-ids.test.ts`. Los ayudantes `aplicado` y `rechazado` pasan a `revision-fabricas.ts`.
-  - Sin commitear.
-- Punto 2 del relevo anterior, decidido por el dueño (24-10-2026): rechazar con `campo` `objetivo`. Anotado en «Mecanismo». La propuesta para plan §0 está en `reports/propuestas/2026-10-24-objetivo-al-corregir.patch`, pendiente de aplicar.
-- **`revision.ts` está justo en 300 líneas de código** (`max-lines`). El implementador ha pasado `rechazarPor` y `rechazarElCampo` a flechas de una línea para caber. Cualquier línea más obliga a sacar un módulo: candidatos, las comprobaciones de `corregir` o `idRepetido` con `pendientesDelBorrador`.
-- La mutación de `revision.ts` (90,52 %) es anterior a MATE-3: repetirla al cerrar el área.
+- MATE-4 (implementador, Sonnet, VERDE), revisado. Sin commitear.
+  - `src/aplicacion/inicio-sesion.ts`: `crearInicioSesion` devuelve una clase interna, `CasosDeInicioSesion`, porque con cierres se pasaba de 40 líneas. Cada inicio es un objeto propio, y el callback de `iniciarSesion` lo captura para ignorar los eventos de un proceso viejo. Si el proceso termina dentro de `iniciarSesion`, no se programa el corte.
+  - El enlace acaba en el primer espacio, `«`, `»`, `<`, `>` o `"`. Al final quita `. , ; : ! ? ) ] } ' …`: además de lo que dice el comentario, el implementador añadió `!`, `?`, `]`, `}`, `'` y `…`.
+  - `enviarCodigo` comprueba primero que haya un inicio en marcha y después el código vacío.
+  - Tests en `tests/unidad/inicio-sesion.test.ts`.
+- Cambios míos:
+  - `rechazarElCampo` pasa de `revision.ts` a `resultado.ts`, exportado, y lo usan los dos.
+  - `InicioSesionEnCurso` se exporta de `claude-code.ts` y sustituye la copia que había en `inicio-sesion.ts`.
+  - `MS_PARA_INICIAR_SESION` está en `unidades.ts`.
+  - `aplicacion.ts` está cableado: `CASOS_DE_MATERIAL` es solo `CasosDeMaterial`.
+- `revision.ts` tiene una línea de código menos, así que queda una por debajo del límite de `max-lines`. Prettier ya fallaba en él en HEAD (cuatro líneas largas), y formatearlo añade 9 líneas: no se ha formateado.
+- Los escenarios de MATE-8 siguen en rojo, pero solo por el antecedente común, que llama a `anadirMaterial`. Un script desechable con `ClaudeCodeDePrueba` y `TemporizadorDePrueba` pasó MATE-8.1, 8.2, 8.3 y 8.7 y el relanzamiento contra `crearInicioSesion`.
 
 **Falta.**
 
-1. `src/aplicacion/inicio-sesion.ts`:
-   - Crea el fichero con la firma de abajo, con el cuerpo `return sinImplementar();`, y encarga en seguida el cuerpo y `tests/unidad/inicio-sesion.test.ts` (Tarea: MATE-4).
-   - El stub da `no-unused-vars` en los dos parámetros y deja rojo el lint hasta que el implementador escriba el cuerpo; no se arregla con `void`.
-   - En `src/dominio/unidades.ts`, al final: `export const MS_PARA_INICIAR_SESION = 5 * SEGUNDOS_POR_MINUTO * MS_POR_SEGUNDO;`, con el comentario `/** El inicio de sesión de Claude Code se corta solo a los 5 minutos (MATE-8.3). */`.
-   - Cablea `aplicacion.ts` cuando vuelva el implementador, no antes: `crearAplicacion` llamaría al stub y lanzaría en todos los tests. El cableado es `...crearInicioSesion(dependencias.claudeCode, dependencias.temporizador)` en el objeto que devuelve `crearAplicacion`, sin los cinco `sinImplementar` de Claude Code en `CASOS_DE_MATERIAL`, que pasa a ser solo `CasosDeMaterial`.
-   - El doble `tests/aceptacion/soporte/claude-code.ts` emite los eventos después de `iniciarSesionClaudeCode` (`emitirAlLanzar`). Al relanzar sustituye `alRecibir`, así que ignorar los eventos de un proceso viejo hay que hacerlo con un cierre por proceso.
-2. Los casos de uso de `material.ts`: revisión con deshacer, que comprueba `idRepetido` al leer la mesa; `verFuente`; `anadirMaterial`; `redactarBorrador`.
+1. Los casos de uso de `material.ts`. Empieza por `anadirMaterial`, que desbloquea el antecedente de todos los escenarios de MATE, MATE-8 incluido. Después vienen la revisión con deshacer (comprueba `idRepetido` al leer la mesa), `verFuente` y `redactarBorrador`.
+2. Al cerrar el área, repite la mutación de `revision.ts` (90,52 %, anterior a MATE-3) y pasa la de `inicio-sesion.ts`.
 
-**Firma de `inicio-sesion.ts`** (cópiala tal cual):
-
-```ts
-import type { CasosDeClaudeCode } from './claude-code.ts';
-import type { ClaudeCode, Temporizador } from './puertos.ts';
-import { sinImplementar } from './sin-implementar.ts';
-
-/**
- * Los casos de uso del inicio de sesión de Claude Code desde Ajustes (MATE-8), con el estado del
- * inicio en curso en memoria: si está en marcha, el enlace y si pide un código. Cada llamada es un
- * estado nuevo; la aplicación crea uno por persona.
- *
- * - `iniciarSesionClaudeCode` lanza `claudeCode.iniciarSesion` y programa con `temporizador` el corte
- *   a los `MS_PARA_INICIAR_SESION` (@MATE-8.3). Si ya había uno en marcha, lo corta antes y cancela su
- *   corte programado: solo hay un inicio en curso, y los eventos de un proceso que ya no es el actual
- *   se ignoran.
- * - De cada evento `salida` solo se saca la primera URL `https://`, sin la puntuación que la cierra
- *   (`.`, `,`, `;`, `:`, `)`, `»`…); el resto del texto se tira sin guardarlo ni escribirlo en ningún
- *   sitio (@MATE-8.7). El enlace es el de la primera salida que trae uno; las siguientes no lo cambian.
- *   `pide_codigo` muestra la casilla del código (@MATE-8.1). `terminado`, con o sin éxito, deja el
- *   inicio parado y cancela el corte programado.
- * - `consultarInicioSesion` da `{ enMarcha, enlace, pideCodigo }`; sin un inicio en marcha,
- *   `{ enMarcha: false, pideCodigo: false }`, sin enlace.
- * - `enviarCodigo` pasa el código a `proceso.enviar` tal cual, sin guardarlo (@MATE-8.2, @MATE-8.6).
- *   Rechaza si no hay un inicio en marcha, y con `campo` `codigo` si el código está vacío o solo tiene
- *   espacios.
- * - `cancelarInicioSesion` corta el proceso y cancela el corte programado (@MATE-8.4). Sin un inicio en
- *   marcha no hace nada y acepta.
- * - Al cortarse, por «Cancelar» o a los 5 minutos, el inicio queda parado: `enMarcha` es `false`.
- * - `consultarAjustes` devuelve solo `{ sesionClaudeCode }`, con `iniciada` de `claudeCode.estado()`; la
- *   cuenta no sale de aquí (@MATE-8.5).
- */
-export function crearInicioSesion(claudeCode: ClaudeCode, temporizador: Temporizador): CasosDeClaudeCode {
-  return sinImplementar();
-}
-```
-
-**Nota sobre `make check`.** El paso «aceptacion» falla también en HEAD (75 escenarios, los de MATE sin implementar); los anteriores pasan.
-
-**Paso siguiente.** Comprueba que el dueño commiteó MATE-3 y aplicó la propuesta del `objetivo`. Luego, el punto 1.
+**Nota sobre `make check`.** El paso «aceptacion» falla igual que en HEAD: 75 escenarios, todos de MATE y todos en el antecedente `anadirMaterial`. Los pasos anteriores pasan.
 
 **Leer primero:**
 
 - este relevo;
-- `src/aplicacion/claude-code.ts`, `src/aplicacion/aplicacion.ts`, los puertos `ClaudeCode` y `Temporizador` de `src/aplicacion/puertos.ts`, `tests/aceptacion/soporte/claude-code.ts` y `tests/aceptacion/pasos/claude-code.ts`.
+- `src/aplicacion/material.ts`, el puerto de ficheros y el de LibreOffice de `src/aplicacion/puertos.ts`, `tests/aceptacion/pasos/material.ts` y `tests/aceptacion/soporte/escenario-material.ts`.

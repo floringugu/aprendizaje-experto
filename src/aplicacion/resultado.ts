@@ -19,3 +19,8 @@ export function aceptar<T>(valor: T): Resultado<T> {
 export function rechazar(motivo: string): Resultado<never> {
   return { ok: false, motivo };
 }
+
+/** Rechaza por un dato concreto de la petición: `campo` es la casilla que la interfaz señala. */
+export function rechazarElCampo(campo: string, motivo: string): Resultado<never> {
+  return { ok: false, motivo, campo };
+}

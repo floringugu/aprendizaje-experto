@@ -7,7 +7,7 @@ import type {
   TareaContenido,
 } from './contenido.ts';
 import { falloDeLaPiezaSuelta, type FalloDeFormato, type TipoDePieza } from './formato-contenido.ts';
-import { aceptar, type Resultado } from './resultado.ts';
+import { aceptar, rechazarElCampo, type Resultado } from './resultado.ts';
 
 // La revisión del material (MATE-4, MATE-5): cómo pasa cada pieza del borrador al contenido aprobado.
 // Es lógica pura sobre la pareja borrador–aprobado; leer y escribir los ficheros, y guardar lo que había
@@ -250,8 +250,6 @@ function aprobarEnBloque(mesa: Mesa, marcas: Marcador): Resultado<Mesa> {
 // --- Rechazos ---
 
 const rechazarPor = (causa: string, motivo: string): Resultado<never> => ({ ok: false, motivo, causa });
-
-const rechazarElCampo = (campo: string, motivo: string): Resultado<never> => ({ ok: false, motivo, campo });
 
 /** Busca la pieza en el borrador y le aplica la acción; si no está, `pieza_no_encontrada`. */
 function sobrePieza(

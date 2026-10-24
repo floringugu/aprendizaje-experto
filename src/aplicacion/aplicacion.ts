@@ -9,6 +9,7 @@ import type { Entorno } from './estado.ts';
 import { EstadoPersona } from './estado.ts';
 import type { CasosDeExportacion } from './exportacion.ts';
 import type { CasosDeHoras } from './horas.ts';
+import { crearInicioSesion } from './inicio-sesion.ts';
 import type { CasosDeMaterial } from './material.ts';
 import { evaluarNivelExperto } from './nivel-experto.ts';
 import { iniciarSesion } from './practica.ts';
@@ -32,8 +33,8 @@ export type Aplicacion = CasosDeDominio &
   CasosDeMaterial &
   CasosDeClaudeCode;
 
-/** El material propio y el inicio de sesión de Claude Code (MATE), todavía sin implementar. */
-const CASOS_DE_MATERIAL: CasosDeMaterial & CasosDeClaudeCode = {
+/** El material propio (MATE), todavía sin implementar. */
+const CASOS_DE_MATERIAL: CasosDeMaterial = {
   anadirMaterial: sinImplementar,
   listarMaterial: sinImplementar,
   redactarBorrador: sinImplementar,
@@ -44,11 +45,6 @@ const CASOS_DE_MATERIAL: CasosDeMaterial & CasosDeClaudeCode = {
   descartarPieza: sinImplementar,
   corregirPieza: sinImplementar,
   deshacer: sinImplementar,
-  consultarAjustes: sinImplementar,
-  iniciarSesionClaudeCode: sinImplementar,
-  consultarInicioSesion: sinImplementar,
-  enviarCodigo: sinImplementar,
-  cancelarInicioSesion: sinImplementar,
 };
 
 /**
@@ -85,5 +81,6 @@ export const crearAplicacion: (dependencias: Dependencias) => Aplicacion = (depe
     exportarCsv: (peticion) => exportarCsv(entorno, peticion),
     listarExportaciones: sinImplementar,
     ...CASOS_DE_MATERIAL,
+    ...crearInicioSesion(dependencias.claudeCode, dependencias.temporizador),
   };
 };
