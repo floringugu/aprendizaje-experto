@@ -177,7 +177,7 @@ Salida de `make bloqueos A=<ÁREA>` al cerrar el área, y una frase sobre el blo
 ## Relevo
 
 **Hecho:**
-- MATE-12, sin commitear (11 ficheros con este):
+- MATE-12, en 017131c:
   - el motivo «de el ítem I7» ahora es «en el ítem I7», con `lugarDelFallo` compartida con `contenidoValidado`;
   - `esRegistro` sale de un solo sitio;
   - `conObjetivoDelEjemplo` se calcula una vez;
@@ -187,13 +187,14 @@ Salida de `make bloqueos A=<ÁREA>` al cerrar el área, y una frase sobre el blo
   - hay tests para los huecos de mutación de `revision.ts` y `revision-del-material.ts`.
 - Unidad 808/808; tipos y lint limpios.
 - El hueco 1 se decidió en e20d15e (plan §0, `config/peticion-ia.md`), así que `redactarBorrador` ya no espera a la especificación. Ahora espera a la aceptación:
-  - 6 escenarios @MATE no tienen steps: la fila «una categoría» de 2.1 y de 2.3, 2.5, 2.6 y los dos de 3.5;
+  - 11 escenarios @MATE no tienen steps (`npx cucumber-js --tags @MATE --dry-run`): la fila «una categoría» de 2.1 y de 2.3, 2.5, 2.6, los dos de 3.5 y, desde 39748d9, los dos de 2.7 (diagrama que no es SVG) y los tres de 4.11 (`antes_de` de las tareas);
   - el step de MATE-5.5 comprueba `aprobablesEnBloque === 0`, y con I7 e I10 sin marca da 2;
   - los steps de 5.1, 5.2 y 5.4 (`aprobarSinMarca`) se quedan sin escenario.
+- 39748d9 (fase specs) añadió al formato `diagrama` (SVG como texto) en objetivos y ejemplos resueltos, y `antes_de` en las tareas del borrador, con sus reglas en plan §0 («Formato del contenido» y «Reglas de `MATE` que la feature no cubre»).
 
 **Falta, en este orden:**
 1. **Conversación en fase `aceptacion`:**
-   - escribir los steps de esos 6 escenarios y rehacer el de 5.5 (la revisión no ofrece ninguna acción en bloque);
+   - escribir los steps de esos 11 escenarios y rehacer el de 5.5 (la revisión no ofrece ninguna acción en bloque);
    - quitar los de 5.1, 5.2 y 5.4;
    - crear los casos vacíos que haga falta.
 2. **Fase `impl`, `Tarea: MATE-13`:** `verFuente` lee primero el aprobado (`leerAprobado`) y busca allí la pieza. Solo si no está, lee la mesa entera (`leerMesa`). Así, desde una sesión, un borrador con un id repetido o un JSON roto no la rechaza (MATE-6). El test de `ver-fuente.test.ts` que hoy espera `id_repetido` para un ítem aprobado pasa a abrir su fuente.
@@ -213,6 +214,10 @@ Salida de `make bloqueos A=<ÁREA>` al cerrar el área, y una frase sobre el blo
    - las opciones repetidas como error de formato;
    - quitar `aprobar_sin_marca` y `aprobablesEnBloque`.
    Con eso también se decide la validación de `leerBorrador`.
+   Y los de 39748d9, cada uno en su encargo antes de `redactarBorrador`:
+   - `diagrama` en el formato: opcional en objetivos y ejemplos, empieza por `<svg` y acaba en `</svg>`; si no, error de formato (MATE-2.7);
+   - `antes_de` en `revision.ts`: al aprobar, la tarea entra delante de la primera aprobada siguiendo la cadena, o al final si se corta o da la vuelta (MATE-4.11); al descartar, las que apuntaban a ella heredan su `antes_de`; una corrección con un `antes_de` desconocido o propio se rechaza con `campo` `antes_de`; el campo no pasa al contenido;
+   - en `redactarBorrador`, además: la petición lleva las tareas aprobadas en orden, un `antes_de` desconocido se quita y el renombrado de ids alcanza a los `antes_de`.
 6. **Para el dueño, con [DECISIÓN PENDIENTE]:**
    - el aprobado se lee por dos caminos;
    - `dominio` va sin validar dentro de las rutas;
@@ -227,5 +232,5 @@ Salida de `make bloqueos A=<ÁREA>` al cerrar el área, y una frase sobre el blo
 
 **Leer primero:**
 - este relevo y `git status`;
-- `git show e20d15e -- features/material.feature docs/plan.md`;
+- `git show e20d15e 39748d9 -- features/material.feature docs/plan.md`;
 - `tests/aceptacion/pasos/aprobacion.ts` (MATE-5) y `tests/aceptacion/pasos/revision.ts`.
