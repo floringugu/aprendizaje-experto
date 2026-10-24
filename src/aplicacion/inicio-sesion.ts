@@ -30,7 +30,15 @@ import type { Resultado } from './resultado.ts';
  *   cuenta no sale de aquí (@MATE-8.5).
  */
 export function crearInicioSesion(claudeCode: ClaudeCode, temporizador: Temporizador): CasosDeClaudeCode {
-  return new CasosDeInicioSesion(claudeCode, temporizador);
+  const casos = new CasosDeInicioSesion(claudeCode, temporizador);
+  // `crearAplicacion` reparte estos casos con `...`, que no copia los métodos de una clase.
+  return {
+    consultarAjustes: () => casos.consultarAjustes(),
+    iniciarSesionClaudeCode: () => casos.iniciarSesionClaudeCode(),
+    consultarInicioSesion: () => casos.consultarInicioSesion(),
+    enviarCodigo: (peticion) => casos.enviarCodigo(peticion),
+    cancelarInicioSesion: () => casos.cancelarInicioSesion(),
+  };
 }
 
 class CasosDeInicioSesion implements CasosDeClaudeCode {

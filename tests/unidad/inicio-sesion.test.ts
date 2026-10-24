@@ -81,7 +81,8 @@ class TemporizadorFalso implements Temporizador {
 function montar() {
   const claudeCode = new ClaudeCodeFalso();
   const temporizador = new TemporizadorFalso();
-  return { claudeCode, temporizador, casos: crearInicioSesion(claudeCode, temporizador) };
+  // Repartidos con `...`, como en `crearAplicacion`.
+  return { claudeCode, temporizador, casos: { ...crearInicioSesion(claudeCode, temporizador) } };
 }
 
 function salida(texto: string): EventoInicioSesion {
@@ -253,13 +254,16 @@ describe('enviarCodigo', () => {
     expect(claudeCode.procesos).toEqual([]);
   });
 
-  it.each(['', '   ', '\t\n'])('@MATE-8.2 un código vacío o de espacios (%j) rechaza con campo codigo', async (codigo) => {
-    const { claudeCode, casos } = montar();
-    await casos.iniciarSesionClaudeCode();
-    const resultado = await casos.enviarCodigo({ codigo });
-    expect(resultado).toMatchObject({ ok: false, campo: 'codigo' });
-    expect(claudeCode.ultimo.codigos).toEqual([]);
-  });
+  it.each(['', '   ', '\t\n'])(
+    '@MATE-8.2 un código vacío o de espacios (%j) rechaza con campo codigo',
+    async (codigo) => {
+      const { claudeCode, casos } = montar();
+      await casos.iniciarSesionClaudeCode();
+      const resultado = await casos.enviarCodigo({ codigo });
+      expect(resultado).toMatchObject({ ok: false, campo: 'codigo' });
+      expect(claudeCode.ultimo.codigos).toEqual([]);
+    },
+  );
 
   it('@MATE-8.6 el código no queda en lo que ve el móvil', async () => {
     const { casos } = montar();
