@@ -161,48 +161,58 @@ Salida de `make bloqueos A=<ÁREA>` al cerrar el área, y una frase sobre el blo
 
 **Hecho.**
 
-- La propuesta del plan está commiteada (d0f98ac y 3e75f5b).
-- `src/dominio/citas.ts` y `tests/unidad/citas.test.ts`: en verde, revisados, mutación 96,47 % con 3 equivalentes. Sin commitear.
-- `src/aplicacion/revision.ts` (interfaz A: `Mesa`, `Accion`, `revisar`, `aplicar`; firmas mías, cuerpos del implementador con Sonnet) y `tests/unidad/revision.test.ts`: en verde, con tipos y knip limpios. Sin commitear. Aún no lo he revisado a fondo, ni he medido su mutación. El fichero tiene 411 líneas, y el test está justo en el límite de 300.
-- `formato-contenido.ts` exporta `TipoDePieza`, `FalloDeFormato` y `falloDeLaPiezaSuelta`, con sus tests.
-- Los tipos de la revisión (`BorradorDominio`, `EjemploDeObjetivoAprobado`, `FiltroRevision`, `Revision`) pasan de `material.ts` a `revision.ts`, para que no haya un ciclo. `material.ts` reexporta los dos primeros para los steps, porque `tests/aceptacion/` está protegido. `Marca` sale de `src/dominio/citas.ts`.
-- Reglas que la feature no cubre, escritas en el comentario de `aplicar`:
-  - al aprobar un objetivo, entra sin sus ejemplos, que siguen pendientes y pasan a ir aparte;
-  - al descartar un objetivo, se van con él sus ejemplos y sus ítems del borrador;
-  - `corregir` rechaza con `campo` `id` si cambia el id;
-  - en el bloque, una pieza sin marca que cuelga de un objetivo marcado no entra ni cuenta.
-- Decisiones del implementador, sin revisar todavía:
-  - un ejemplo que está dentro de un objetivo pendiente da `objetivo_pendiente` al aprobarlo;
-  - un ejemplo aprobado se reconstruye solo con `id`, `pasos` y `fuente`;
-  - `ejemplos_resueltos` de la raíz no se crea vacío.
-- **Decidido por el dueño (24-10-2026): los ids son únicos.** Dos piezas con el mismo id (un `E1` en dos objetivos) harían ambigua una acción de la revisión. Falta decidir el alcance y hacerlo:
-  - **Alcance:** ¿en todo el dominio, contando el aprobado y el borrador y todos los tipos de pieza? Recomiendo que sí.
-  - **Dónde se hace cumplir:** en `validarContenido`, para el aprobado y el borrador, con `falta` `id`. `redactarBorrador` ya cambia los ids que chocan (MATE-2.2), y al aprobar no puede haber choque si el borrador valida contra el aprobado.
-  - **Antes de tocarlo,** mira si el contenido de prueba (`tests/aceptacion/soporte/contenido.ts`) repite ids de ejemplos entre objetivos: si los repite, la regla rompería escenarios de otras áreas, y `tests/aceptacion/` está protegido.
-  - **Va al plan:** la regla se escribe en «Formato del contenido» del §0 de `docs/plan.md`, con una propuesta.
+- `revision.ts` revisado. Las decisiones del implementador se quedan: el ejemplo de dentro de un objetivo pendiente da `objetivo_pendiente`; el ejemplo aprobado se reconstruye con `id`, `pasos` y `fuente` (son todos los campos de `EjemploResueltoContenido`); `ejemplos_resueltos` de la raíz no se crea vacío.
+- Mutación de `revision.ts`: 90,52 % → 283 muertos, 19 vivos y 4 sin cobertura, tras los seis tests nuevos (MATE-1 del implementador). Los vivos que quedan son equivalentes o textos de `motivo`: 172, 331 y 401 (tipos que no pueden llegar ahí); 218 y 277 (ramas inalcanzables si no hay ids repetidos); 296 y 334 (`dentro` sobra si los ids del borrador no están en el aprobado); 374 (`fuente: undefined`); 382 (`esRegistro`: el validador ya rechaza lo que no es un objeto); 409 y los textos de 244, 317 y 399. Sin commitear.
+- Los tests de la revisión están partidos en `tests/unidad/revision.test.ts` (`revisar`), `revision-aplicar.test.ts` (`aplicar`) y `revision-fabricas.ts` (fábricas comunes). Sin commitear.
+- **Alcance de los ids únicos, decidido por el dueño (24-10-2026): el borrador.** Ningún id se repite dentro del borrador ni entre el borrador y el aprobado, sea cual sea el tipo de pieza. El aprobado escrito a mano no se comprueba: el contenido de prueba repite `E1` en O1–O3, y sus piezas no llevan `fuente`. La propuesta del plan está en `reports/propuestas/2026-10-24-ids-unicos-borrador.patch` (filas «Borradores» y «Reglas de `MATE` que la feature no cubre»), pendiente de que el dueño la aplique.
 
 **Falta.**
 
-1. Revisar `revision.ts`. Si hay supervivientes que no sean equivalentes, `make mutacion` sobre ese fichero.
-2. `src/aplicacion/inicio-sesion.ts`, ya pensado:
-   - `crearInicioSesion(claudeCode, temporizador): CasosDeClaudeCode`, con el estado en memoria por lanzamiento. Ignora los eventos de un proceso que ya no es el actual.
-   - Un segundo «Iniciar» corta el proceso anterior.
-   - De `salida` solo toma la primera URL `https://`, sin la puntuación del final.
-   - `enviarCodigo` sin un inicio en marcha rechaza; `cancelar` sin un inicio en marcha acepta.
-   - Ajustes devuelve solo `{ sesionClaudeCode }`.
-   - Los 5 minutos van a `src/dominio/unidades.ts` (`MS_PARA_INICIAR_SESION`), porque fuera de ese fichero no se permiten números sueltos.
-   - Se cablea en `aplicacion.ts`.
-   - Los steps están en `tests/aceptacion/pasos/claude-code.ts`, y el doble en `tests/aceptacion/soporte/claude-code.ts`.
-3. Los casos de uso de `material.ts`:
-   - la revisión: leer y escribir el borrador y el aprobado, y deshacer con un único hueco por dominio;
-   - `verFuente`: MATE-7.1 la exige rechazada mientras el ítem presentado no tenga respuesta (`intentarVerFuente` en `borradores-en-sesiones.ts:191`), así que necesita el estado de la persona;
-   - `anadirMaterial`, con `pdftotext`, y `redactarBorrador`.
+1. La regla de los ids en `revision.ts`: `export function idRepetido(mesa: Mesa): string | undefined`, el primer id repetido dentro del borrador o que también está en el aprobado. Los casos de uso de `material.ts` la comprueban al leer la mesa. En `aplicar`, `corregir` rechaza con `campo` `id` si la mesa resultante tiene un id repetido (un objetivo corregido con un ejemplo dentro que choca). Añadir al comentario de `aplicar` que la mesa de entrada no repite ids. Encargo al implementador (Sonnet, toca `src/aplicacion/`).
+2. Sin decidir, para preguntar al dueño: `corregir` deja cambiar el `objetivo` de un ítem por uno que no existe ni en el borrador ni en el aprobado, y entonces la pieza da `objetivo_pendiente` para siempre. Propuesta: rechazar con `campo` `objetivo`.
+3. `src/aplicacion/inicio-sesion.ts`. Firma y comentario ya escritos (abajo); falta encargar el cuerpo y los tests, y cablearlo en `aplicacion.ts` con `...crearInicioSesion(dependencias.claudeCode, dependencias.temporizador)` en lugar de los cinco `sinImplementar` de Claude Code. En `src/dominio/unidades.ts`: `export const MS_PARA_INICIAR_SESION = 5 * SEGUNDOS_POR_MINUTO * MS_POR_SEGUNDO;` con el comentario «El inicio de sesión de Claude Code se corta solo a los 5 minutos (MATE-8.3).».
+4. Los casos de uso de `material.ts` (revisión con deshacer, `verFuente`, `anadirMaterial`, `redactarBorrador`), como en el relevo anterior.
 
-**Paso siguiente.** Revisa `src/aplicacion/revision.ts` y las decisiones del implementador. Luego, la regla de los ids únicos (arriba): firma y comentario en `formato-contenido.ts`, y la propuesta del §0. Después escribe las firmas de `inicio-sesion.ts`.
+**Firma de `inicio-sesion.ts`** (cópiala tal cual al crear el fichero):
+
+```ts
+import type { CasosDeClaudeCode } from './claude-code.ts';
+import type { ClaudeCode, Temporizador } from './puertos.ts';
+
+/**
+ * Los casos de uso del inicio de sesión de Claude Code desde Ajustes (MATE-8), con el estado del
+ * inicio en curso en memoria: si está en marcha, el enlace y si pide un código. Cada llamada es un
+ * estado nuevo; la aplicación crea uno por persona.
+ *
+ * - `iniciarSesionClaudeCode` lanza `claudeCode.iniciarSesion` y programa con `temporizador` el corte
+ *   a los `MS_PARA_INICIAR_SESION` (@MATE-8.3). Si ya había uno en marcha, lo corta antes y cancela su
+ *   corte programado: solo hay un inicio en curso, y los eventos de un proceso que ya no es el actual
+ *   se ignoran.
+ * - De cada evento `salida` solo se saca la primera URL `https://`, sin la puntuación que la cierra
+ *   (`.`, `,`, `;`, `:`, `)`, `»`…); el resto del texto se tira sin guardarlo ni escribirlo en ningún
+ *   sitio (@MATE-8.7). El enlace es el de la primera salida que trae uno; las siguientes no lo cambian.
+ *   `pide_codigo` muestra la casilla del código (@MATE-8.1). `terminado`, con o sin éxito, deja el
+ *   inicio parado y cancela el corte programado.
+ * - `consultarInicioSesion` da `{ enMarcha, enlace, pideCodigo }`; sin un inicio en marcha,
+ *   `{ enMarcha: false, pideCodigo: false }`, sin enlace.
+ * - `enviarCodigo` pasa el código a `proceso.enviar` tal cual, sin guardarlo (@MATE-8.2, @MATE-8.6).
+ *   Rechaza si no hay un inicio en marcha, y con `campo` `codigo` si el código está vacío o solo tiene
+ *   espacios.
+ * - `cancelarInicioSesion` corta el proceso y cancela el corte programado (@MATE-8.4). Sin un inicio en
+ *   marcha no hace nada y acepta.
+ * - Al cortarse, por «Cancelar» o a los 5 minutos, el inicio queda parado: `enMarcha` es `false`.
+ * - `consultarAjustes` devuelve solo `{ sesionClaudeCode }`, con `iniciada` de `claudeCode.estado()`; la
+ *   cuenta no sale de aquí (@MATE-8.5).
+ */
+export function crearInicioSesion(claudeCode: ClaudeCode, temporizador: Temporizador): CasosDeClaudeCode
+```
+
+**Nota sobre `make check`.** El paso «aceptacion» falla también en HEAD (75 escenarios, los de MATE sin implementar); los pasos estáticos pasan.
+
+**Paso siguiente.** Comprueba que el dueño aplicó la propuesta de los ids. Luego escribe `idRepetido` (punto 1) y encárgalo; pregunta el punto 2; después, `inicio-sesion.ts`.
 
 **Leer primero:**
 
 - este relevo y «Mecanismo»;
-- el comentario de `aplicar` y `revisar` en `src/aplicacion/revision.ts` (líneas 55-112);
-- `src/aplicacion/claude-code.ts`;
-- `src/aplicacion/aplicacion.ts`.
+- el comentario de `aplicar` en `src/aplicacion/revision.ts`;
+- `src/aplicacion/claude-code.ts`, `src/aplicacion/aplicacion.ts` y `tests/aceptacion/soporte/claude-code.ts`.
