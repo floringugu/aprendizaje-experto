@@ -6,9 +6,95 @@ Si una conversación del área llega al umbral de contexto (docs/plan.md §5, «
 
 ## Mecanismo
 
-Solo en las áreas con arquitectura: MATE, PLAN (ts-fsrs) y las que añaden pantallas nuevas. En las demás, escribe «Dominio puro: sin paso de mecanismo».
+**Aprobado por el dueño el 24-10-2026:** las cuatro decisiones de §17.8 como se recomiendan, la interfaz A y las reglas que la feature no cubre (`objetivo_pendiente`, objetivos aprobados en la petición a la IA, ids repetidos los cambia la aplicación, «Ver fuente» busca primero por el fragmento).
 
-Cómo funciona por dentro, en prosa: qué datos entran, qué módulo hace qué, qué queda guardado y dónde. Es el texto que el dueño aprobó antes de escribir `src/`.
+### Cómo funciona por dentro
+
+Todo lo que se guarda pasa por el puerto `Ficheros`, con rutas relativas a la carpeta de datos. Lo que sigue usa `material/<dominio>/` (§17.8.3, más abajo).
+
+1. **Añadir material** (`anadirMaterial`, asíncrono). El tipo se saca de la extensión del nombre: `.pdf`, `.pptx` y `.docx`; cualquier otra rechaza con `tipo_no_admitido`. Un PPTX o un DOCX pide antes `libreOffice.instalado()` y, si no está, rechaza con `falta_libreoffice`. Se guardan el original y, si lo hay, el PDF convertido. De ese PDF se saca el texto una sola vez, página a página, y se guarda como JSON (`["texto de la página 1", …]`). Las citas y «Ver fuente» leen ese JSON y no vuelven a abrir el PDF: por eso pueden ser síncronas.
+2. **URL.** `web.descargar(url)` da los bytes y el `Content-Type`. Se guarda la copia tal cual (MATE-1.5: después da igual que la página cambie o desaparezca). Si es HTML, el texto se saca con código propio (decisión de la etapa 3): fuera `script` y `style`, las etiquetas de bloque pasan a saltos de línea y se decodifican las entidades. Se usa el `charset` del `Content-Type` y, si no hay, UTF-8. Si es `application/pdf`, se trata como un PDF. Cualquier otro tipo, o una URL que no se puede descargar, se rechaza. El texto de una URL es una sola «página», con `lugar` `'página web'`.
+3. **Índice.** `material/<dominio>/indice.json` lista el material en el orden en que se añadió, cada entrada con su nombre o su URL y las rutas de sus ficheros. `listarMaterial` lo lee. El puerto `Ficheros` no sabe listar carpetas, así que el índice hace falta. Si se añade otra vez un fichero con el mismo nombre, sustituye al anterior: las citas apuntan al documento por su nombre.
+4. **Redactar** (`redactarBorrador`, asíncrono). Si `leerIa()` da `undefined`, rechaza con `sin_ia` (MATE-2.4). Si hay IA, se le pasan el PDF del documento y, ampliando la petición del puerto, los objetivos aprobados con su id y su instrucción, para que pueda colgar ítems de O1. El doble de prueba sigue valiendo: un campo de más en la petición no rompe su firma. Con lo que devuelve la IA:
+   - cada pieza se valida con el formato del contenido (`formato-contenido.ts`); las que no lo cumplen se apartan con la propiedad que les falta (MATE-2.3);
+   - si un id ya está en el contenido aprobado o en el borrador, la aplicación le da el siguiente libre con el mismo prefijo (MATE-2.2), y no se lo confía a la IA;
+   - las piezas válidas se añaden al borrador que ya había, sin sustituirlo. Un ejemplo de un objetivo aprobado va a `ejemplos_resueltos` de la raíz, con `objetivo`; uno de un objetivo nuevo, dentro de él.
+5. **Marcas** (dominio puro, `src/dominio/citas.ts`). Nunca se guardan: se calculan cada vez que se abre la revisión a partir del borrador y de los textos guardados. Así MATE-4.7 sale solo. Las reglas:
+   - `sin_fuente`: la pieza no trae `fuente`;
+   - `cita_no_encontrada`: el documento no está en el material, o el fragmento no aparece en su texto. Para compararlos, cada tramo de espacios, tabuladores y saltos de línea cuenta como un solo espacio, en el fragmento y en el texto, y nada más se normaliza;
+   - las páginas se unen con un salto de línea, así que una cita que cruza de una página a otra se encuentra.
+6. **Revisión** (el módulo central, `src/aplicacion/revision.ts`). Lee el borrador y el contenido aprobado, agrupa las piezas pendientes por objetivo y aplica aprobar, aprobar en bloque, descartar y corregir. Escribe los dos ficheros enteros. Hay una regla que la feature no cubre: una pieza que cuelga de un objetivo aún pendiente (un ítem de O4) no se aprueba antes que su objetivo, porque el contenido aprobado quedaría con un objetivo que no existe. Rechaza con `objetivo_pendiente`. Las dos interfaces posibles están más abajo.
+7. **Ver fuente.** Busca la primera página que contiene el fragmento, con la misma normalización, y la hoja trae el texto entero de esa página. Si no aparece en ninguna, usa la página que dice `lugar` («página 12», «diapositiva 3»), si es un número válido. Si tampoco, rechaza con `cita_no_encontrada`. Se busca por el fragmento antes que por `lugar` porque la IA puede contar las páginas impresas, y en un libro no coinciden con las del PDF. Lo mismo vale para lo aprobado, y en una sesión solo después de responder (MATE-7.1).
+8. **Deshacer.** Antes de cada acción de la revisión se guarda en memoria, por dominio, lo que había en los dos ficheros; deshacer los vuelve a escribir. Es un único hueco, así que solo se deshace la última acción (MATE-4.10). No sobrevive a reiniciar el servidor, y no hace falta.
+9. **Inicio de sesión de Claude Code** (`src/aplicacion/inicio-sesion.ts`). Es un estado en memoria (en marcha, enlace, pide código) con el proceso y la cancelación del temporizador. De cada evento `salida` solo se saca la primera URL `https://` y el texto se tira (MATE-8.7). El código que escribe la persona va a `proceso.enviar` y no se guarda en ningún sitio (MATE-8.6). Al lanzarlo se programan 5 minutos con `Temporizador`; al vencer, o con «Cancelar», se llama a `cortar()`. Ajustes solo devuelve `estado().iniciada`.
+
+### Decisiones que pide §17.8
+
+1. **Texto de un PDF. Recomiendo `pdftotext -raw -enc UTF-8 - -`, de Poppler.** Es un programa del PC, como LibreOffice, y ya está instalado (26.01). Recibe el PDF por la entrada estándar, separa las páginas con `\f`, y con `-raw` deja el guion de «tam-»/«bién» (MATE-3.4; lo he comprobado con `pdfDePrueba`). En su modo por defecto los junta. El precio es que la aplicación lo llama con `node:child_process`, sin puerto: `Dependencias` no puede crecer sin tocar `tests/aceptacion/soporte/mundo.ts`, que está protegido. Así, los escenarios usan el `pdftotext` de verdad. Si falta, añadir un PDF rechaza con `falta_poppler`, una causa nueva.
+   - *Descartado, código propio:* los PDF reales usan flujos comprimidos, fuentes CID con mapas `ToUnicode` y tablas de objetos comprimidas. Sería una librería de PDF en miniatura, y solo la probaría el PDF sencillo de los escenarios.
+   - *Descartado, `pdfjs-dist`:* es una dependencia nueva, de varios MB, y da trozos de texto con posiciones, así que los saltos de línea habría que reconstruirlos a mano.
+2. **Proveedor de IA por defecto. Recomiendo la suscripción de Claude Code**, con `claude -p`:
+   - el PDF se le pasa por su ruta, solo con la herramienta `Read`, con `--json-schema` del formato del contenido y con `--no-session-persistence`;
+   - MATE-8 ya construye su inicio de sesión, y no hay ninguna clave que guardar, cosa que la aplicación nunca hace.
+   - *Contras:* depende de que la CLI esté instalada y con la sesión iniciada, y gasta del límite de la suscripción.
+   - *Descartados:* la API de Claude necesita guardar una clave y se paga por uso; un modelo local lee peor los PDF largos.
+3. **Dónde se guarda el material. Recomiendo `material/<dominio>/` en la carpeta de datos, junto a `contenido/`**, con `indice.json`, los originales, los PDF convertidos, las copias de las URL (`web-<n>.html`) y los textos (`<nombre>.texto.json`). Debe quedar fuera de git: son documentos con derechos de autor y apuntes personales. Dónde está la carpeta de datos se decide con el servidor.
+4. **Infraestructura. Recomiendo dejar los adaptadores para el área que monte el servidor:** `Ficheros` en disco, `soffice --headless --convert-to pdf`, `fetch`, `claude -p`, `claude auth login` / `claude auth status --json` y `setTimeout`. `knip` solo tiene como entrada `src/interfaz/servidor.ts`, que aún no existe, así que hasta entonces serían código muerto. Esta área haría `src/dominio` y `src/aplicacion`, que es lo que comprueban los escenarios.
+
+### Dos interfaces para la revisión
+
+**A. Una sola entrada: acciones sobre la pareja borrador–aprobado.**
+
+```ts
+/** Lo que la revisión lee y escribe de un dominio. */
+interface Mesa {
+  readonly borrador: BorradorDominio;
+  readonly aprobado: ContenidoDominio;
+}
+
+type Accion =
+  | { readonly tipo: 'aprobar'; readonly pieza: string }
+  | { readonly tipo: 'aprobar_sin_marca' }
+  | { readonly tipo: 'descartar'; readonly pieza: string }
+  | { readonly tipo: 'corregir'; readonly pieza: string; readonly corregida: unknown };
+
+/**
+ * Aplica la acción y devuelve la mesa nueva, sin tocar la de entrada. Rechaza con
+ * `pieza_no_encontrada`, `objetivo_pendiente` o, al corregir, el `campo` que falta.
+ */
+function aplicar(mesa: Mesa, accion: Accion, marcas: Marcador): Resultado<Mesa>;
+
+/** Las piezas pendientes por objetivo, con sus marcas, filtradas. */
+function revisar(mesa: Mesa, marcas: Marcador, filtro: FiltroRevision): Revision;
+```
+
+Cada caso de uso lee los dos ficheros, llama a `aplicar`, guarda la mesa anterior en el hueco de deshacer y escribe la nueva.
+
+- *A favor:* todo lo que sabe cómo se mueve cada tipo de pieza está en un sitio: el objetivo con sus ejemplos, el ejemplo suelto que entra en un objetivo aprobado, el ítem, la tarea. Deshacer es igual para todas las acciones, porque solo hay una entrada. Se prueba con datos, sin ficheros.
+- *En contra:* `aplicar` lleva dentro un `switch` sobre la acción, y cada acción reescribe los dos ficheros enteros (son pequeños).
+
+**B. Primitivas sobre piezas, que compone cada caso de uso.**
+
+```ts
+interface PiezaLocalizada {
+  readonly tipo: 'objetivo' | 'ejemplo' | 'item' | 'tarea';
+  readonly pieza: Pieza;
+  /** De qué objetivo cuelga, si cuelga de alguno. */
+  readonly objetivo?: string;
+}
+
+function localizar(borrador: BorradorDominio, id: string): PiezaLocalizada | undefined;
+function quitar(borrador: BorradorDominio, id: string): BorradorDominio;
+function poner(contenido: ContenidoDominio, localizada: PiezaLocalizada): ContenidoDominio;
+function sustituir(borrador: BorradorDominio, id: string, pieza: Pieza): BorradorDominio;
+```
+
+Así, aprobar es `localizar` + `quitar` + `poner`; descartar, `quitar`; corregir, validar + `sustituir`; aprobar en bloque, un bucle de aprobar.
+
+- *A favor:* son funciones pequeñas y generales, y `redactarBorrador` reutilizaría `poner` para meter en el borrador las piezas de la IA.
+- *En contra:* lo que sabe cómo se mueve una pieza queda partido entre `localizar` y `poner`. Los cuatro casos de uso repiten la secuencia leer → componer → guardar para deshacer → escribir, y en uno puede olvidarse lo de deshacer. Hay más interfaz para la misma funcionalidad: es menos profunda.
+
+**Recomendación: A.**
 
 ### Datos de partida (etapa 3)
 
@@ -42,8 +128,8 @@ Las dos interfaces que se compararon («diseñarlo dos veces»): cuál se eligi�
 
 **Mecanismo del área:**
 
-- **Elegida:** …
-- **Descartada:** … Motivo: …
+- **Elegida:** A, una sola entrada `aplicar(mesa, accion)` sobre la pareja borrador–aprobado.
+- **Descartada:** B, primitivas `localizar`, `quitar`, `poner` y `sustituir` que compone cada caso de uso. Motivo: parte entre dos funciones cómo se mueve cada tipo de pieza, y cada caso de uso repite la secuencia que guarda el estado para deshacer.
 
 ## Deuda pagada
 
@@ -70,30 +156,21 @@ Salida de `make bloqueos A=<ÁREA>` al cerrar el área, y una frase sobre el blo
 
 **Hecho.**
 
-- D16 y D17 están pagadas en `src/` y `tests/unidad/`, con `make check` en verde y MATE fuera de alcance. La validación está en `src/aplicacion/formato-contenido.ts`: la usa `enDominio`, que rechaza un contenido que no cumple el formato. «Interfaces descartadas» y «Deuda pagada» ya están rellenas.
-- El dueño tiene un bloque `sh` con: el commit `refactor:`, la aplicación de `reports/propuestas/2026-10-24-alcance-mate-impl.patch`, `make sumas`, el commit «chore: bring MATE into scope» (que incluye este fichero) y `npm run --silent integridad`.
-
-**Pendiente de decidir.** Por dentro, `formato-contenido.ts` usa listas de reglas (`Molde`, `Regla`, `exigir('instruccion', …)`). Eso se parece al esquema declarativo que se descartó: los nombres de las propiedades se escriben como textos que el compilador no relaciona con `contenido.ts`. La interfaz pública sí es la elegida. Si el dueño no ejecutó el bloque por esto, el paso siguiente es reescribir esas funciones por dentro como funciones directas por pieza, con los mismos tests (`tests/unidad/formato-contenido.test.ts`).
+- D16 y D17 están pagadas y fuera de `docs/deuda-diseno.md` (commit 9932284).
+- El mecanismo está aprobado entero (sección «Mecanismo»), y la interfaz descartada, anotada.
+- `aceptacion` y `cobertura-ids` fallan solo por MATE: 75 escenarios de `features/material.feature`, «Sin implementar».
 
 **Falta.**
 
-1. Quitar D16 y D17 de `docs/deuda-diseno.md`. Es una ruta protegida, así que va con una propuesta.
-2. El paso «Mecanismo» (plan §16): explicarlo en prosa, esbozar dos interfaces y parar con `[DECISIÓN PENDIENTE]`.
-3. Escribir el código del área.
+1. Pasar a `docs/plan.md` las decisiones aprobadas: las cuatro de §17.8 (quitarlas de «Por decidir»), las dos de la etapa 3 (el texto de un HTML con código propio y el formato del borrador) y las cuatro reglas que la feature no cubre. Van en §0 y es una ruta protegida: va con una propuesta, aparte del código.
+2. El código: `src/dominio/citas.ts`, `src/aplicacion/revision.ts`, `inicio-sesion.ts` y los casos de uso de `material.ts`, en el orden de §16 (firmas y comentarios primero, cuerpos al `implementador`).
 
-Con MATE en alcance, `make check` falla en `aceptacion` hasta que el área esté hecha. El hook Stop deja parar si el árbol de trabajo coincide con HEAD.
+**Paso siguiente.** Prepara la propuesta de `docs/plan.md` y dale al dueño los bloques `sh`. Después escribe las firmas de `src/dominio/citas.ts`.
 
-**Paso siguiente.** Con `git log`, comprueba si están los dos commits. Si están, prepara la propuesta de `docs/deuda-diseno.md` y después pasa a «Mecanismo». Si no están, pregunta al dueño.
-
-**Notas del implementador.**
-
-- «Texto no vacío» es `!== ''`, así que un texto con solo espacios pasa.
-- Una respuesta que trae `opciones` y `aceptadas` valida las dos.
-- El test unitario importa `BorradorContenido` de `tests/aceptacion/soporte/contenido.ts`. Así, si el contenido de los escenarios deja de cumplir el formato, el test falla.
+**Sin mirar todavía.** Cómo comprueban los steps de MATE-7.1 que no hay «Ver fuente» antes de responder: puede ser una acción del ítem presentado o un rechazo de `verFuente`. Búscalo antes de diseñar esa parte. Los steps de MATE-2, MATE-4 a MATE-7 están en `tests/aceptacion/pasos/` (`redaccion.ts`, `revision.ts`, `aprobacion.ts`, `borradores-en-sesiones.ts`).
 
 **Leer primero:**
 
-- este relevo y la sección «Mecanismo» de este fichero;
-- `features/material.feature`;
-- `src/aplicacion/material.ts`, `src/aplicacion/claude-code.ts` y `src/aplicacion/puertos.ts`;
-- `tests/aceptacion/soporte/externos.ts`, `tests/aceptacion/soporte/claude-code.ts` y `tests/aceptacion/soporte/escenario-material.ts`.
+- este relevo y «Mecanismo» de este fichero;
+- `src/aplicacion/material.ts`, `claude-code.ts`, `puertos.ts`, `dependencias.ts` y la cabecera de `formato-contenido.ts`;
+- `tests/aceptacion/soporte/escenario-material.ts` y `externos.ts`.
