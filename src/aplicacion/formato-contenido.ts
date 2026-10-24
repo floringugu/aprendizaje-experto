@@ -20,6 +20,16 @@ export interface FalloDeFormato {
 type Validacion<T> = { readonly ok: true; readonly valor: T } | { readonly ok: false; readonly fallo: FalloDeFormato };
 
 /**
+ * Dónde está el fallo, dicho para la persona: «"instruccion" en el objetivo O4», o solo «"dominio"» si
+ * el fallo está en la raíz (la propiedad va entre comillas angulares). Con «en» y no con «de» para
+ * no contraer el artículo de `pieza` («de el ítem I7»). Lo usan los rechazos del contenido aprobado y
+ * los de una corrección.
+ */
+export function lugarDelFallo(fallo: FalloDeFormato): string {
+  return fallo.pieza === undefined ? `«${fallo.falta}»` : `«${fallo.falta}» en ${fallo.pieza}`;
+}
+
+/**
  * Comprueba que `leido` cumple el formato del contenido y devuelve el primer fallo que encuentra:
  * primero `dominio`, después cada objetivo con sus ejemplos resueltos, cada categoría, cada ítem y cada
  * tarea, en el orden del fichero. Si lo cumple, devuelve el mismo objeto, ya tipado y sin copiarlo.
@@ -111,10 +121,12 @@ function falloDeLaFuente(fuente: unknown, pieza: string): FalloDeFormato | undef
 
 // --- Lo que comparten las piezas ---
 
-type Registro = Readonly<Record<string, unknown>>;
+/** Un objeto JSON cualquiera, del que aún no se sabe qué propiedades trae. */
+export type Registro = Readonly<Record<string, unknown>>;
 type PiezaConId = Registro & { readonly id: string };
 
-function esRegistro(valor: unknown): valor is Registro {
+/** Si `valor` es un objeto JSON (no `null` ni un array): lo que puede ser una pieza o una fuente. */
+export function esRegistro(valor: unknown): valor is Registro {
   // Un array también es un objeto para JavaScript, pero aquí no vale como pieza.
   return typeof valor === 'object' && valor !== null && !Array.isArray(valor);
 }

@@ -8,14 +8,21 @@ import { declararConfianza, presentarItem, responderItem } from '../../src/aplic
 import type { Resultado } from '../../src/aplicacion/resultado.ts';
 import { verFuente, type FuenteAbierta } from '../../src/aplicacion/revision-del-material.ts';
 import { ficherosEnMemoria } from './ficheros-en-memoria.ts';
-import { FUENTE_BUENA, FUENTE_MALA, ejemplo, item, mesaDe, objetivo, tarea } from './revision-fabricas.ts';
+import {
+  FUENTE_BUENA,
+  FUENTE_MALA,
+  ejemplo,
+  escribirMesa,
+  item,
+  mesaDe,
+  objetivo,
+  tarea,
+} from './revision-fabricas.ts';
 
 const DOMINIO = 'ficticio';
 const AHORA = new Date('2026-01-01T00:00:00Z');
 const UMBRAL = 0.85;
 const TEXTO_DE_LA_PAGINA = 'Esta página dice buena.';
-
-const codificar = (valor: unknown): Uint8Array => new TextEncoder().encode(JSON.stringify(valor, null, '  '));
 
 /** Un ítem del diagnóstico: es el único que `presentarItem` acepta mientras el diagnóstico está pendiente. */
 const itemDelDiagnostico = (id: string, fuente?: typeof FUENTE_BUENA) => ({ ...item(id, fuente), diagnostico: true });
@@ -67,8 +74,7 @@ function dependenciasDe(ficheros: Ficheros, contenido: unknown): Dependencias {
 /** Los ficheros de la mesa, con el material guardado, y un entorno sin ningún dominio abierto. */
 function preparar(mesa: Mesa = MESA, conMaterial = true) {
   const { ficheros, contenidos } = ficherosEnMemoria();
-  ficheros.escribir(`contenido/borradores/${DOMINIO}.json`, codificar(mesa.borrador));
-  ficheros.escribir(`contenido/${DOMINIO}.json`, codificar(mesa.aprobado));
+  escribirMesa(ficheros, mesa, DOMINIO);
   if (conMaterial) guardarApuntes(ficheros);
   const entorno: Entorno = { dependencias: dependenciasDe(ficheros, mesa.aprobado), persona: new EstadoPersona() };
   return { entorno, contenidos };

@@ -1,6 +1,7 @@
-// Fábricas y ayudantes de los tests de la revisión del material (MATE-4, MATE-5). Los usan
-// revision.test.ts (revisar) y revision-aplicar.test.ts (aplicar). No es un fichero de tests: vitest
-// solo recoge los *.test.ts, así que aquí no se ejecuta nada.
+// Fábricas y ayudantes de los tests de la revisión del material (MATE-4, MATE-5, MATE-7). Los usan los de la
+// mesa y la revisión (mesa, revision, revision-aplicar, revision-ids) y los de los casos de uso que leen y
+// escriben sus ficheros (revision-del-material, revision-del-material-deshacer, ver-fuente). No es un fichero
+// de tests: vitest solo recoge los *.test.ts, así que aquí no se ejecuta nada.
 import type { Marcador } from '../../src/dominio/citas.ts';
 import type {
   ContenidoDominio,
@@ -10,6 +11,7 @@ import type {
   ObjetivoContenido,
   TareaContenido,
 } from '../../src/aplicacion/contenido.ts';
+import type { Ficheros } from '../../src/aplicacion/puertos.ts';
 import type { Resultado } from '../../src/aplicacion/resultado.ts';
 import { aplicar, revisar, type Accion, type FiltroRevision } from '../../src/aplicacion/revision.ts';
 import type { BorradorDominio, Mesa } from '../../src/aplicacion/mesa.ts';
@@ -61,12 +63,28 @@ export const MESA = mesaDe({ items: ITEMS }, { objetivos: [objetivo('O1')] });
 
 export const ids = (piezas: readonly { readonly id: string }[]): string[] => piezas.map(({ id }) => id);
 
+/** Los bytes de un fichero JSON como los escribe la aplicación: sangrado con dos espacios. */
+export const codificar = (valor: unknown): Uint8Array => new TextEncoder().encode(JSON.stringify(valor, null, '  '));
+
+/**
+ * Escribe `mesa` en `ficheros` como la dejaría la aplicación: el borrador en
+ * `contenido/borradores/<dominio>.json` y el aprobado en `contenido/<dominio>.json`, en JSON con dos
+ * espacios de sangría y con `dominio` en los dos en lugar del que traiga la mesa.
+ */
+export function escribirMesa(ficheros: Ficheros, mesa: Mesa, dominio = 'ficticio'): void {
+  ficheros.escribir(`contenido/borradores/${dominio}.json`, codificar({ ...mesa.borrador, dominio }));
+  ficheros.escribir(`contenido/${dominio}.json`, codificar({ ...mesa.aprobado, dominio }));
+}
+
 /** Cada grupo como [objetivo, ids de sus piezas]. */
 export function agrupadas(mesa: Mesa, filtro: FiltroRevision = 'pendientes'): unknown[] {
   return revisar(mesa, marcador, filtro).grupos.map(({ objetivo: grupo, piezas }) => [grupo, ids(piezas)]);
 }
 
-/** Los ayudantes de `aplicar`: el éxito o el rechazo que el test espera, y un error claro si pasa lo otro. */
+/**
+ * Los ayudantes de `aplicar`: el éxito o el rechazo que el test espera, y un error claro si pasa lo otro.
+ * Un rechazo sin motivo, o con el motivo en blanco, tampoco vale: la persona no sabría qué ha pasado.
+ */
 function exito(resultado: Resultado<Mesa>): Mesa {
   if (!resultado.ok) throw new Error(`Se esperaba éxito y fue un rechazo: ${resultado.motivo}`);
   return resultado.valor;
@@ -75,5 +93,6 @@ export const aplicado = (mesa: Mesa, accion: Accion): Mesa => exito(aplicar(mesa
 export function rechazado(mesa: Mesa, accion: Accion): Extract<Resultado<Mesa>, { ok: false }> {
   const resultado = aplicar(mesa, accion, marcador);
   if (resultado.ok) throw new Error('Se esperaba un rechazo');
+  if (resultado.motivo.trim() === '') throw new Error('El rechazo no explica el motivo');
   return resultado;
 }

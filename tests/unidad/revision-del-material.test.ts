@@ -6,13 +6,21 @@ import { crearRevisionDelMaterial, type CasosDeRevision } from '../../src/aplica
 import type { Mesa } from '../../src/aplicacion/mesa.ts';
 import type { Revision } from '../../src/aplicacion/revision.ts';
 import { ficherosEnMemoria } from './ficheros-en-memoria.ts';
-import { FUENTE_BUENA, ITEMS, MESA, ids, item, mesaDe, objetivo } from './revision-fabricas.ts';
+import {
+  FUENTE_BUENA,
+  ITEMS,
+  MESA,
+  codificar,
+  escribirMesa,
+  ids,
+  item,
+  mesaDe,
+  objetivo,
+} from './revision-fabricas.ts';
 
 const DOMINIO = 'ficticio';
 const BORRADOR = `contenido/borradores/${DOMINIO}.json`;
 const APROBADO = `contenido/${DOMINIO}.json`;
-
-const codificar = (valor: unknown): Uint8Array => new TextEncoder().encode(JSON.stringify(valor, null, '  '));
 
 function jsonDe(contenidos: ReadonlyMap<string, Uint8Array>, ruta: string): unknown {
   const bytes = contenidos.get(ruta);
@@ -23,8 +31,7 @@ function jsonDe(contenidos: ReadonlyMap<string, Uint8Array>, ruta: string): unkn
 /** Los ficheros de `mesa`, tal como los dejaría la aplicación, y los casos de la revisión sobre ellos. */
 function preparar(mesa: Mesa = MESA) {
   const { ficheros, contenidos } = ficherosEnMemoria();
-  ficheros.escribir(BORRADOR, codificar(mesa.borrador));
-  ficheros.escribir(APROBADO, codificar(mesa.aprobado));
+  escribirMesa(ficheros, mesa, DOMINIO);
   return { ficheros, contenidos, casos: crearRevisionDelMaterial(ficheros) };
 }
 
@@ -140,7 +147,7 @@ const MESAS_ROTAS = [
     nombre: 'el aprobado no cumple el formato',
     estropear: (contenidos: Map<string, Uint8Array>) =>
       contenidos.set(APROBADO, codificar({ ...MESA.aprobado, items: [{ ...item('I1'), feedback: '' }] })),
-    rechazo: { motivo: expect.stringMatching(/no cumple el formato.*«feedback» en el ítem I1/) as unknown },
+    rechazo: { motivo: 'El contenido de «ficticio» no cumple el formato: revisa «feedback» en el ítem I1.' },
   },
   {
     nombre: 'el aprobado no es JSON',

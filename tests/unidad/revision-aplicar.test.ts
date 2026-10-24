@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { lugarDelFallo } from '../../src/aplicacion/formato-contenido.ts';
 import type { Mesa } from '../../src/aplicacion/mesa.ts';
 import { revisar, type Accion } from '../../src/aplicacion/revision.ts';
 import {
@@ -66,6 +67,14 @@ describe('aplicar: aprobar', () => {
     const nueva = aprobar(mesa, 'E2');
     expect(nueva.aprobado.objetivos).toStrictEqual([objetivo('O1', [ejemplo('E1'), ejemplo('E2', FUENTE_BUENA)])]);
     expect(nueva.borrador.ejemplos_resueltos).toStrictEqual([]);
+  });
+
+  it('@MATE-4.4 un ejemplo que iba aparte y no tiene fuente entra sin la propiedad `fuente`, ni siquiera con undefined', () => {
+    const aparte = { ...ejemplo('E2'), objetivo: 'O1' };
+    const mesa = mesaDe({ ejemplos_resueltos: [aparte] }, { objetivos: [objetivo('O1')] });
+    const nueva = aprobar(mesa, 'E2');
+    // `toStrictEqual` distingue una propiedad ausente de una que vale `undefined`.
+    expect(nueva.aprobado.objetivos).toStrictEqual([objetivo('O1', [ejemplo('E2')])]);
   });
 
   it('@MATE-4.4 no mete `ejemplos_resueltos` en el borrador si el objetivo no los tiene', () => {
@@ -241,15 +250,24 @@ describe('aplicar: corregir', () => {
     const sinFeedback = Object.fromEntries(Object.entries(corregido).filter(([clave]) => clave !== 'feedback'));
     const resultado = rechazado(MESA, { tipo: 'corregir', pieza: 'I7', corregida: sinFeedback });
     expect(resultado).toMatchObject({ ok: false, campo: 'feedback' });
-    expect(resultado.motivo).toContain('feedback');
+    // «en el ítem I7», no «de el ítem I7»: la pieza ya lleva su artículo.
+    expect(resultado.motivo).toBe('No se guarda la corrección: falta o no es válido «feedback» en el ítem I7.');
   });
 
-  it.each([['texto'], [null], [{ ...corregido, id: 'I99' }]])(
-    'cambiar el id, o una corrección que ni es un objeto, se rechaza con el campo «id» (regla que la feature no cubre)',
+  it.each([['texto'], [null]])(
+    '@MATE-4.8 una corrección que no es un objeto (%s) falla en «id» y se nombra como la primera pieza de su lista (regla que la feature no cubre)',
     (corregida) => {
-      expect(rechazado(MESA, { tipo: 'corregir', pieza: 'I7', corregida })).toMatchObject({ ok: false, campo: 'id' });
+      const resultado = rechazado(MESA, { tipo: 'corregir', pieza: 'I7', corregida });
+      expect(resultado).toMatchObject({ ok: false, campo: 'id' });
+      expect(resultado.motivo).toBe('No se guarda la corrección: falta o no es válido «id» en el ítem 1.');
     },
   );
+
+  it('cambiar el id se rechaza con el campo «id» (regla que la feature no cubre)', () => {
+    const resultado = rechazado(MESA, { tipo: 'corregir', pieza: 'I7', corregida: { ...corregido, id: 'I99' } });
+    expect(resultado).toMatchObject({ ok: false, campo: 'id' });
+    expect(resultado.motivo).toBe('No se guarda la corrección: no se puede cambiar el id de «I7».');
+  });
 
   it('@MATE-4.6 un ejemplo que va aparte conserva su objetivo, venga o no en la corrección', () => {
     const mesa = mesaDe(
@@ -283,5 +301,18 @@ describe('aplicar: pieza que no está en el borrador', () => {
     { tipo: 'corregir', pieza: 'I99', corregida: item('I99') },
   ])('@MATE-4.4 la acción «$tipo» se rechaza con pieza_no_encontrada', (accion) => {
     expect(rechazado(MESA, accion)).toMatchObject({ ok: false, causa: 'pieza_no_encontrada' });
+  });
+});
+
+// Va aquí y no en formato-contenido.test.ts, que ya está en el límite de 300 líneas de ESLint: `lugarDelFallo`
+// es la frase de dónde falla la pieza que usan los rechazos de `corregir`.
+describe('lugarDelFallo', () => {
+  it('@MATE-4.8 dice la propiedad y la pieza con «en», para no contraer el artículo de la pieza en «de el»', () => {
+    expect(lugarDelFallo({ pieza: 'el ítem I7', falta: 'feedback' })).toBe('«feedback» en el ítem I7');
+    expect(lugarDelFallo({ pieza: 'la tarea T3', falta: 'rubrica' })).toBe('«rubrica» en la tarea T3');
+  });
+
+  it('@MATE-4.8 un fallo en la raíz, sin pieza, solo dice la propiedad', () => {
+    expect(lugarDelFallo({ falta: 'dominio' })).toBe('«dominio»');
   });
 });

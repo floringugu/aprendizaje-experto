@@ -1,46 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { idRepetido } from '../../src/aplicacion/mesa.ts';
-import { ITEMS, aplicado, ejemplo, item, mesaDe, objetivo, rechazado, tarea } from './revision-fabricas.ts';
-
-describe('idRepetido', () => {
-  it('@MATE-4.6 sin ids repetidos da undefined (regla que la feature no cubre)', () => {
-    const mesa = mesaDe({ items: ITEMS, tareas: [tarea('T1')] }, { objetivos: [objetivo('O1', [ejemplo('E1')])] });
-    expect(idRepetido(mesa)).toBeUndefined();
-  });
-
-  it('@MATE-4.6 un ejemplo de dentro de un objetivo y otro que va aparte con el mismo id se repiten (regla que la feature no cubre)', () => {
-    const mesa = mesaDe({
-      objetivos: [objetivo('O1', [ejemplo('E1')])],
-      ejemplos_resueltos: [{ ...ejemplo('E1'), objetivo: 'O9' }],
-    });
-    expect(idRepetido(mesa)).toBe('E1');
-  });
-
-  it('@MATE-4.6 un ítem y una tarea con el mismo id se repiten, aunque sean de tipos distintos (regla que la feature no cubre)', () => {
-    expect(idRepetido(mesaDe({ items: [item('X1')], tareas: [tarea('X1')] }))).toBe('X1');
-  });
-
-  it.each([
-    ['una tarea', { tareas: [tarea('X1')] }],
-    ['un ejemplo de dentro de un objetivo', { objetivos: [objetivo('O1', [ejemplo('X1')])] }],
-  ])(
-    '@MATE-4.6 un id del borrador que ya está en el aprobado como %s se repite (regla que la feature no cubre)',
-    (_, aprobado) => {
-      expect(idRepetido(mesaDe({ items: [item('X1')] }, aprobado))).toBe('X1');
-    },
-  );
-
-  it('@MATE-4.6 el aprobado que repite ids entre sus propias piezas no cuenta (regla que la feature no cubre)', () => {
-    const aprobado = { objetivos: [objetivo('O1', [ejemplo('E1')]), objetivo('O2', [ejemplo('E1')])] };
-    expect(idRepetido(mesaDe({ items: [item('I7')] }, aprobado))).toBeUndefined();
-  });
-
-  it('@MATE-4.6 con dos ids repetidos da el primero en el orden de revisar, no el que salió antes (regla que la feature no cubre)', () => {
-    // Al recorrer I1, I2, I2, I1 el primero que ya había salido es I2, aunque I1 salió antes.
-    const mesa = mesaDe({ items: [item('I1'), item('I2'), item('I2'), item('I1')] });
-    expect(idRepetido(mesa)).toBe('I2');
-  });
-});
+import { aplicado, ejemplo, item, mesaDe, objetivo, rechazado } from './revision-fabricas.ts';
 
 describe('aplicar: corregir con ids y objetivos', () => {
   const mesa = mesaDe(

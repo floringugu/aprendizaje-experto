@@ -1,17 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { crearRevisionDelMaterial, type CasosDeRevision } from '../../src/aplicacion/revision-del-material.ts';
 import { ficherosEnMemoria } from './ficheros-en-memoria.ts';
-import { FUENTE_BUENA, MESA, item } from './revision-fabricas.ts';
+import { FUENTE_BUENA, MESA, codificar, escribirMesa, item } from './revision-fabricas.ts';
 
 const OK = { ok: true, valor: null };
-const NADA_QUE_DESHACER = { ok: false, causa: 'nada_que_deshacer' };
+// El motivo tiene que decir algo (`\S`: al menos un carácter que no sea un espacio), como en los rechazos del material.
+const NADA_QUE_DESHACER = { ok: false, causa: 'nada_que_deshacer', motivo: expect.stringMatching(/\S/) as unknown };
 
 const rutasDe = (dominio: string): { readonly borrador: string; readonly aprobado: string } => ({
   borrador: `contenido/borradores/${dominio}.json`,
   aprobado: `contenido/${dominio}.json`,
 });
-
-const codificar = (valor: unknown): Uint8Array => new TextEncoder().encode(JSON.stringify(valor, null, '  '));
 
 /**
  * Los ficheros de uno o más dominios con la mesa de MATE-4 (I7 a I10 pendientes, O1 aprobado), sin
@@ -20,11 +19,16 @@ const codificar = (valor: unknown): Uint8Array => new TextEncoder().encode(JSON.
 function montar(...dominios: readonly string[]) {
   const { ficheros, contenidos } = ficherosEnMemoria();
   for (const dominio of dominios) {
-    const rutas = rutasDe(dominio);
-    ficheros.escribir(rutas.borrador, codificar({ ...MESA.borrador, dominio }));
-    ficheros.escribir(rutas.aprobado, codificar({ ...MESA.aprobado, dominio }));
+    escribirMesa(ficheros, MESA, dominio);
   }
   return { ficheros, contenidos, casos: crearRevisionDelMaterial(ficheros) };
+}
+
+/** Los bytes de un fichero que tiene que existir. */
+function bytesDe(contenidos: ReadonlyMap<string, Uint8Array>, ruta: string): Uint8Array {
+  const bytes = contenidos.get(ruta);
+  if (bytes === undefined) throw new Error(`Falta el fichero ${ruta}`);
+  return bytes;
 }
 
 /** Lo que hay en los dos ficheros del dominio ahora, para compararlo con lo que había antes. */
@@ -39,6 +43,23 @@ function ficherosDe(
 const aprobarI7 = (casos: CasosDeRevision, dominio = 'ficticio') => casos.aprobarPieza({ dominio, pieza: 'I7' });
 const descartarI8 = (casos: CasosDeRevision, dominio = 'ficticio') => casos.descartarPieza({ dominio, pieza: 'I8' });
 const deshacer = (casos: CasosDeRevision, dominio = 'ficticio') => casos.deshacer({ dominio });
+
+/**
+ * Aprueba I7, deja el fichero como lo cambie `estropear` y comprueba que deshacer rechaza sin tocar nada.
+ * Devuelve los ficheros tal como quedaron.
+ */
+function expectSinDeshacerTras(
+  fichero: 'borrador' | 'aprobado',
+  estropear: (contenidos: Map<string, Uint8Array>, ruta: string) => void,
+): ReturnType<typeof ficherosDe> {
+  const { contenidos, casos } = montar('ficticio');
+  aprobarI7(casos);
+  estropear(contenidos, rutasDe('ficticio')[fichero]);
+  const trasElCambio = ficherosDe(contenidos, 'ficticio');
+  expect(deshacer(casos)).toMatchObject(NADA_QUE_DESHACER);
+  expect(ficherosDe(contenidos, 'ficticio')).toStrictEqual(trasElCambio);
+  return trasElCambio;
+}
 
 describe('deshacer', () => {
   it.each([
@@ -117,6 +138,23 @@ describe('el hueco de deshacer se vacía y se compara byte a byte (reglas que la
       const trasElCambio = ficherosDe(contenidos, 'ficticio');
       expect(deshacer(casos)).toMatchObject(NADA_QUE_DESHACER);
       expect(ficherosDe(contenidos, 'ficticio')).toStrictEqual(trasElCambio);
+    },
+  );
+
+  it.each(['borrador', 'aprobado'] as const)(
+    'rechaza con nada_que_deshacer si el %s se recortó (los mismos bytes del principio, pero menos), y no restaura nada',
+    (fichero) => {
+      expectSinDeshacerTras(fichero, (contenidos, ruta) =>
+        contenidos.set(ruta, bytesDe(contenidos, ruta).slice(0, -1)),
+      );
+    },
+  );
+
+  it.each(['borrador', 'aprobado'] as const)(
+    'rechaza con nada_que_deshacer si el %s se borró después de la acción, y no lo vuelve a crear',
+    (fichero) => {
+      const trasElCambio = expectSinDeshacerTras(fichero, (contenidos, ruta) => contenidos.delete(ruta));
+      expect(trasElCambio[fichero]).toBeUndefined();
     },
   );
 

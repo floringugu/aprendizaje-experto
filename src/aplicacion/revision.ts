@@ -1,6 +1,13 @@
 import type { Marca, Marcador } from '../dominio/citas.ts';
 import type { ContenidoDominio, EjemploResueltoContenido, ObjetivoContenido } from './contenido.ts';
-import { falloDeLaPiezaSuelta, type FalloDeFormato, type TipoDePieza } from './formato-contenido.ts';
+import {
+  esRegistro,
+  falloDeLaPiezaSuelta,
+  lugarDelFallo,
+  type FalloDeFormato,
+  type Registro,
+  type TipoDePieza,
+} from './formato-contenido.ts';
 import { idRepetido, pendientesDelBorrador, type BorradorDominio, type Mesa, type Pendiente } from './mesa.ts';
 import { aceptar, rechazarElCampo, rechazarPorCausa, type Resultado } from './resultado.ts';
 
@@ -312,26 +319,32 @@ function sinObjetivo(ejemplo: EjemploResueltoContenido): EjemploResueltoContenid
 
 // --- Corregir ---
 
-type Registro = Readonly<Record<string, unknown>>;
-
-function esRegistro(valor: unknown): valor is Registro {
-  return typeof valor === 'object' && valor !== null && !Array.isArray(valor);
+/**
+ * La corrección de una pieza: `recibida` es lo que llega, y `validada`, lo que se comprueba contra el
+ * formato. Solo se distinguen en un ejemplo, que se valida con el `objetivo` de la pieza que sustituye,
+ * venga o no en `recibida`; en las demás piezas son lo mismo.
+ */
+interface Correccion {
+  readonly recibida: unknown;
+  readonly validada: unknown;
 }
 
 /**
  * Sustituye la pieza por `corregida` si pasa las comprobaciones de `primerRechazoDeLaCorreccion` y la mesa
  * resultante no repite ningún id. Valida `corregida` tal como está en el borrador (@MATE-4.8): un ejemplo
- * que va aparte se valida con su `objetivo`, venga o no en `corregida`, y se guarda con él.
+ * que va aparte se valida con su `objetivo`, venga o no en `corregida`, y se guarda con él; uno de dentro
+ * de su objetivo se valida igual, pero se guarda tal como llega, sin `objetivo`.
  */
 function corregirPieza(mesa: Mesa, pendiente: Pendiente, corregida: unknown): Resultado<Mesa> {
-  const rechazo = primerRechazoDeLaCorreccion(mesa, pendiente, corregida);
+  const validada = conObjetivoDelEjemplo(pendiente, corregida);
+  const rechazo = primerRechazoDeLaCorreccion(mesa, pendiente, { recibida: corregida, validada });
   if (rechazo !== undefined) {
     return rechazo;
   }
   const id = pendiente.pieza.id;
-  const guardada =
-    pendiente.tipo === 'ejemplo' && pendiente.aparte ? conObjetivoDelEjemplo(pendiente, corregida) : corregida;
-  // El `as` es honesto: `falloDeLaPiezaSuelta` ha comprobado que `guardada` es una pieza de su tipo.
+  const guardada = pendiente.tipo === 'ejemplo' && pendiente.aparte ? validada : corregida;
+  // El `as` es honesto: `falloDeLaPiezaSuelta` ha comprobado que `validada` es una pieza de su tipo, y
+  // `guardada` es esa misma pieza o la que llegó, que solo se diferencia en el `objetivo` de un ejemplo.
   const sustituir: CambioDeLista = (lista) =>
     lista.map((pieza) => (pieza.id === id ? (guardada as typeof pieza) : pieza));
   const mesaNueva = cambiarPieza(mesa, pendiente, sustituir);
@@ -353,17 +366,18 @@ function conObjetivoDelEjemplo(pendiente: Pendiente, corregida: unknown): unknow
 function primerRechazoDeLaCorreccion(
   mesa: Mesa,
   pendiente: Pendiente,
-  corregida: unknown,
+  correccion: Correccion,
 ): Resultado<never> | undefined {
-  const fallo = falloDeLaPiezaSuelta(pendiente.tipo, conObjetivoDelEjemplo(pendiente, corregida));
+  const fallo = falloDeLaPiezaSuelta(pendiente.tipo, correccion.validada);
   if (fallo !== undefined) {
     return rechazoDeFormato(fallo);
   }
   const id = pendiente.pieza.id;
-  if (!esRegistro(corregida) || corregida['id'] !== id) {
+  const { recibida } = correccion;
+  if (!esRegistro(recibida) || recibida['id'] !== id) {
     return rechazarElCampo('id', `No se guarda la corrección: no se puede cambiar el id de «${id}».`);
   }
-  return rechazoDeObjetivoInexistente(mesa, pendiente, corregida);
+  return rechazoDeObjetivoInexistente(mesa, pendiente, recibida);
 }
 
 /** Un ítem que pasa a un objetivo que no está ni en el borrador ni en el aprobado nunca se podría aprobar. */
@@ -383,6 +397,5 @@ function rechazoDeObjetivoInexistente(
 }
 
 function rechazoDeFormato(fallo: FalloDeFormato): Resultado<never> {
-  const donde = fallo.pieza === undefined ? '' : ` de ${fallo.pieza}`;
-  return rechazarElCampo(fallo.falta, `No se guarda la corrección: falta o no es válido «${fallo.falta}»${donde}.`);
+  return rechazarElCampo(fallo.falta, `No se guarda la corrección: falta o no es válido ${lugarDelFallo(fallo)}.`);
 }

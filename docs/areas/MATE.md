@@ -176,22 +176,56 @@ Salida de `make bloqueos A=<ÁREA>` al cerrar el área, y una frase sobre el blo
 
 ## Relevo
 
-**Hecho:** MATE-1 a MATE-10, commiteados (b6f9552). `redactarBorrador` sigue **bloqueado**: §0 de docs/plan.md no recoge el hueco 1 (qué se le pide a la IA en MATE y si se mantiene «Aprobar las N sin marca»). Se decide en una conversación en fase `specs`; hasta entonces, no lo empieces. Mientras, se adelantó el cierre del área. Sin commitear: `citas.ts` sin el `indice < 0` de sobra en `paginaDelLugar` (`paginas[-1]` ya es `undefined`) e `inicio-sesion.test.ts` fijando los 5 minutos con el número. Unidad 801/801, tipos y lint limpios.
+**Hecho:**
+- MATE-12, sin commitear (11 ficheros con este):
+  - el motivo «de el ítem I7» ahora es «en el ítem I7», con `lugarDelFallo` compartida con `contenidoValidado`;
+  - `esRegistro` sale de un solo sitio;
+  - `conObjetivoDelEjemplo` se calcula una vez;
+  - `escribirMesa` y `codificar` están en `revision-fabricas.ts`;
+  - los tests de `idRepetido` están en `mesa.test.ts`;
+  - `rechazado` exige motivo;
+  - hay tests para los huecos de mutación de `revision.ts` y `revision-del-material.ts`.
+- Unidad 808/808; tipos y lint limpios.
+- El hueco 1 se decidió en e20d15e (plan §0, `config/peticion-ia.md`), así que `redactarBorrador` ya no espera a la especificación. Ahora espera a la aceptación:
+  - 6 escenarios @MATE no tienen steps: la fila «una categoría» de 2.1 y de 2.3, 2.5, 2.6 y los dos de 3.5;
+  - el step de MATE-5.5 comprueba `aprobablesEnBloque === 0`, y con I7 e I10 sin marca da 2;
+  - los steps de 5.1, 5.2 y 5.4 (`aprobarSinMarca`) se quedan sin escenario.
 
-**Mutación** (salidas en `reports/mutacion-MATE-*.txt`):
-- `make mutacion` (dominio): 96,85 % antes de esos dos cambios. Supervivientes: los 3 equivalentes de siempre; `citas.ts:117` y `:179`, equivalentes (el elemento basura no cambia el resultado); `citas.ts:183`, ya quitado; `unidades.ts:15` ×2, que mata el test nuevo. Vuelve a pasarlo para la cifra final.
-- Aplicación (`npx stryker run --mutate src/aplicacion/{revision,mesa,inicio-sesion,revision-del-material}.ts --incrementalFile <scratchpad>/x.json --reporters clear-text,progress`): 93,59 %. Huecos de test reales: `inicio-sesion.ts:123` (eventos de un proceso ya sustituido), `:147` (vista sin enlace, con `toStrictEqual`), `:165` (URL seguida de «).»); `revision-del-material.ts:198` (fichero recortado o borrado antes de deshacer); `revision.ts:310` (ejemplo aparte sin fuente, `toStrictEqual`), `:386` (corrección que no es un objeto); y 7 textos de motivo vacíos (`inicio-sesion.ts:86,89`, `revision-del-material.ts:331,340`, `revision.ts:180,253,364`: que el helper `rechazado` exija motivo no vacío). Equivalentes que se aceptan: `inicio-sesion.ts:92,110,116,158`, `revision-del-material.ts:256,274`, `revision.ts:116,162,213,232,267,270,318,333`.
+**Falta, en este orden:**
+1. **Conversación en fase `aceptacion`:**
+   - escribir los steps de esos 6 escenarios y rehacer el de 5.5 (la revisión no ofrece ninguna acción en bloque);
+   - quitar los de 5.1, 5.2 y 5.4;
+   - crear los casos vacíos que haga falta.
+2. **Fase `impl`, `Tarea: MATE-13`:** `verFuente` lee primero el aprobado (`leerAprobado`) y busca allí la pieza. Solo si no está, lee la mesa entera (`leerMesa`). Así, desde una sesión, un borrador con un id repetido o un JSON roto no la rechaza (MATE-6). El test de `ver-fuente.test.ts` que hoy espera `id_repetido` para un ítem aprobado pasa a abrir su fuente.
+3. **`Tarea: MATE-14`:** pasar `inicio-sesion.ts` de clase a cierre, como `crearRevisionDelMaterial`, con tests para sus supervivientes (`:86`, `:89` motivos; `:123`, `:147`, `:165`; ver `reports/mutacion-MATE-aplicacion.txt`).
+4. **Tú:**
+   - renombrar `presentados`/`marcarPresentado` (estado.ts) a `itemsEnCurso`/`marcarEnCurso`;
+   - arreglar los `@MATE-3.3` de `texto-pdf.test.ts` y `texto-html.test.ts:130` y los `@MATE-1.1` de `texto-html.test.ts` y `material.test.ts:245` (ver `reports/revisor-codigo-MATE.md`);
+   - quitar las listas copiadas en el comentario de `textoDelHtml`;
+   - pasar el test de `lugarDelFallo` a su sitio: está en `revision-aplicar.test.ts` porque `formato-contenido.test.ts` está en 299 de 300 líneas, así que hay que partirlo o abrir un fichero nuevo;
+   - decidir si el motivo de una corrección que no es un objeto debe nombrar la pieza corregida y no «el ítem 1», como hace `falloDeLaPiezaSuelta`;
+   - `material-guardado.ts` no pasa `prettier --check`, ya en HEAD.
+5. **`Tarea: MATE-11` y los cambios de e20d15e:**
+   - `redactarBorrador` siguiendo `config/peticion-ia.md`;
+   - las categorías como pieza del borrador (`categoria_pendiente`, `campo` `categoria`);
+   - la marca «Un solo paso»;
+   - `diagnostico` a `false`;
+   - las opciones repetidas como error de formato;
+   - quitar `aprobar_sin_marca` y `aprobablesEnBloque`.
+   Con eso también se decide la validación de `leerBorrador`.
+6. **Para el dueño, con [DECISIÓN PENDIENTE]:**
+   - el aprobado se lee por dos caminos;
+   - `dominio` va sin validar dentro de las rutas;
+   - las partidas de `docs/deuda-diseno.md` (todo en `reports/revisor-codigo-MATE.md`).
+   - Además, MATE-6.3.
+7. **Cierre:**
+   - `make mutacion` y Stryker de aplicación otra vez;
+   - completar «Mutación», «Deuda pagada» y «Bloqueos»;
+   - citar MATE-6.2, 6.4 y 6.5.
 
-**revisor-codigo:** pasado; el informe está en `reports/revisor-codigo-MATE.md`.
+**Paso siguiente:** el punto 1, en una conversación nueva en fase `aceptacion`.
 
-**Falta, en este orden** (un encargo cada vez):
-1. `Tarea: MATE-12`: el motivo «de el ítem I7» de `rechazoDeFormato` (`revision.ts:385`), con una frase del `FalloDeFormato` compartida con `contenidoValidado`; `conObjetivoDelEjemplo` una sola vez; `esRegistro` exportado de `formato-contenido.ts`; los tests de mutación de `revision.ts` y `revision-del-material.ts`; los tests de `idRepetido` a `mesa.test.ts` y `escribirMesa` en `revision-fabricas.ts`. Opcional en el mismo encargo: `buscarPendiente` compartida y `colgadoDe` a `mesa.ts`.
-2. `Tarea: MATE-13`: `verFuente` busca primero en el aprobado y solo lee la mesa si no está, para que el borrador (`id_repetido`, un JSON roto) no llegue a una sesión (MATE-6).
-3. `Tarea: MATE-14`: `inicio-sesion.ts` de clase a cierre, como `crearRevisionDelMaterial`, con sus tests de mutación.
-4. Tú: `presentados`/`marcarPresentado` → `itemsEnCurso`/`marcarEnCurso`; los `@MATE-3.3` y `@MATE-1.1` mal citados en `texto-pdf.test.ts`, `texto-html.test.ts` y `material.test.ts`; quitar las listas copiadas en el comentario de `textoDelHtml`.
-5. Para el dueño, con [DECISIÓN PENDIENTE]: el aprobado leído por dos caminos (unificarlo toca `tests/aceptacion/soporte/mundo.ts`, protegida); `dominio` sin validar dentro de las rutas (`../`); y las partidas para `docs/deuda-diseno.md`, que es protegida (propuesta). Lo de `texto-pdf` sin puerto ya está en «Interfaces descartadas».
-6. Después de `redactarBorrador` (`Tarea: MATE-11`), lo que ya decía el relevo anterior: MATE-6.3 con [DECISIÓN PENDIENTE]; citar MATE-6.2, 6.4 y 6.5 donde se cumplen; completar «Mutación», «Deuda pagada» (la partición de `revision.ts`) y «Bloqueos». `leerBorrador` sin validar se decide con `redactarBorrador`, que es quien escribe el borrador.
-
-**Paso siguiente:** el punto 1.
-
-**Leer primero:** este relevo, `git status`, `reports/revisor-codigo-MATE.md` y `reports/mutacion-MATE-aplicacion.txt` (busca `[Survived]`).
+**Leer primero:**
+- este relevo y `git status`;
+- `git show e20d15e -- features/material.feature docs/plan.md`;
+- `tests/aceptacion/pasos/aprobacion.ts` (MATE-5) y `tests/aceptacion/pasos/revision.ts`.

@@ -4,7 +4,7 @@ import type { RecorridoDeRuta } from '../dominio/ruta.ts';
 import { recorrerRuta } from '../dominio/ruta.ts';
 import type { ContenidoValidado } from './contenido.ts';
 import type { Dependencias } from './dependencias.ts';
-import { validarContenido } from './formato-contenido.ts';
+import { lugarDelFallo, validarContenido } from './formato-contenido.ts';
 import type { Resultado } from './resultado.ts';
 import { aceptar, rechazar } from './resultado.ts';
 import type { ContextoRespuesta } from './sesiones.ts';
@@ -253,9 +253,7 @@ export function contenidoValidado(dominio: string, leido: unknown): Resultado<Co
   }
   const contenido = validarContenido(leido);
   if (!contenido.ok) {
-    const { pieza, falta } = contenido.fallo;
-    const enLaPieza = pieza === undefined ? '' : ` en ${pieza}`;
-    return rechazar(`El contenido de «${dominio}» no cumple el formato: revisa «${falta}»${enLaPieza}.`);
+    return rechazar(`El contenido de «${dominio}» no cumple el formato: revisa ${lugarDelFallo(contenido.fallo)}.`);
   }
   return aceptar(contenido.valor);
 }
