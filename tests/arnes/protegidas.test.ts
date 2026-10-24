@@ -25,6 +25,12 @@ describe('parsearProtegidas', () => {
     ]);
   });
 
+  it('admite @impl: la deuda de diseño se edita en la fase impl', () => {
+    expect(parsearProtegidas('docs/deuda-diseno.md @impl')).toEqual([
+      { ruta: 'docs/deuda-diseno.md', desbloqueadaEn: 'impl' },
+    ]);
+  });
+
   it('rechaza una anotación que no es una fase', () => {
     expect(() => parsearProtegidas('features/ @todas')).toThrow(/anotación no válida/);
     expect(() => parsearProtegidas('features/ specs')).toThrow(/anotación no válida/);
@@ -59,6 +65,12 @@ describe('entradaQueBloquea', () => {
     expect(entradaQueBloquea('features/a.feature', entradas, 'specs')).toBeUndefined();
     expect(entradaQueBloquea('features/a.feature', entradas, 'aceptacion')).toBeDefined();
     expect(entradaQueBloquea('tests/aceptacion/pasos.ts', entradas, 'aceptacion')).toBeUndefined();
+  });
+
+  it('deja editar en impl la ruta anotada con @impl, y la bloquea en las demás fases', () => {
+    const deuda = parsearProtegidas('docs/deuda-diseno.md @impl');
+    expect(entradaQueBloquea('docs/deuda-diseno.md', deuda, 'impl')).toBeUndefined();
+    expect(entradaQueBloquea('docs/deuda-diseno.md', deuda, 'specs')?.ruta).toBe('docs/deuda-diseno.md');
   });
 
   it('no bloquea lo que no está en la lista', () => {

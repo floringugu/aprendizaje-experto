@@ -33,7 +33,7 @@ export interface ModeloDeFase {
  * .claude/settings.local.json y el aviso de SessionStart los repite.
  *
  * Opus en la fase impl, donde la conversación principal diseña: el paso «Mecanismo», los
- * comentarios de interfaz y las firmas (los cuerpos van al implementador, con Haiku o Sonnet).
+ * comentarios de interfaz y las firmas (los cuerpos van al implementador, que usa Sonnet).
  * Sonnet, más barato por token, con un escalón menos de esfuerzo, para escribir specs y steps.
  */
 export const MODELO_POR_FASE: Readonly<Record<Fase, ModeloDeFase>> = {

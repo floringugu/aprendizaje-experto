@@ -3,15 +3,21 @@
 // En cada llamada, el modelo vuelve a leer el contexto entero de la conversación: cuanto más largo
 // es, más cuesta cada paso. En vez de compactar, al pasar de UMBRAL_DE_RELEVO tokens Claude acaba el
 // paso en curso, apunta el estado en una sección «## Relevo» de docs/areas/<ÁREA>.md y para con
-// [RELEVO]. El dueño sigue en una conversación nueva, que lee la sección y la borra.
+// [RELEVO]. El dueño sigue en una conversación nueva, que lee la sección y la borra. El relevo es
+// obligatorio: la conversación que lo ha pasado ya no edita (MOTIVO_EDICION_TRAS_RELEVO) y no puede
+// pasar otro (NOTA_TRAS_RELEVO); solo le queda explicar y parar con la comprobación o con una decisión.
 //
-// Lo usan tres hooks:
+// Lo usan cuatro hooks:
 //   - vigilar-contexto (PostToolUse): avisa al pasar el umbral, y otra vez cada PASO_DE_AVISO tokens;
-//   - exigir-check (Stop): deja parar con [RELEVO] sin la comprobación, si el contexto pasa del umbral;
+//   - exigir-check (Stop): deja parar con [RELEVO] sin la comprobación, si el contexto pasa del umbral
+//     y la conversación no ha pasado ya el relevo;
+//   - bloquear-tras-relevo (PreToolUse): niega Edit, Write, MultiEdit y NotebookEdit a la conversación
+//     que ya ha pasado el relevo;
 //   - anunciar-fase (SessionStart): señala las áreas que tienen un relevo pendiente.
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { campo } from './entrada-hook.ts';
+import { MARCA_DECISION_PENDIENTE } from './freno-stop.ts';
 import { anotarLinea, leerLineas, parsearLineas } from './jsonl.ts';
 
 export const MARCA_RELEVO = '[RELEVO]';
@@ -120,14 +126,15 @@ export function avisoParaClaude(tokens: number): string {
     `al final de ${CARPETA_DE_AREAS}/<ÁREA>.md, en una sección «## Relevo»: qué está hecho, qué falta, el paso ` +
     'siguiente y los ficheros que hay que leer primero (si el fichero no existe, cópialo de la plantilla). Si la ' +
     `conversación no trabaja en un área, escribe el relevo en tu mensaje final. Termina el mensaje con ${MARCA_RELEVO}: ` +
-    'el hook Stop te deja parar así sin la comprobación, y el dueño seguirá en una conversación nueva.'
+    'el hook Stop te deja parar así sin la comprobación, y el dueño seguirá en una conversación nueva. ' +
+    'Después de ese relevo esta conversación ya no podrá editar ficheros.'
   );
 }
 
 export function avisoParaElDueno(tokens: number): string {
   return (
     `Contexto: ${miles(tokens)} tokens (umbral de relevo: ${miles(UMBRAL_DE_RELEVO)}). Claude acabará el paso en ` +
-    `curso, apuntará el relevo y parará con ${MARCA_RELEVO}.`
+    `curso, apuntará el relevo y parará con ${MARCA_RELEVO}. Después, esa conversación ya no edita: sigue en una nueva.`
   );
 }
 
@@ -141,6 +148,18 @@ export function avisoDeRelevoPasado(tokens: number): string {
 export const NOTA_DE_RELEVO_ANTES_DE_TIEMPO =
   `Has terminado con ${MARCA_RELEVO}, pero el contexto no llega al umbral de relevo ` +
   `(${miles(UMBRAL_DE_RELEVO)} tokens). Sigue con el trabajo de la fase.`;
+
+/** Lo que ve Claude si intenta editar después de pasar el relevo (hook bloquear-tras-relevo). */
+export const MOTIVO_EDICION_TRAS_RELEVO =
+  `Esta conversación ya ha pasado el relevo (${MARCA_RELEVO}) y no edita más ficheros: el dueño sigue en una ` +
+  'conversación nueva, que lee la sección «## Relevo». Si falta algo, dilo en tu mensaje y para; si necesitas ' +
+  `una decisión, termina con ${MARCA_DECISION_PENDIENTE}.`;
+
+/** Lo que ve Claude si el Stop falla en una conversación que ya ha pasado el relevo: no puede arreglarlo. */
+export const NOTA_TRAS_RELEVO =
+  `Esta conversación ya ha pasado el relevo, así que ${MARCA_RELEVO} no vale otra vez y ya no puede editar ` +
+  `ficheros. No intentes arreglar el fallo: explica en el mensaje qué falla y termina con ${MARCA_DECISION_PENDIENTE}; ` +
+  'el dueño lo arregla en la conversación nueva.';
 
 // ---------------------------------------------------------------------------
 // Relevos pendientes

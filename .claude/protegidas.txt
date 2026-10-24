@@ -1,6 +1,6 @@
 # Rutas que Claude Code no puede modificar (hook .claude/hooks/proteger-rutas.ts).
 # Una ruta terminada en «/» protege el directorio entero.
-# «@specs» o «@aceptacion» la desbloquea solo en una conversación con esa fase (etapas 2 y 3).
+# «@specs», «@aceptacion» o «@impl» la desbloquea solo en una conversación con esa fase.
 # La fase la elige el dueño antes de abrirla: «make fase F=…» o la tarea de VS Code.
 # Sin anotación, la cambia el dueño aplicando una propuesta de Claude (reports/propuestas/*.patch,
 # con «git apply --3way», que lo deja preparado) y lo commitea; la integridad lo compara con HEAD.
@@ -10,7 +10,9 @@ docs/investigacion.md
 docs/arnes.md
 docs/arnes-verificacion.md
 docs/plan.md
-docs/deuda-diseno.md
+
+# Deuda de diseño: la apunta la conversación principal en la fase impl, al cerrar cada área
+docs/deuda-diseno.md @impl
 
 # Especificaciones y parámetros
 features/ @specs

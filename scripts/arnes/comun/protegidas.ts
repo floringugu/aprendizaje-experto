@@ -10,7 +10,7 @@ export const RUTA_PROTEGIDAS = '.claude/protegidas.txt';
  * abrirla con «make fase» (scripts/arnes/fijar-fase.ts), que la guarda en .claude/settings.local.json.
  * - specs: etapa 2, se pueden escribir features/ y config/parametros.json.
  * - aceptacion: etapa 3, se pueden escribir los steps de tests/aceptacion/.
- * - impl: resto del tiempo; todo lo protegido está bloqueado.
+ * - impl: resto del tiempo; lo protegido está bloqueado salvo lo anotado con @impl (docs/deuda-diseno.md).
  */
 export const FASES = ['specs', 'aceptacion', 'impl'] as const;
 export type Fase = (typeof FASES)[number];
@@ -49,7 +49,7 @@ function parsearAnotacion(anotacion: string | undefined, linea: string): Fase | 
   if (anotacion === undefined) return undefined;
   const fase = anotacion.slice(1);
   if (!anotacion.startsWith('@') || !esFase(fase)) {
-    throw new Error(`${RUTA_PROTEGIDAS}: anotación no válida en «${linea}». Usa @specs o @aceptacion.`);
+    throw new Error(`${RUTA_PROTEGIDAS}: anotación no válida en «${linea}». Usa @specs, @aceptacion o @impl.`);
   }
   return fase;
 }

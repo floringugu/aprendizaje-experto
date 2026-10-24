@@ -1,5 +1,5 @@
 // Registros locales en formato JSON Lines: una línea JSON por evento, y solo se añaden líneas.
-// Los usan el hook Stop (registro-stop.ts) y el enrutador de modelos (registro-enrutador.ts).
+// Los usan el hook Stop (registro-stop.ts) y el aviso de relevo (relevo.ts).
 import { appendFileSync, existsSync, readFileSync } from 'node:fs';
 
 export function anotarLinea(ruta: string, valor: unknown): void {

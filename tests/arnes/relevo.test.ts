@@ -5,6 +5,8 @@ import {
   avisoParaClaude,
   leerRegistroContexto,
   MARCA_RELEVO,
+  MOTIVO_EDICION_TRAS_RELEVO,
+  NOTA_TRAS_RELEVO,
   puedePasarElRelevo,
   tokensDeContexto,
   tramoDeContexto,
@@ -104,5 +106,21 @@ describe('avisoParaClaude', () => {
     const aviso = avisoParaClaude(126_400);
     expect(aviso).toContain('126 k tokens (umbral: 120 k)');
     expect(aviso).toContain(MARCA_RELEVO);
+  });
+});
+
+describe('después del relevo', () => {
+  it('el aviso a Claude dice que no podrá editar más', () => {
+    expect(avisoParaClaude(126_400)).toMatch(/ya no podrá editar/);
+  });
+
+  it('al editar, Claude ve que el relevo está pasado y cómo acabar', () => {
+    expect(MOTIVO_EDICION_TRAS_RELEVO).toContain(MARCA_RELEVO);
+    expect(MOTIVO_EDICION_TRAS_RELEVO).toContain('[DECISIÓN PENDIENTE]');
+  });
+
+  it('con el Stop en rojo, la nota dice que la marca no vale otra vez y que pare con una decisión', () => {
+    expect(NOTA_TRAS_RELEVO).toMatch(/no vale otra vez/);
+    expect(NOTA_TRAS_RELEVO).toContain('[DECISIÓN PENDIENTE]');
   });
 });

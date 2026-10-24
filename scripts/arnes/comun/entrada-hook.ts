@@ -16,6 +16,15 @@ export function campoTexto(objeto: unknown, nombre: string): string | undefined 
   return typeof valor === 'string' ? valor : undefined;
 }
 
+/**
+ * Subagentes que siguen trabajando en segundo plano, según el campo background_tasks de la
+ * entrada del hook Stop. Mientras haya alguno, make check vería sus ficheros a medio escribir.
+ */
+export function subagentesEnCurso(tareasDeFondo: unknown): number {
+  if (!Array.isArray(tareasDeFondo)) return 0;
+  return tareasDeFondo.filter((tarea) => campoTexto(tarea, 'type') === 'subagent').length;
+}
+
 export function responder(respuesta: Record<string, unknown>): void {
   process.stdout.write(JSON.stringify(respuesta));
 }

@@ -11,7 +11,9 @@
 //
 // Relevo: si el contexto ha pasado del umbral (scripts/arnes/comun/relevo.ts), Claude acaba el paso
 // en curso, apunta el relevo y termina con [RELEVO]. Entonces puede parar sin la comprobación: el
-// dueño sigue en una conversación nueva. Por debajo del umbral, la marca no cuenta.
+// dueño sigue en una conversación nueva. Por debajo del umbral, la marca no cuenta. Solo vale una vez
+// por conversación: después el hook bloquear-tras-relevo.ts le niega las ediciones y [RELEVO] ya no
+// deja parar, con lo que vuelven las reglas normales.
 //
 // Espera: si quedan subagentes trabajando en segundo plano (el implementador), no comprueba
 // nada, porque vería sus ficheros a medio escribir. Claude Code despierta a Claude cuando
@@ -22,8 +24,14 @@
 // para sin ejecutar make. Exigirle la comprobación lo empujaría a trabajar en una etapa que
 // nadie le ha pedido. Ni las esperas ni estas paradas se anotan en el registro.
 import { leerAlcance } from '../../scripts/arnes/comun/alcance.ts';
-import { subagentesEnCurso } from '../../scripts/arnes/comun/enrutador.ts';
-import { campo, campoTexto, ejecutarHook, leerEntradaHook, responder } from '../../scripts/arnes/comun/entrada-hook.ts';
+import {
+  campo,
+  campoTexto,
+  ejecutarHook,
+  leerEntradaHook,
+  responder,
+  subagentesEnCurso,
+} from '../../scripts/arnes/comun/entrada-hook.ts';
 import { OBJETIVO_POR_FASE } from '../../scripts/arnes/comun/fases.ts';
 import {
   errorDeEntorno,
@@ -35,12 +43,13 @@ import { hayCambiosSinCommitear } from '../../scripts/arnes/comun/git.ts';
 import { ejecutarObjetivo } from '../../scripts/arnes/comun/make.ts';
 import { faseDeEntorno } from '../../scripts/arnes/comun/protegidas.ts';
 import { RAIZ } from '../../scripts/arnes/comun/raiz.ts';
-import { anotarParada, bloqueosSeguidos, leerRegistro } from '../../scripts/arnes/comun/registro-stop.ts';
+import { anotarParada, bloqueosSeguidos, leerRegistro, relevoPasado } from '../../scripts/arnes/comun/registro-stop.ts';
 import type { ParadaStop } from '../../scripts/arnes/comun/registro-stop.ts';
 import {
   avisoDeRelevoPasado,
   MARCA_RELEVO,
   NOTA_DE_RELEVO_ANTES_DE_TIEMPO,
+  NOTA_TRAS_RELEVO,
   puedePasarElRelevo,
   tokensDelTranscript,
 } from '../../scripts/arnes/comun/relevo.ts';
@@ -68,7 +77,8 @@ ejecutarHook('exigir-check', async () => {
   }
   // Se mira después de la espera: con un subagente aún escribiendo, el relevo saldría a medias.
   const conRelevo = ultimoMensaje.includes(MARCA_RELEVO);
-  if (conRelevo && pasarRelevo(entrada, datos)) return;
+  const relevoYaPasado = relevoPasado(leerRegistro(RAIZ), datos.sesion);
+  if (conRelevo && !relevoYaPasado && pasarRelevo(entrada, datos)) return;
   const objetivo = OBJETIVO_POR_FASE[datos.fase];
   if (!hayCambiosSinCommitear(RAIZ)) {
     responder({ systemMessage: `Sin cambios respecto al último commit: Claude para sin ejecutar make ${objetivo}.` });
@@ -80,9 +90,15 @@ ejecutarHook('exigir-check', async () => {
     return;
   }
   const motivo = anotarBloqueo(datos, objetivo, make.salida);
-  // Si Claude ha intentado pasar el relevo antes de tiempo, se le explica por qué no ha podido parar.
-  responder({ decision: 'block', reason: conRelevo ? `${NOTA_DE_RELEVO_ANTES_DE_TIEMPO}\n\n${motivo}` : motivo });
+  const nota = notaDeRelevo(conRelevo, relevoYaPasado);
+  responder({ decision: 'block', reason: nota === undefined ? motivo : `${nota}\n\n${motivo}` });
 });
+
+/** Por qué no ha podido parar con [RELEVO] (antes de tiempo, o ya pasado), o qué hacer si el relevo ya está pasado. */
+function notaDeRelevo(conRelevo: boolean, relevoYaPasado: boolean): string | undefined {
+  if (relevoYaPasado) return NOTA_TRAS_RELEVO;
+  return conRelevo ? NOTA_DE_RELEVO_ANTES_DE_TIEMPO : undefined;
+}
 
 function datosDeParada(entrada: unknown): DatosDeParada {
   const { cerradas, enCurso } = leerAlcance(RAIZ, process.env);

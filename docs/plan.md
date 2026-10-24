@@ -52,8 +52,10 @@ El dueño aprobó el 18-10-2026 todas las decisiones del §14 y todas las propue
 | Campo `fuente` (20-10-2026; objetivos y categorías, 24-10-2026) | <ul><li>Opcional en objetivos, categorías, ítems, ejemplos resueltos y tareas. En un objetivo, cita de dónde sale su instrucción; en una categoría, dónde describe el material ese tipo de problema. Se conserva al aprobar, para que «Ver fuente» siga disponible.</li><li>Forma: `{documento, lugar, fragmento}`. `lugar` es la página, la diapositiva o el apartado, y `fragmento`, el texto citado tal cual.</li><li>El contenido escrito a mano no lo lleva.</li></ul> | Formato del contenido, `MATE` |
 | Interfaz (20-10-2026) | Solo móvil; tema claro, oscuro o automático; Selawik; movimiento con muelles; vibración con interruptor; emparejamiento por QR (§17). | `src/interfaz/` |
 | Inicio de sesión de Claude Code (20-10-2026) | Botón en Ajustes. Corta a los 5 minutos y tiene «Cancelar». La aplicación nunca guarda, registra ni muestra credenciales (§17.6). | `MATE` |
-| Diseño de módulos (20-10-2026) | <ul><li>Antes del código de cada fichero nuevo de `src/`: el comentario de su interfaz y sus firmas, y al menos otra interfaz radicalmente distinta (*A Philosophy of Software Design*; `docs/arnes.md`, §6).</li><li>`revisor-codigo` busca además las 14 señales de alarma de Ousterhout y anota la deuda de diseño del código de áreas anteriores.</li><li>Esa deuda vive en `docs/deuda-diseno.md` (protegido). Al abrir cada área, el dueño elige qué partidas se pagan: al menos una o una línea con el porqué. Se pagan antes que el área, en un cambio que solo refactoriza.</li><li>ESLint prohíbe en `src/` una lista de nombres vagos (`id-denylist`).</li></ul> | Etapa 4, §7 y ESLint |
-| Enrutador de modelos (24-10-2026) | <ul><li>En la etapa 4, la conversación principal escribe los comentarios de interfaz y las firmas, y encarga los cuerpos y los tests unitarios al subagente `implementador`.</li><li>El modelo de cada encargo lo elige un hook con una regla fija: Haiku si solo toca tests unitarios y como mucho un fichero del dominio, y Sonnet en los demás casos. Reencargar la misma tarea sube de Haiku a Sonnet; después de Sonnet, la hace la conversación principal.</li><li>Los revisores usan siempre el modelo de su cabecera.</li></ul> | Etapa 4, §5 y §7 |
+| Diseño de módulos (20-10-2026) | <ul><li>Antes del código de cada fichero nuevo de `src/`: el comentario de su interfaz y sus firmas, y al menos otra interfaz radicalmente distinta (*A Philosophy of Software Design*; `docs/arnes.md`, §6).</li><li>`revisor-codigo` busca además las 14 señales de alarma de Ousterhout y anota la deuda de diseño del código de áreas anteriores.</li><li>Esa deuda vive en `docs/deuda-diseno.md` (protegido, salvo en la fase `impl`, donde la conversación principal lo edita). Al abrir cada área, el dueño elige qué partidas se pagan: al menos una o una línea con el porqué. Se pagan antes que el área, en un cambio que solo refactoriza.</li><li>ESLint prohíbe en `src/` una lista de nombres vagos (`id-denylist`).</li></ul> | Etapa 4, §7 y ESLint |
+| Enrutador de modelos (24-10-2026, simplificado el 25-10-2026) | <ul><li>En la etapa 4, la conversación principal escribe los comentarios de interfaz y las firmas, y encarga los cuerpos y los tests unitarios al subagente `implementador`.</li><li>El implementador usa siempre Sonnet (`model: sonnet` en su cabecera); un hook le quita el modelo que pase Claude. Sin etiquetas `Tarea:` y `Ficheros:`, sin escalera de modelos y sin registro de encargos: ninguno de esos mecanismos tenía un dato que los justificara.</li><li>Los revisores usan siempre el modelo de su cabecera.</li></ul> | Etapa 4, §5 y §7 |
+| Relevo obligatorio (25-10-2026) | <ul><li>El umbral sigue en 120 k tokens; no se compacta.</li><li>Tras el primer `[RELEVO]` aceptado, la conversación ya no edita ficheros y `[RELEVO]` no deja parar otra vez: vuelven las reglas normales del hook Stop.</li><li>Dato del 22 al 24-10: 23 de 43 conversaciones acabaron en relevo, algunas hasta 7 veces, y pasado el umbral la marca salía sin comprobación siempre.</li></ul> | §5 |
+| Ningún mecanismo sin un dato (25-10-2026) | No se añade un mecanismo al arnés sin un dato de los registros (`.claude/registro-*.jsonl`, `reports/`, transcripts) que muestre el problema que resuelve. | §1 (principio 7) y CLAUDE.md |
 | Especificación de `MATE` (24-10-2026) | <ul><li>**Sin IA no hay borradores:** si no hay ninguna configurada, la aplicación no los redacta y dice que se configura en Ajustes; añadir material y revisar los borradores que ya hay siguen disponibles. El proveedor por defecto se decide en el Mecanismo.</li><li>**Citas:** «tal cual» quiere decir igual salvo los espacios. Cada tramo seguido de espacios, tabuladores y saltos de línea cuenta como uno solo; una palabra, una tilde, una mayúscula o un signo distintos dan «Cita no encontrada». La herramienta que saca el texto se decide en el Mecanismo.</li><li>**URL:** al añadirla se guarda una copia de la página; las citas y «Ver fuente» usan esa copia aunque la página cambie o desaparezca.</li><li>**Corregir:** la pieza corregida sigue pendiente en el borrador y sus marcas se vuelven a calcular. Una corrección que la deja sin el formato del contenido no se guarda.</li><li>**Formato:** las piezas que la IA entrega sin el formato del contenido no entran en el borrador; la aplicación dice cuántas ha apartado y qué les falta.</li><li>En una sesión, «Ver fuente» no aparece hasta que la persona responde; entonces aparece junto al feedback.</li></ul> | `MATE` |
 | Texto de un PDF (24-10-2026, §17.8) | <ul><li>`pdftotext -raw -enc UTF-8 - -`, de Poppler: un programa del PC, como LibreOffice, no una dependencia de npm. Separa las páginas con `\f`. Con `-raw` no une la palabra partida con guion a final de línea (MATE-3.4); en su modo por defecto, sí.</li><li>La aplicación lo llama con `node:child_process`, sin puerto: `Dependencias` no crece sin tocar `tests/aceptacion/soporte/mundo.ts`, así que los escenarios usan el `pdftotext` de verdad. Si falta, el material que hay que leer como PDF se rechaza con `falta_poppler`.</li><li>El texto se saca una sola vez, al añadir el documento, y se guarda página a página. Las citas y «Ver fuente» leen ese texto, no el PDF.</li><li>Descartados: código propio (sería una librería de PDF en miniatura) y `pdfjs-dist` (una dependencia de varios MB que da trozos de texto con posiciones, sin saltos de línea).</li></ul> | `MATE` |
 | Texto de una página web (etapa 3; 24-10-2026) | <ul><li>Con código propio, sin dependencias: se quitan `script` y `style`, las etiquetas de bloque pasan a saltos de línea y se decodifican las entidades. Se lee con el `charset` del `Content-Type` o, si no lo trae, en UTF-8.</li><li>Una URL es una sola página, con `lugar` `'página web'`. Si la URL sirve un PDF, se trata como un PDF; cualquier otro tipo se rechaza.</li></ul> | `MATE` |
@@ -80,6 +82,7 @@ El dueño aprobó el 18-10-2026 todas las decisiones del §14 y todas las propue
 | 4. El progreso se mide solo por el rendimiento observado; la confianza declarada sirve solo para calibrar. | <ul><li>`revisor-evidencia`.</li><li>Escenarios negativos en la etapa 2: declarar mucha confianza no hace avanzar.</li></ul> |
 | 5. La aplicación no inventa contenido del dominio. Lo aporta la persona: lo escribe ella o lo extrae una IA de su propio material, siempre citando de dónde sale, y nada entra en la práctica sin que la persona lo apruebe. | <ul><li>`revisor-evidencia` y `revisor-codigo`.</li><li>El dominio de prueba es ficticio y se carga como datos.</li><li>Los borradores viven en un fichero aparte y el motor solo lee el contenido aprobado.</li><li>La aplicación comprueba que cada cita aparece tal cual en su documento; si no, marca la pieza y no deja aprobarla en bloque.</li><li>Un escenario negativo de `MATE` comprueba que un borrador nunca aparece en una sesión.</li></ul> |
 | 6. Las reglas se hacen cumplir con hooks, tests e integración continua. | <ul><li>Este documento.</li><li>No hay repositorio remoto, así que la integración continua es local por ahora (§14, decisión 16).</li></ul> |
+| 7. No se añade un mecanismo al arnés sin un dato de los registros que muestre el problema. | <ul><li>CLAUDE.md.</li><li>Una propuesta de arnés cita el dato (`.claude/registro-stop.jsonl`, `reports/`, transcripts) que la motiva; sin dato, para con `[DECISIÓN PENDIENTE]`.</li><li>Los registros son pocos a propósito: `registro-stop.jsonl` y `registro-contexto.jsonl`. El del enrutador se quitó el 25-10-2026 por falta de uso.</li></ul> |
 
 ---
 
@@ -115,7 +118,7 @@ docs/
   investigacion.md       la única fuente pedagógica (protegido)
   arnes.md, arnes-verificacion.md   guía de ingeniería (protegidos)
   plan.md                este documento (protegido)
-  deuda-diseno.md        deuda de diseño pendiente, que se paga al abrir cada área (protegido)
+  deuda-diseno.md        deuda de diseño pendiente, que se paga al abrir cada área (protegido; se edita en la fase impl)
   areas/                 archivo de cada área de la etapa 4: mecanismo, interfaces descartadas,
                          deuda pagada, mutación y bloqueos (plantilla.md)
 features/                Gherkin en español (etapa 2; protegido, fase specs)
@@ -135,8 +138,7 @@ scripts/arnes/           scripts de make check y del pre-commit (protegido)
   hooks/                 código de los hooks
   agents/                subagentes revisor-evidencia, revisor-codigo e implementador
   protegidas.txt         rutas protegidas
-  registro-stop.jsonl    una línea por parada del hook Stop (fuera de git)
-  registro-enrutador.jsonl  una línea por encargo al implementador o bloqueo suyo (fuera de git)
+  registro-stop.jsonl    una línea por parada del hook Stop; también dice si una conversación ya pasó el relevo (fuera de git)
   registro-contexto.jsonl   una línea por cada tramo de contexto avisado (relevo; fuera de git)
 .githooks/pre-commit     reglas de los commits
 .vscode/tasks.json       tarea del dueño: fase de la próxima conversación (protegido)
@@ -235,6 +237,10 @@ Están en `.claude/settings.json`:
       {
         "matcher": "Edit|Write|MultiEdit|NotebookEdit|Bash",
         "hooks": [{ "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/proteger-rutas.ts\"", "timeout": 30 }]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit",
+        "hooks": [{ "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/bloquear-tras-relevo.ts\"", "timeout": 30 }]
       },
       {
         "matcher": "Bash",
@@ -341,15 +347,10 @@ Cada hook tarda unos 100 ms.
 
 Elige el modelo de cada subagente con una regla fija (`scripts/arnes/comun/enrutador.ts`), en vez de dejar que lo elija Claude:
 
-- **`implementador`:** lee las líneas `Tarea:` y `Ficheros:` del encargo (§7) y fija el modelo:
-  - Haiku, si el encargo solo toca `tests/unidad/` y como mucho un fichero de `src/dominio/`: funciones puras con la interfaz ya escrita;
-  - Sonnet, en los demás casos (`src/aplicacion/` o varios ficheros del dominio).
-
-  Si la misma conversación vuelve a encargar la misma tarea, es que el encargo anterior no salió bien, y sube un escalón: de Haiku a Sonnet. Después de Sonnet no hay más: el encargo se bloquea, y Claude hace la tarea él mismo o para con `[DECISIÓN PENDIENTE]`. También se bloquea un encargo fuera de la fase impl, sin las dos líneas o con rutas fuera de `src/` y `tests/unidad/`.
-- **`revisor-codigo` y `revisor-evidencia`:** les quita el modelo y el esfuerzo que pase Claude, para que valgan los de su cabecera.
+- **`implementador`, `revisor-codigo` y `revisor-evidencia`:** les quita el modelo y el esfuerzo que pase Claude, para que valgan los de su cabecera (`.claude/agents/`): Sonnet para el implementador y los dos revisores. Un encargo al implementador fuera de la fase impl se bloquea.
 - **Los demás subagentes,** si Claude no les da modelo: Haiku a los de búsqueda (`Explore` y `claude-code-guide`) y Sonnet al resto (`general-purpose`, `Plan`…). Así ningún subagente hereda Opus de la conversación sin que lo veas: el aviso dice qué modelo le ha tocado. Si Claude pasa un modelo, se respeta. Los forks (`subagent_type: "fork"`) siguen con el de la conversación, porque comparten su contexto.
 
-Cada encargo al implementador queda en `.claude/registro-enrutador.jsonl` (fuera de git): la conversación, la tarea, el modelo y los ficheros. De ahí sale la escalera.
+Hasta el 25-10-2026 el implementador iba a Haiku o a Sonnet según los ficheros del encargo (líneas `Tarea:` y `Ficheros:`), con una escalera que subía de modelo al reencargar. Se quitó: el dato era de 15 encargos, 13 a Sonnet y 2 a Haiku.
 
 ### PreToolUse en Read: `indice-markdown.ts`
 
@@ -367,7 +368,12 @@ En cada llamada, el modelo vuelve a leer el contexto entero de la conversación,
 2. Al pasar de **120 k tokens**, te avisa a ti y le pide a Claude que acabe el paso en curso sin empezar otro, apunte el estado al final de `docs/areas/<ÁREA>.md` en una sección «## Relevo» (qué está hecho, qué falta, el paso siguiente y los ficheros que hay que leer primero) y termine con `[RELEVO]`. Si la conversación no trabaja en un área, el relevo va en su mensaje final. El aviso se repite cada 20 k tokens más.
 3. Abres una conversación nueva. El aviso de inicio te dice qué área tiene el relevo, y Claude lee la sección y la borra.
 
-Los subagentes no cuentan: tienen su propio contexto. El último tramo avisado de cada conversación queda en `.claude/registro-contexto.jsonl` (fuera de git), para no repetir el aviso en cada herramienta.
+El relevo es obligatorio. Cuando el hook Stop acepta el primer `[RELEVO]` de una conversación, lo anota en `.claude/registro-stop.jsonl` (resultado `relevo`) y desde entonces:
+
+- **`bloquear-tras-relevo.ts`**, un hook PreToolUse sobre Edit, Write, MultiEdit y NotebookEdit, niega las ediciones de esa conversación y de sus subagentes (comparten `session_id`). Bash no se frena: lo que cambie ahí lo vigilan las huellas y el pre-commit.
+- **El Stop ya no acepta `[RELEVO]`** en esa conversación: vuelven las reglas normales. Si la comprobación falla, Claude no puede arreglarla, y la nota del bloqueo le dice que explique el fallo y pare con `[DECISIÓN PENDIENTE]`; lo arreglas en la conversación nueva.
+
+Los subagentes no cuentan para el umbral: tienen su propio contexto. El último tramo avisado de cada conversación queda en `.claude/registro-contexto.jsonl` (fuera de git), para no repetir el aviso en cada herramienta.
 
 ### Stop: `exigir-check.ts`
 
@@ -384,7 +390,7 @@ El mensaje del bloqueo cambia según el fallo (`scripts/arnes/comun/freno-stop.t
 
 **Espera.** Si quedan subagentes trabajando en segundo plano, como el implementador, no comprueba nada, porque vería sus ficheros a medio escribir; ves el aviso «Claude espera a N subagente(s)». Claude Code despierta a Claude cuando terminan, y el hook se ejecuta de nuevo al parar. Las esperas no se anotan en el registro.
 
-**Relevo.** Si el último mensaje de Claude contiene `[RELEVO]` y el contexto pasa de 120 k tokens, Claude para sin la comprobación y ves el aviso «Claude ha parado con [RELEVO]». Por debajo del umbral, la marca no cuenta: el hook sigue como siempre y, si bloquea, le explica a Claude por qué no ha podido parar.
+**Relevo.** Si el último mensaje de Claude contiene `[RELEVO]`, el contexto pasa de 120 k tokens y la conversación no ha pasado ya un relevo, Claude para sin la comprobación y ves el aviso «Claude ha parado con [RELEVO]». Por debajo del umbral, o con un relevo ya pasado, la marca no cuenta: el hook sigue como siempre y, si bloquea, le explica a Claude por qué no ha podido parar.
 
 **Sin cambios.** Si el árbol de trabajo no difiere del último commit (`git status` no muestra nada), no hay trabajo que comprobar: la conversación ha sido una consulta, o ya has commiteado lo que había. Claude para sin ejecutar make y ves el aviso «Sin cambios respecto al último commit». Exigirle la comprobación lo empujaría a trabajar en una etapa que nadie le ha pedido. Estas paradas tampoco se anotan.
 
@@ -396,9 +402,7 @@ Solo para el subagente `implementador`. Ejecuta `make check-implementador` y, si
 
 - Si su último mensaje contiene `[DECISIÓN PENDIENTE]`, lo devuelve sin comprobar, y decide la conversación principal.
 - Si el fallo es del entorno, le dice que no toque nada y lo devuelva con `[DECISIÓN PENDIENTE]`.
-- En el segundo bloqueo, le pide que escriba en una frase el mecanismo del fallo. Al tercer fallo lo deja devolver el encargo en rojo (ves el aviso), y la conversación principal lo reencarga, con un modelo más capaz, o lo termina ella.
-
-Cada bloqueo queda en `.claude/registro-enrutador.jsonl`.
+- Bloquea una sola vez por encargo: le pide arreglar la causa y escribir en una frase el mecanismo del fallo. Si vuelve a intentar devolverlo y sigue en rojo, el hook lo deja salir (ves el aviso) y la conversación principal lo termina ella o lo reencarga. Que ya es el segundo intento lo dice Claude Code en el campo `stop_hook_active` de la entrada del hook, así que no hace falta un registro de bloqueos. Hasta el 25-10-2026 eran dos bloqueos, contados en `.claude/registro-enrutador.jsonl`.
 
 ### ConfigChange: `bloquear-config.ts`
 
@@ -412,7 +416,8 @@ Impide que se cambie la configuración de Claude Code (la del usuario, la del pr
 
 **Rutas** (`.claude/protegidas.txt`):
 
-- los cinco documentos de `docs/`, incluidos este plan y la deuda de diseño;
+- los cuatro documentos de `docs/` (el informe, el arnés, su verificación y este plan);
+- `docs/deuda-diseno.md` (fase `impl`);
 - `features/` (fase `specs`);
 - `config/parametros.json` (fase `specs`);
 - `config/alcance.json`;
@@ -428,7 +433,7 @@ Impide que se cambie la configuración de Claude Code (la del usuario, la del pr
 
 | Fase | Desbloquea | Comprobación en Stop |
 |---|---|---|
-| impl (por defecto) | — | `make check` |
+| impl (por defecto) | `docs/deuda-diseno.md` | `make check` |
 | specs | `features/` y `config/parametros.json` | `make check-specs` |
 | aceptacion | `tests/aceptacion/` | `make check-aceptacion` |
 
@@ -490,7 +495,7 @@ Claude no puede aplicar el parche él mismo: la guardia bloquea `git apply`, `gi
 
 ## 7. Subagentes
 
-Hay tres. Los dos revisores son de solo lectura: solo tienen Read, Grep y Glob. Usan Sonnet con esfuerzo alto (`effort: high`), porque su trabajo es leer mucho y razonar sobre lo que no ven las herramientas. El tercero, el implementador, escribe código.
+Hay tres. Los dos revisores son de solo lectura: solo tienen Read, Grep y Glob. Usan Sonnet con esfuerzo alto (`effort: high`), porque su trabajo es leer mucho y razonar sobre lo que no ven las herramientas. El tercero, el implementador, escribe código y también usa Sonnet.
 
 **`revisor-evidencia`**
 
@@ -519,16 +524,9 @@ Hay tres. Los dos revisores son de solo lectura: solo tienen Read, Grep y Glob. 
 
 - **Qué hace:** escribe los cuerpos y los tests unitarios de un encargo cuyo diseño ya ha decidido la conversación principal: el comentario de la interfaz y las firmas. No cambia las firmas, no toca ficheros fuera del encargo ni rutas protegidas, y no puede lanzar otros subagentes.
 - **Herramientas:** Read, Grep, Glob, Edit, Write y Bash, sin Agent. Los hooks de la conversación principal también vigilan las suyas.
-- **Encargo:** el prompt lleva estas dos líneas, con las que el hook `enrutar-modelo.ts` elige el modelo (§5):
-
-  ```text
-  Tarea: MAST-3
-  Ficheros: src/dominio/criterio-dominio.ts, tests/unidad/criterio-dominio.test.ts
-  ```
-
-  Cada tarea nueva lleva un número nuevo; repetir uno es reencargar esa tarea, y sube el modelo. Un encargo cada vez: la conversación principal espera a que termine antes de tocar sus ficheros.
-- **Modelo:** Haiku o Sonnet, según la regla del §5; nunca lo elige Claude. La conversación principal sigue con el modelo con el que la abriste (el de la fase, §6), y los demás subagentes van a Haiku o a Sonnet si Claude no les da modelo (§5).
-- **Qué entrega:** «VERDE» o «ROJO», los ficheros que ha tocado y sus dudas. Lo devuelve con `make check-implementador` en verde, o en rojo tras dos bloqueos del hook SubagentStop (§5).
+- **Encargo:** el prompt dice qué ficheros de `src/` y `tests/unidad/` puede tocar y qué comportamiento implementa (con su `@ID`). Un encargo cada vez: la conversación principal espera a que termine antes de tocar sus ficheros.
+- **Modelo:** siempre Sonnet (`model: sonnet` en `.claude/agents/implementador.md`); nunca lo elige Claude: el hook `enrutar-modelo.ts` le quita el que pase (§5). La conversación principal sigue con el modelo con el que la abriste (el de la fase, §6), y los demás subagentes van a Haiku o a Sonnet si Claude no les da modelo (§5).
+- **Qué entrega:** «VERDE» o «ROJO», los ficheros que ha tocado y sus dudas. Lo devuelve con `make check-implementador` en verde, o en rojo tras un bloqueo del hook SubagentStop (§5).
 
 **Cuándo se ejecutan:**
 
@@ -627,15 +625,15 @@ Se activa con `npm ci`: el script `prepare` ejecuta `git config core.hooksPath .
 - **El freno cuenta bloqueos seguidos del mismo paso.** Si Claude alterna dos pasos que fallan, la racha empieza de cero cada vez. Lo verás en `make bloqueos`.
 - **Los hooks solo vigilan a Claude Code.** A ti no te frenan, a propósito.
 - **Los revisores son un LLM:** su informe orienta, pero no demuestra nada.
-- **El implementador puede tocar ficheros fuera de su encargo.** La línea `Ficheros:` elige el modelo y rechaza las rutas fuera de `src/` y `tests/unidad/`, pero no limita lo que edita después. Lo frenan sus instrucciones, `make check` en la conversación principal y tu revisión del diff.
-- **La escalera depende de las etiquetas.** Si Claude reencarga una tarea con otro número, vuelve a empezar en Haiku. Lo verás en `.claude/registro-enrutador.jsonl`.
+- **El implementador puede tocar ficheros fuera de su encargo.** Nada le limita lo que edita, salvo las rutas protegidas. Lo frenan sus instrucciones, `make check` en la conversación principal y tu revisión del diff.
 - **Un implementador cada vez es una instrucción**, no un bloqueo. Dos a la vez podrían pisarse los ficheros, y la comprobación de uno vería los cambios a medias del otro.
 - **Claude podría escribir código con otro subagente** (`general-purpose`, por ejemplo). Va a Sonnet si Claude no le da modelo, pero si se lo da, el enrutador lo respeta. Lo frenan CLAUDE.md y tu revisión.
-- **`make bloqueos` no cuenta los bloqueos del implementador:** están en `.claude/registro-enrutador.jsonl`.
+- **Los bloqueos del implementador no se registran:** el hook SubagentStop solo sabe si es el segundo intento (`stop_hook_active`). `make bloqueos` no los cuenta.
 - **Un árbol limpio deja parar sin comprobar.** Si Claude commiteara su propio trabajo en rojo, el hook Stop lo dejaría parar. Lo frenan sus instrucciones (no commitea si no se lo pides), el `make check` que ejecutas después de cada commit y tu revisión.
 - **El índice de Markdown solo vigila Read.** `cat docs/plan.md` en Bash lee el fichero entero; lo frena la regla de CLAUDE.md. Tampoco cubre los `.md` de fuera del repositorio, como el clon de una propuesta.
 - **El relevo depende del transcript de Claude Code.** El tamaño sale de su campo `usage`, que puede ir una llamada por detrás y cuyo formato no es una interfaz estable. Si cambia, no hay aviso y `[RELEVO]` no deja parar: el hook Stop exige la comprobación como siempre. Como la marca solo vale por encima del umbral, tampoco sirve para saltarse la comprobación en una conversación corta.
-- **El relevo es una instrucción.** Claude podría seguir trabajando después del aviso; lo ves tú, porque el aviso se repite cada 20 k tokens.
+- **El relevo es una instrucción hasta que Claude lo pasa.** Claude podría seguir trabajando después del aviso; lo ves tú, porque el aviso se repite cada 20 k tokens. Una vez aceptado el `[RELEVO]`, la conversación ya no edita con las herramientas Edit, Write, MultiEdit y NotebookEdit; con Bash sí podría escribir ficheros, y lo cubren las huellas y el pre-commit, no este hook.
+- **El relevo pasado se lee del registro del hook Stop.** Si el registro se pierde, la conversación vuelve a poder editar.
 - **Que pasen los tests no demuestra eficacia pedagógica.** Lo dirá el README de la etapa 5.
 
 ---
@@ -826,19 +824,19 @@ Una conversación nueva en la fase `impl` por cada área. El MVP es DIAG, PLAN, 
 
 Para cada área:
 
-1. Abro su archivo, `docs/areas/<ÁREA>.md`, copiando `docs/areas/plantilla.md`. Te propongo qué partidas de `docs/deuda-diseno.md` se pagan con ella: al menos una o, si no, una línea que diga por qué ninguna. Tú aplicas la propuesta y eliges. Pago las partidas primero, sin comportamiento nuevo y con `make check` en verde, y paro para que las commitees aparte (`refactor: …`), con los comandos que te doy.
+1. Abro su archivo, `docs/areas/<ÁREA>.md`, copiando `docs/areas/plantilla.md`. Te propongo qué partidas de `docs/deuda-diseno.md` se pagan con ella: al menos una o, si no, una línea que diga por qué ninguna. Tú eliges. Pago las partidas primero, sin comportamiento nuevo y con `make check` en verde, y paro para que las commitees aparte (`refactor: …`), con los comandos que te doy.
 2. **Mecanismo.** Solo en las áreas con arquitectura: MATE, PLAN (`ts-fsrs`) y las que añaden una pantalla nueva a la interfaz. Antes de escribir nada en `src/`:
    - explico en prosa cómo funcionará por dentro: qué datos entran, qué módulo hace qué y qué queda guardado;
    - esbozo dos interfaces radicalmente distintas para su módulo central, con sus pros y contras;
    - lo dejo en la sección «Mecanismo» del archivo del área y paro con `[DECISIÓN PENDIENTE]` hasta que lo apruebes.
 
    Las áreas de dominio puro se saltan este paso y lo dicen en su archivo.
-3. Escribo el comentario de la interfaz y las firmas de `src/dominio`, y encargo los cuerpos y sus tests unitarios, que citan el `@ID`, al subagente `implementador` (§7). Si lo devuelve en rojo, lo reencargo con la misma etiqueta, que sube el modelo, o lo termino yo.
+3. Escribo el comentario de la interfaz y las firmas de `src/dominio`, y encargo los cuerpos y sus tests unitarios, que citan el `@ID`, al subagente `implementador` (§7). Si lo devuelve en rojo, lo termino yo o lo reencargo con lo que ha aprendido.
 4. Hago lo mismo con la aplicación y la infraestructura necesarias.
 5. Dejo `make check` en verde, que no incluye la aceptación del área en curso.
 6. Cierro el área con `make cerrar-area A=<ÁREA>`: además de lo anterior, exige en verde la aceptación y la cobertura de sus escenarios. Ejecuto los dos revisores, `make mutacion` y `make bloqueos A=<ÁREA>`.
 7. Completo el archivo del área: mecanismo, interfaces descartadas y por qué, deuda pagada, puntuación de mutación y bloqueos del hook Stop.
-8. Te doy un resumen breve, con la propuesta para `docs/deuda-diseno.md` (las partidas nuevas del revisor, las pagadas y la línea del área), la que añade el área a `areas_cerradas` en `config/alcance.json` (§6) y los comandos para aplicarlas, commitear el área, integrar su rama (`make integrar`) y retirar el worktree (`make retirar`).
+8. Apunto en `docs/deuda-diseno.md`, que se edita en la fase `impl`, las partidas nuevas del revisor, las pagadas y la línea del área. Te doy un resumen breve, con la propuesta que añade el área a `areas_cerradas` en `config/alcance.json` (§6) y los comandos para aplicarlas, commitear el área, integrar su rama (`make integrar`) y retirar el worktree (`make retirar`).
 
 Antes del código de cada fichero nuevo de `src/`, de cualquier capa (`docs/arnes.md`, §6, y skill `codebase-design`):
 

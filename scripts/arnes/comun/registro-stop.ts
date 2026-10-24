@@ -1,7 +1,8 @@
 // Registro de las paradas del hook Stop: .claude/registro-stop.jsonl, una línea JSON por parada.
 //
-// Sirve para dos cosas:
+// Sirve para tres cosas:
 //   - el freno: contar cuántas veces seguidas ha bloqueado el mismo paso en una conversación;
+//   - el relevo: saber si la conversación ya ha pasado el suyo (relevoPasado);
 //   - el archivo de cada área (docs/areas/<ÁREA>.md): cuántas veces bloqueó el hook mientras
 //     se implementaba el área («make bloqueos A=<ÁREA>»).
 // El fichero está en .gitignore: es local, como reports/, pero vive en .claude/ para que
@@ -65,6 +66,15 @@ function esParada(valor: unknown): valor is ParadaStop {
     (RESULTADOS as readonly unknown[]).includes(parada['resultado']) &&
     (Array.isArray(parada['areasCerradas']) || Array.isArray(parada['areasFueraDeAlcance']))
   );
+}
+
+/**
+ * ¿La conversación ya ha parado con [RELEVO] aceptado? Desde entonces no edita más y el Stop no acepta
+ * otro relevo (docs/plan.md §5, «Relevo»): el hook PreToolUse bloquear-tras-relevo.ts y exigir-check.ts
+ * lo leen de aquí, y así no hace falta otro registro.
+ */
+export function relevoPasado(registro: readonly ParadaStop[], sesion: string): boolean {
+  return registro.some((parada) => parada.sesion === sesion && parada.resultado === 'relevo');
 }
 
 /** Bloqueos seguidos de ese paso al final del registro de la conversación. Otra conversación no corta la racha. */

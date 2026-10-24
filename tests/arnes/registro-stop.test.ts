@@ -5,6 +5,7 @@ import {
   formatearResumen,
   leerRegistro,
   parsearRegistro,
+  relevoPasado,
   resumirArea,
 } from '../../scripts/arnes/comun/registro-stop.ts';
 import type { ParadaStop } from '../../scripts/arnes/comun/registro-stop.ts';
@@ -53,6 +54,21 @@ describe('anotarParada y leerRegistro', () => {
     anotarParada(raiz, parada());
     anotarParada(raiz, bloqueo('lint', { seguidos: 1, entorno: 'EACCES' }));
     expect(leerRegistro(raiz)).toEqual([parada(), bloqueo('lint', { seguidos: 1, entorno: 'EACCES' })]);
+  });
+});
+
+describe('relevoPasado', () => {
+  it('es cierto si la conversación ya ha parado con [RELEVO] aceptado', () => {
+    expect(relevoPasado([parada(), parada({ resultado: 'relevo' }), bloqueo('unidad')], 'a')).toBe(true);
+  });
+
+  it('no cuenta el relevo de otra conversación, y es falso sin paradas', () => {
+    expect(relevoPasado([parada({ sesion: 'b', resultado: 'relevo' })], 'a')).toBe(false);
+    expect(relevoPasado([], 'a')).toBe(false);
+  });
+
+  it('un bloqueo o una decisión no son un relevo', () => {
+    expect(relevoPasado([bloqueo('unidad'), parada({ resultado: 'decision' })], 'a')).toBe(false);
   });
 });
 

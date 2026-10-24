@@ -3,5 +3,4 @@ reports/
 .stryker-tmp/
 .claude/settings.local.json
 .claude/registro-stop.jsonl
-.claude/registro-enrutador.jsonl
 .claude/registro-contexto.jsonl

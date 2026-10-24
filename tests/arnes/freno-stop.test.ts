@@ -91,21 +91,20 @@ describe('motivoDeBloqueo', () => {
 });
 
 function falloDelImplementador(cambios: Partial<FalloDelImplementador> = {}): FalloDelImplementador {
-  return { paso: 'unidad', entorno: undefined, bloqueo: 1, salida: SALIDA_UNIDAD, ...cambios };
+  return { paso: 'unidad', entorno: undefined, salida: SALIDA_UNIDAD, ...cambios };
 }
 
 describe('motivoDeBloqueoDelImplementador', () => {
-  it('en el primer bloqueo pide arreglar la causa en los ficheros del encargo y añade la salida de make', () => {
+  it('pide arreglar la causa en los ficheros del encargo y añade la salida de make', () => {
     const motivo = motivoDeBloqueoDelImplementador(falloDelImplementador());
     expect(motivo).toMatch(/^make check-implementador falla en el paso «unidad»/);
     expect(motivo).toMatch(/Arregla la causa en los ficheros de tu encargo/);
-    expect(motivo).not.toMatch(/último intento/);
     expect(motivo).toMatch(/Últimas líneas de make check-implementador:\n\nFAIL tests\/unidad\/a\.test\.ts/);
   });
 
-  it('en el segundo bloqueo avisa de que es el último intento y pide el mecanismo del fallo', () => {
-    const motivo = motivoDeBloqueoDelImplementador(falloDelImplementador({ bloqueo: 2 }));
-    expect(motivo).toMatch(/Es tu último intento/);
+  it('avisa de que es el único intento y pide el mecanismo del fallo antes de devolverlo en rojo', () => {
+    const motivo = motivoDeBloqueoDelImplementador(falloDelImplementador());
+    expect(motivo).toMatch(/Es tu único intento/);
     expect(motivo).toMatch(/en una sola frase el mecanismo/);
     expect(motivo).toMatch(/devuelve el encargo en ROJO/);
   });

@@ -118,17 +118,9 @@ function instruccionFreno(fallo: Fallo): string {
 // Hook SubagentStop del implementador
 // ---------------------------------------------------------------------------
 
-/**
- * Bloqueos que el hook SubagentStop hace al implementador. Al siguiente fallo le deja devolver el
- * encargo en rojo, y la conversación principal puede reencargarlo con un modelo más capaz (enrutador.ts).
- */
-export const BLOQUEOS_DEL_IMPLEMENTADOR = 2;
-
 export interface FalloDelImplementador {
   readonly paso: string;
   readonly entorno: ErrorDeEntorno | undefined;
-  /** Número de este bloqueo al subagente, desde 1. */
-  readonly bloqueo: number;
   /** Salida completa de make. */
   readonly salida: string;
 }
@@ -140,6 +132,10 @@ export function motivoDeBloqueoDelImplementador(fallo: FalloDelImplementador): s
   );
 }
 
+/**
+ * El hook SubagentStop bloquea al implementador una sola vez: si ya está continuando por un bloqueo
+ * (stop_hook_active), le deja devolver el encargo en rojo (exigir-check-implementador.ts).
+ */
 function instruccionAlImplementador(fallo: FalloDelImplementador): string {
   if (fallo.entorno !== undefined) {
     return (
@@ -148,14 +144,11 @@ function instruccionAlImplementador(fallo: FalloDelImplementador): string {
       `y termina con ${MARCA_DECISION_PENDIENTE}.`
     );
   }
-  const instruccion =
+  return (
     `make ${OBJETIVO_DEL_IMPLEMENTADOR} falla en el paso «${fallo.paso}» y no puedes devolver el encargo ` +
     'hasta que pase. Arregla la causa en los ficheros de tu encargo, no la comprobación. Si la causa está ' +
     'fuera de ellos, en las firmas o en la especificación, explícalo y termina con ' +
-    `${MARCA_DECISION_PENDIENTE}.`;
-  if (fallo.bloqueo < BLOQUEOS_DEL_IMPLEMENTADOR) return instruccion;
-  return (
-    `${instruccion} Es tu último intento. Antes de cambiar nada, escribe en una sola frase el mecanismo ` +
-    'exacto del fallo. Si aun así sigue fallando, devuelve el encargo en ROJO con esa frase.'
+    `${MARCA_DECISION_PENDIENTE}. Es tu único intento: antes de cambiar nada, escribe en una sola frase el ` +
+    'mecanismo exacto del fallo. Si aun así sigue fallando, devuelve el encargo en ROJO con esa frase.'
   );
 }
