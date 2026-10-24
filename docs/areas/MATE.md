@@ -162,27 +162,40 @@ Salida de `make bloqueos A=<ÁREA>` al cerrar el área, y una frase sobre el blo
 
 **Hecho.**
 
-- MATE-4 (implementador, Sonnet, VERDE), revisado. Sin commitear.
-  - `src/aplicacion/inicio-sesion.ts`: `crearInicioSesion` devuelve una clase interna, `CasosDeInicioSesion`, porque con cierres se pasaba de 40 líneas. Cada inicio es un objeto propio, y el callback de `iniciarSesion` lo captura para ignorar los eventos de un proceso viejo. Si el proceso termina dentro de `iniciarSesion`, no se programa el corte.
-  - El enlace acaba en el primer espacio, `«`, `»`, `<`, `>` o `"`. Al final quita `. , ; : ! ? ) ] } ' …`: además de lo que dice el comentario, el implementador añadió `!`, `?`, `]`, `}`, `'` y `…`.
-  - `enviarCodigo` comprueba primero que haya un inicio en marcha y después el código vacío.
-  - Tests en `tests/unidad/inicio-sesion.test.ts`.
-- Cambios míos:
-  - `rechazarElCampo` pasa de `revision.ts` a `resultado.ts`, exportado, y lo usan los dos.
-  - `InicioSesionEnCurso` se exporta de `claude-code.ts` y sustituye la copia que había en `inicio-sesion.ts`.
-  - `MS_PARA_INICIAR_SESION` está en `unidades.ts`.
-  - `aplicacion.ts` está cableado: `CASOS_DE_MATERIAL` es solo `CasosDeMaterial`.
-- `revision.ts` tiene una línea de código menos, así que queda una por debajo del límite de `max-lines`. Prettier ya fallaba en él en HEAD (cuatro líneas largas), y formatearlo añade 9 líneas: no se ha formateado.
-- Los escenarios de MATE-8 siguen en rojo, pero solo por el antecedente común, que llama a `anadirMaterial`. Un script desechable con `ClaudeCodeDePrueba` y `TemporizadorDePrueba` pasó MATE-8.1, 8.2, 8.3 y 8.7 y el relanzamiento contra `crearInicioSesion`.
+- MATE-4, el inicio de sesión de Claude Code (`src/aplicacion/inicio-sesion.ts`), está commiteado y cableado en `aplicacion.ts` (67f4c14).
+- He revisado lo que hace falta para `anadirMaterial`, sin tocar `src/`:
+  - `pdftotext` 26.01 está en `/usr/bin/pdftotext`.
+  - `.dependency-cruiser.cjs` solo prohíbe los módulos de Node en `src/dominio`, así que `src/aplicacion` puede importar `node:child_process` (decisión 1 de §17.8).
+  - Los dobles están en `tests/aceptacion/soporte/externos.ts`:
+    - `LibreOfficeDePrueba` devuelve un PDF de verdad, hecho con `pdfDePrueba`. Su `convertirAPdf` rechaza la promesa si no está instalado.
+    - `WebDePrueba` sirve `text/html; charset=utf-8` con un único `<p>`.
+  - Los pasos de MATE-1 (`tests/aceptacion/pasos/material.ts`) comprueban:
+    - la `causa` del rechazo;
+    - que `listarMaterial` da el nombre o la URL tal cual;
+    - que entre `ficheros.escritos` están los bytes del PDF que devolvió LibreOffice.
 
 **Falta.**
 
-1. Los casos de uso de `material.ts`. Empieza por `anadirMaterial`, que desbloquea el antecedente de todos los escenarios de MATE, MATE-8 incluido. Después vienen la revisión con deshacer (comprueba `idRepetido` al leer la mesa), `verFuente` y `redactarBorrador`.
-2. Al cerrar el área, repite la mutación de `revision.ts` (90,52 %, anterior a MATE-3) y pasa la de `inicio-sesion.ts`.
+1. `anadirMaterial` y `listarMaterial`, según los puntos 1 a 3 de «Mecanismo» y la decisión 3. Antes de encargar el trabajo, escribe tú las firmas. Propongo tres módulos:
+   - **Extracción del texto de un PDF**: `pdftotext -raw -enc UTF-8 - -`, con las páginas separadas por `\f`. Si falta el programa, `falta_poppler`.
+   - **Texto de un HTML**: código propio, con el `charset` que diga el `Content-Type`.
+   - **Índice y textos guardados** (`material/<dominio>/indice.json` y `<nombre>.texto.json`): también da los `TextosDelMaterial` que necesitan la revisión y «Ver fuente».
 
-**Nota sobre `make check`.** El paso «aceptacion» falla igual que en HEAD: 75 escenarios, todos de MATE y todos en el antecedente `anadirMaterial`. Los pasos anteriores pasan.
+   Encárgalos uno a uno y cablea `aplicacion.ts`. Así se desbloquea el antecedente de todos los escenarios de MATE.
+2. Después, `abrirRevision`, las cuatro acciones, `deshacer` (comprueba `idRepetido` al leer la mesa), `verFuente` y `redactarBorrador`.
+3. **MATE-6.3 seguirá en rojo aunque se termine MATE:** el paso llama a `pedirTarea`, que es del área TARE (fuera de alcance), y lanza «Sin implementar». Al cerrar el área, el hook Stop no dejará terminar con «aceptacion» en rojo. Habrá que planteárselo al dueño con `[DECISIÓN PENDIENTE]`: implementar `pedirTarea` lo justo, sacar TARE del alcance o retocar el escenario.
+4. Al cerrar el área, repite la mutación de `revision.ts` (90,52 %, anterior a MATE-3) y pasa la de `inicio-sesion.ts`.
+
+**Nota sobre `make check`.** El paso «aceptacion» falla igual que en HEAD: 75 escenarios de MATE, que se paran en el antecedente `anadirMaterial`. Los pasos anteriores pasan. El hook Stop solo exige `make check` si hay cambios desde el último commit: conviene commitear cada caso de uso terminado.
+
+**Paso siguiente.** El punto 1: primero las firmas de los tres módulos, después el primer encargo.
 
 **Leer primero:**
 
-- este relevo;
-- `src/aplicacion/material.ts`, el puerto de ficheros y el de LibreOffice de `src/aplicacion/puertos.ts`, `tests/aceptacion/pasos/material.ts` y `tests/aceptacion/soporte/escenario-material.ts`.
+- este relevo y los puntos 1 a 3 de «Mecanismo» y la decisión 3;
+- `src/aplicacion/material.ts`;
+- los puertos `Ficheros`, `LibreOffice` y `Web` de `src/aplicacion/puertos.ts`;
+- `TextosDelMaterial` en `src/dominio/citas.ts`;
+- los pasos de MATE-1 en `tests/aceptacion/pasos/material.ts`;
+- `LibreOfficeDePrueba`, `WebDePrueba` y `FicherosDePrueba` en `tests/aceptacion/soporte/externos.ts`;
+- `tests/aceptacion/soporte/pdf.ts`.
