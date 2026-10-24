@@ -1,36 +1,44 @@
-// make check-aceptacion (etapa 3): todos los escenarios en alcance deben fallar en rojo.
+// make check-aceptacion (etapa 3): los escenarios del área en curso deben fallar en rojo y los de
+// las áreas cerradas, seguir en verde.
 //
-// En la etapa 3 los steps existen pero la aplicación no. Cada escenario debe tener todos
-// sus pasos definidos y fallar de verdad: ni pendiente, ni saltado, ni en verde.
+// En la etapa 3 los steps del área en curso existen pero su aplicación no. Cada escenario debe
+// tener todos sus pasos definidos y fallar de verdad: ni pendiente, ni saltado, ni en verde.
 // Un escenario en verde sin aplicación indica un Then que no comprueba nada.
+// Las áreas cerradas ya tienen aplicación: su regresión sigue en verde.
 import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, rmSync } from 'node:fs';
 import path from 'node:path';
-import { areaDe, leerAreasFueraDeAlcance } from './comun/alcance.ts';
+import { areaDe, leerAlcance } from './comun/alcance.ts';
+import type { Alcance } from './comun/alcance.ts';
+import { problemasDeEscenario } from './comun/estado-escenarios.ts';
 import { pasosPorEscenario, RUTA_MENSAJES_CUCUMBER } from './comun/estados-cucumber.ts';
 import { idDe, leerFeatures } from './comun/gherkin.ts';
 import { RAIZ } from './comun/raiz.ts';
 
-const PROBLEMAS_POR_ESTADO: Readonly<Record<string, string>> = {
-  UNDEFINED: 'tiene pasos sin definir',
-  AMBIGUOUS: 'tiene pasos que encajan con varias definiciones',
-  PENDING: 'tiene pasos pendientes',
-};
-
 function principal(): number {
+  const alcance = leerAlcance(RAIZ, process.env);
+  if (alcance.enCurso === undefined) {
+    console.error('La fase aceptacion necesita un área en curso: make fase F=aceptacion A=<ÁREA>.');
+    return 1;
+  }
   const rutaMensajes = path.join(RAIZ, RUTA_MENSAJES_CUCUMBER);
   rmSync(rutaMensajes, { force: true });
-  const cucumber = spawnSync('npx', ['--no-install', 'cucumber-js'], { cwd: RAIZ, encoding: 'utf8' });
+  const cucumber = spawnSync('npx', ['--no-install', 'cucumber-js', '--profile', 'area'], {
+    cwd: RAIZ,
+    encoding: 'utf8',
+  });
   if (!existsSync(rutaMensajes)) {
     console.error(`Cucumber no ha llegado a ejecutar los escenarios:\n${cucumber.stdout}${cucumber.stderr}`);
     return 1;
   }
-  const idsEnAlcance = escenariosEnAlcance();
-  const pasos = pasosPorEscenario(readFileSync(rutaMensajes, 'utf8'), idsEnAlcance);
-  const problemas = [...idsEnAlcance].flatMap((id) => problemasDeEscenario(id, pasos.get(id)));
+  const ids = escenariosEnAlcance(alcance);
+  const pasos = pasosPorEscenario(readFileSync(rutaMensajes, 'utf8'), new Set(ids.keys()));
+  const problemas = [...ids].flatMap(([id, esperado]) => problemasDeEscenario(id, pasos.get(id), esperado));
   if (problemas.length === 0) {
+    const enCurso = [...ids.values()].filter((esperado) => esperado === 'rojo').length;
     console.log(
-      `Los ${String(idsEnAlcance.size)} escenarios en alcance fallan en rojo, con todos sus pasos definidos.`,
+      `Los ${String(enCurso)} escenarios de ${alcance.enCurso} fallan en rojo, con todos sus pasos definidos; ` +
+        `los ${String(ids.size - enCurso)} de las áreas cerradas siguen en verde.`,
     );
     return 0;
   }
@@ -38,23 +46,16 @@ function principal(): number {
   return 1;
 }
 
-function escenariosEnAlcance(): Set<string> {
-  const fuera = leerAreasFueraDeAlcance(RAIZ);
+/** Los escenarios del área en curso (rojo) y los de las cerradas (verde). */
+function escenariosEnAlcance(alcance: Alcance): Map<string, 'rojo' | 'verde'> {
   const ids = leerFeatures(RAIZ).elementos.flatMap((elemento) =>
     elemento.tipo === 'Scenario' ? (idDe(elemento) ?? []) : [],
   );
-  return new Set(ids.filter((id) => !fuera.includes(areaDe(id))));
-}
-
-function problemasDeEscenario(id: string, pasos: readonly string[] | undefined): string[] {
-  if (pasos === undefined) return [`@${id} no se ha ejecutado.`];
-  const problemas = Object.entries(PROBLEMAS_POR_ESTADO)
-    .filter(([estado]) => pasos.includes(estado))
-    .map(([, problema]) => `@${id} ${problema}.`);
-  if (!pasos.includes('FAILED')) {
-    problemas.push(`@${id} no falla: algún Then debe comprobar un estado observable que la aplicación aún no produce.`);
-  }
-  return problemas;
+  const esperados = ids.flatMap((id): [string, 'rojo' | 'verde'][] => {
+    if (areaDe(id) === alcance.enCurso) return [[id, 'rojo']];
+    return alcance.cerradas.includes(areaDe(id)) ? [[id, 'verde']] : [];
+  });
+  return new Map(esperados);
 }
 
 process.exitCode = principal();

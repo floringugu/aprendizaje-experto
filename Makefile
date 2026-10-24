@@ -1,13 +1,19 @@
 # Comprobaciones del proyecto. El hook Stop (.claude/hooks/exigir-check.ts) ejecuta la de la fase:
-#   make check             fase impl (por defecto): todo, en el orden que fija docs/plan.md
+#   make check             fase impl (por defecto): los pasos estáticos, la unidad, la aceptación de las
+#                          áreas cerradas (regresión; no la del área en curso), la cobertura y la integridad
 #   make check-specs       fase specs (etapa 2): features/ y parámetros válidos
-#   make check-aceptacion  fase aceptacion (etapa 3): todos los escenarios fallan en rojo
+#   make check-aceptacion  fase aceptacion (etapa 3): el área en curso falla en rojo y las cerradas, en verde
 # Y el hook SubagentStop (.claude/hooks/exigir-check-implementador.ts), la del implementador:
 #   make check-implementador  los pasos estáticos y los tests unitarios, sin código muerto
+# Al cerrar un área, para que la aplicación y la aceptación del área en curso estén en verde:
+#   make cerrar-area A=<ÁREA>
 # Cada paso es un script de package.json. La ejecución se para en el primer paso que falla.
 #
 # Objetivos solo para el dueño, desde su terminal o las tareas de VS Code (.vscode/tasks.json):
-#   make fase F=<fase>     fija la fase de la próxima conversación de Claude Code
+#   make fase F=<fase> [A=<ÁREA>]  fija la fase y el área en curso de la próxima conversación de Claude Code
+#   make abrir N=<nombre> F=<fase> [A=<ÁREA>]  crea un worktree y una rama para una conversación
+#   make integrar N=<nombre>   pone la rama sobre main, la comprueba y la fusiona en main
+#   make retirar N=<nombre>    borra el worktree y la rama, ya integrada
 # Y uno de consulta: make bloqueos A=<ÁREA> resume las paradas del hook Stop de un área.
 
 ESTATICOS := tipos lint duplicacion codigo-muerto capas unidad
@@ -21,7 +27,7 @@ define ejecutar_pasos
 	printf '\n✓ Todo en verde.\n'
 endef
 
-.PHONY: check check-specs check-aceptacion check-implementador mutacion fase bloqueos instalar formatear
+.PHONY: check check-specs check-aceptacion cerrar-area check-implementador mutacion fase abrir integrar retirar bloqueos instalar formatear
 
 check:
 	$(call ejecutar_pasos,$(ESTATICOS) aceptacion cobertura-ids integridad)
@@ -31,6 +37,13 @@ check-specs:
 
 check-aceptacion:
 	$(call ejecutar_pasos,$(ESTATICOS) specs estado-aceptacion integridad)
+
+# El área A en curso, completa: la aceptación y la cobertura incluyen sus escenarios. ARNES_AREA lo
+# lee scripts/arnes/comun/alcance.ts. Es lo último antes de proponer que A pase a areas_cerradas.
+cerrar-area: export ARNES_AREA = $(A)
+cerrar-area:
+	@test -n "$(A)" || { echo 'Uso: make cerrar-area A=<ÁREA>'; exit 1; }
+	$(call ejecutar_pasos,$(ESTATICOS) aceptacion-area cobertura-ids-area integridad)
 
 # Sin codigo-muerto: cuando el implementador devuelve su encargo, la aplicación aún no usa las
 # funciones nuevas del dominio. Ese paso, la aceptación y la integridad los exige después el
@@ -42,10 +55,20 @@ check-implementador:
 mutacion:
 	npm run --silent mutacion
 
-# Solo el dueño: guarda la fase en .claude/settings.local.json (fuera de git). Vale para la
-# próxima conversación; las que están abiertas siguen en su fase.
+# Solo el dueño: guarda la fase y el área en .claude/settings.local.json (fuera de git). Vale para
+# la próxima conversación; las que están abiertas siguen en su fase.
 fase:
-	@node scripts/arnes/fijar-fase.ts $(F)
+	@node scripts/arnes/fijar-fase.ts $(F) $(A)
+
+# Solo el dueño, desde el directorio principal: un worktree por conversación (docs/plan.md §6).
+abrir:
+	@node scripts/arnes/worktrees.ts abrir $(N) $(F) $(A)
+
+integrar:
+	@node scripts/arnes/worktrees.ts integrar $(N)
+
+retirar:
+	@node scripts/arnes/worktrees.ts retirar $(N)
 
 # Paradas del hook Stop (.claude/registro-stop.jsonl) mientras el área estaba en curso,
 # para el archivo del área (docs/areas/<ÁREA>.md).

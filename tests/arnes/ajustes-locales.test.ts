@@ -1,5 +1,8 @@
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { ajustesConFase } from '../../scripts/arnes/comun/ajustes-locales.ts';
+import { ajustesConFase, fijarFase, RUTA_AJUSTES_LOCALES } from '../../scripts/arnes/comun/ajustes-locales.ts';
+import { directorioTemporal, escribirFicheros } from './temporal.ts';
 
 function leer(texto: string): unknown {
   return JSON.parse(texto);
@@ -7,12 +10,12 @@ function leer(texto: string): unknown {
 
 describe('ajustesConFase', () => {
   it('crea los ajustes si el fichero no existe o está vacío', () => {
-    expect(leer(ajustesConFase(undefined, 'specs'))).toEqual({
+    expect(leer(ajustesConFase(undefined, 'specs', undefined))).toEqual({
       env: { ARNES_FASE: 'specs' },
       model: 'sonnet',
       effortLevel: 'high',
     });
-    expect(leer(ajustesConFase('  \n', 'impl'))).toEqual({
+    expect(leer(ajustesConFase('  \n', 'impl', undefined))).toEqual({
       env: { ARNES_FASE: 'impl' },
       model: 'opus',
       effortLevel: 'xhigh',
@@ -26,7 +29,7 @@ describe('ajustesConFase', () => {
       model: 'opus',
       effortLevel: 'xhigh',
     });
-    expect(leer(ajustesConFase(anterior, 'aceptacion'))).toEqual({
+    expect(leer(ajustesConFase(anterior, 'aceptacion', undefined))).toEqual({
       permissions: { allow: ['Bash(make check)'] },
       env: { ARNES_FASE: 'aceptacion', OTRA: '1' },
       model: 'sonnet',
@@ -35,7 +38,7 @@ describe('ajustesConFase', () => {
   });
 
   it('escribe JSON con sangría y un salto de línea al final', () => {
-    expect(ajustesConFase(undefined, 'impl')).toBe(
+    expect(ajustesConFase(undefined, 'impl', undefined)).toBe(
       '{\n  "env": {\n    "ARNES_FASE": "impl"\n  },\n  "model": "opus",\n  "effortLevel": "xhigh"\n}\n',
     );
   });
@@ -46,6 +49,61 @@ describe('ajustesConFase', () => {
     ['{"env": "specs"}', /«env» debe ser un objeto JSON/],
     ['{"env": null}', /«env» debe ser un objeto JSON/],
   ])('se niega a sobrescribir unos ajustes que no entiende: %s', (anterior, error) => {
-    expect(() => ajustesConFase(anterior, 'impl')).toThrow(error);
+    expect(() => ajustesConFase(anterior, 'impl', undefined)).toThrow(error);
+  });
+});
+
+describe('ajustesConFase con área', () => {
+  it('guarda el área en env.ARNES_AREA y cambia la anterior', () => {
+    const anterior = JSON.stringify({ env: { ARNES_FASE: 'impl', ARNES_AREA: 'MAST', OTRA: '1' } });
+    expect(leer(ajustesConFase(anterior, 'aceptacion', 'MATE'))).toMatchObject({
+      env: { ARNES_FASE: 'aceptacion', ARNES_AREA: 'MATE', OTRA: '1' },
+    });
+  });
+
+  it('quita el área anterior si no se da otra', () => {
+    const anterior = JSON.stringify({ env: { ARNES_FASE: 'impl', ARNES_AREA: 'MAST' } });
+    expect(leer(ajustesConFase(anterior, 'specs', undefined))).toMatchObject({ env: { ARNES_FASE: 'specs' } });
+    expect(ajustesConFase(anterior, 'specs', undefined)).not.toContain('ARNES_AREA');
+  });
+});
+
+describe('fijarFase', () => {
+  const textoDe = (raiz: string): string => readFileSync(path.join(raiz, RUTA_AJUSTES_LOCALES), 'utf8');
+
+  it('escribe los ajustes de la raíz', () => {
+    const raiz = directorioTemporal();
+    escribirFicheros(raiz, { '.claude/.vacio': '' });
+    fijarFase(raiz, { fase: 'impl', area: 'MATE' });
+    expect(leer(textoDe(raiz))).toMatchObject({ env: { ARNES_FASE: 'impl', ARNES_AREA: 'MATE' } });
+  });
+
+  it('un worktree nuevo parte de los ajustes de la raíz de la que sale, con sus permisos', () => {
+    const principal = directorioTemporal();
+    const nuevo = directorioTemporal();
+    escribirFicheros(nuevo, { '.claude/.vacio': '' });
+    escribirFicheros(principal, {
+      [RUTA_AJUSTES_LOCALES]: JSON.stringify({
+        permissions: { allow: ['Bash(make check)'] },
+        env: { ARNES_AREA: 'X' },
+      }),
+    });
+    fijarFase(nuevo, { fase: 'specs', area: undefined }, principal);
+    expect(leer(textoDe(nuevo))).toMatchObject({
+      permissions: { allow: ['Bash(make check)'] },
+      env: { ARNES_FASE: 'specs' },
+    });
+    expect(textoDe(nuevo)).not.toContain('ARNES_AREA');
+    expect(textoDe(principal)).toContain('ARNES_AREA');
+  });
+
+  it('si la raíz ya tiene ajustes, no vuelve a copiar los del origen', () => {
+    const principal = directorioTemporal();
+    const nuevo = directorioTemporal();
+    escribirFicheros(nuevo, { [RUTA_AJUSTES_LOCALES]: JSON.stringify({ permissions: { allow: ['propio'] } }) });
+    escribirFicheros(principal, { [RUTA_AJUSTES_LOCALES]: JSON.stringify({ permissions: { allow: ['ajeno'] } }) });
+    fijarFase(nuevo, { fase: 'impl', area: undefined }, principal);
+    expect(textoDe(nuevo)).toContain('propio');
+    expect(textoDe(nuevo)).not.toContain('ajeno');
   });
 });

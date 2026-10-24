@@ -34,8 +34,15 @@ export interface ParadaStop {
   readonly seguidos?: number;
   /** Solo si el fallo es del entorno: su código (EADDRINUSE, EACCES, ENOSPC o COMANDO). */
   readonly entorno?: string;
-  /** Copia de config/alcance.json en ese momento: dice qué área estaba en curso. */
-  readonly areasFueraDeAlcance: readonly string[];
+  /** Áreas cerradas (config/alcance.json) en ese momento. */
+  readonly areasCerradas?: readonly string[];
+  /** El área en curso de la conversación (ARNES_AREA), si tenía una. */
+  readonly areaEnCurso?: string;
+  /**
+   * Solo en las paradas anteriores a las áreas en curso por worktree: copia de la lista de áreas
+   * fuera de alcance, de la que se deducía qué área estaba en curso.
+   */
+  readonly areasFueraDeAlcance?: readonly string[];
 }
 
 export function anotarParada(raiz: string, parada: ParadaStop): void {
@@ -56,7 +63,7 @@ function esParada(valor: unknown): valor is ParadaStop {
   return (
     typeof parada['sesion'] === 'string' &&
     (RESULTADOS as readonly unknown[]).includes(parada['resultado']) &&
-    Array.isArray(parada['areasFueraDeAlcance'])
+    (Array.isArray(parada['areasCerradas']) || Array.isArray(parada['areasFueraDeAlcance']))
   );
 }
 
@@ -107,19 +114,27 @@ export function resumirArea(registro: readonly ParadaStop[], area: string): Resu
 }
 
 /**
- * Paradas de la fase impl mientras el área estaba en curso. El área empieza cuando sale de
- * config/alcance.json y termina cuando entra en alcance otra de las que seguían fuera.
- * Las fases specs y aceptacion no cuentan: tratan todas las áreas a la vez.
+ * Paradas de la fase impl mientras el área estaba en curso. Las fases specs y aceptacion no
+ * cuentan: tratan todas las áreas a la vez. Cada parada dice su área en curso; las antiguas, que
+ * solo copiaban la lista de áreas fuera de alcance, se resuelven con `paradasAntiguasDelArea`.
  */
 function paradasDelArea(registro: readonly ParadaStop[], area: string): ParadaStop[] {
-  const enAlcance = (parada: ParadaStop): boolean => !parada.areasFueraDeAlcance.includes(area);
-  const inicio = registro.findIndex(enAlcance);
-  if (inicio === -1) return [];
-  const otrasFueraAlEmpezar = (registro[inicio]?.areasFueraDeAlcance ?? []).filter((otra) => otra !== area);
-  const entraOtra = (parada: ParadaStop): boolean =>
-    otrasFueraAlEmpezar.some((otra) => !parada.areasFueraDeAlcance.includes(otra));
-  const fin = registro.findIndex((parada, indice) => indice > inicio && entraOtra(parada));
-  return registro
+  const nuevas = registro.filter((parada) => parada.areaEnCurso === area && parada.fase === 'impl');
+  return [...paradasAntiguasDelArea(registro, area), ...nuevas].toSorted((a, b) => a.fecha.localeCompare(b.fecha));
+}
+
+/** El área empezaba al salir de config/alcance.json y acababa al entrar en alcance otra de las que seguían fuera. */
+function paradasAntiguasDelArea(registro: readonly ParadaStop[], area: string): ParadaStop[] {
+  const antiguas = registro.filter((parada) => parada.areasFueraDeAlcance !== undefined);
+  const fuera = (parada: ParadaStop): readonly string[] => parada.areasFueraDeAlcance ?? [];
+  const enAlcance = (parada: ParadaStop): boolean => !fuera(parada).includes(area);
+  const primera = antiguas.find(enAlcance);
+  if (primera === undefined) return [];
+  const inicio = antiguas.indexOf(primera);
+  const otrasFueraAlEmpezar = fuera(primera).filter((otra) => otra !== area);
+  const entraOtra = (parada: ParadaStop): boolean => otrasFueraAlEmpezar.some((otra) => !fuera(parada).includes(otra));
+  const fin = antiguas.findIndex((parada, indice) => indice > inicio && entraOtra(parada));
+  return antiguas
     .slice(inicio, fin === -1 ? undefined : fin)
     .filter((parada) => enAlcance(parada) && parada.fase === 'impl');
 }

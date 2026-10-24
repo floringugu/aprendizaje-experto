@@ -37,7 +37,7 @@ function datos(cambios: Partial<DatosCobertura> = {}): DatosCobertura {
       ['MAST-1.2', 'FAILED'],
       ['CALI-1.1', 'PASSED'],
     ]),
-    areasFueraDeAlcance: [],
+    areasEnAlcance: ['MAST', 'CALI'],
     ...cambios,
   };
 }
@@ -73,7 +73,7 @@ describe('construirInforme', () => {
   });
 
   it('las áreas fuera de alcance no dan error', () => {
-    const informe = construirInforme(datos({ areasFueraDeAlcance: ['MAST'] }));
+    const informe = construirInforme(datos({ areasEnAlcance: ['CALI'] }));
     expect(informe.errores).toEqual([]);
     expect(informe.filas.find((fila) => fila.id === 'MAST-1.2')?.estado).toBe('FUERA_DE_ALCANCE');
   });

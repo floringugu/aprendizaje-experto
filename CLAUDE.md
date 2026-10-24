@@ -5,7 +5,7 @@
 
 ## Comandos para el dueño (regla dura)
 
-Cuando el dueño tenga que hacer algo que Claude no puede hacer, dale los comandos exactos en un único bloque `sh`. Esto incluye aplicar una propuesta, elegir la fase, commitear y deshacer.
+Cuando el dueño tenga que hacer algo que Claude no puede hacer, dale los comandos exactos en un único bloque `sh`. Esto incluye aplicar una propuesta, elegir la fase y el área, abrir, integrar y retirar un worktree, commitear y deshacer.
 
 - El bloque se copia y se pega tal cual: rutas y mensajes de commit ya rellenos, en el orden en que se ejecutan, desde la raíz del repositorio.
 - Nunca le pidas que edite un fichero a mano ni le describas un cambio para que lo escriba él. Si el cambio toca una ruta protegida, prepárale una propuesta.
@@ -17,7 +17,7 @@ Una ruta de `.claude/protegidas.txt` sin anotación de fase no se edita en el re
 1. Clona el repositorio en el scratchpad, enlaza `node_modules` y haz allí los cambios con Edit o Write.
 2. En el clon, pasa las comprobaciones que no dependen del commit (todas salvo `integridad`): `npm run --silent <paso>` para tipos, lint, duplicacion, codigo-muerto, capas, unidad, specs, aceptacion y cobertura-ids.
 3. Guarda el parche fuera de git:
-   - `git -C <clon> add -A -- . ':!node_modules'`
+   - `git -C <clon> add -A` (`.gitignore` ya ignora `node_modules`, también el enlace simbólico del clon)
    - `git -C <clon> diff --cached --binary > reports/propuestas/<AAAA-MM-DD>-<tema>.patch`
 4. Para con `[DECISIÓN PENDIENTE]` y dale al dueño estos bloques, con la ruta y el mensaje rellenos:
 
@@ -42,9 +42,11 @@ Después del commit se deshace con `git revert --no-edit HEAD`. Claude no aplica
 ## Etapas, áreas y fases
 
 - Cada etapa (2, specs; 3, aceptación) y cada área de la etapa 4 empieza en una conversación nueva de Claude Code en VS Code.
-- La fase la elige el dueño antes de abrir la conversación: Ctrl+Shift+P → «Tasks: Run Task» → «Arnés: fase de la próxima conversación», o `make fase F=<fase>` desde su terminal.
-- El aviso de SessionStart dice la fase al empezar. Si no es la que pide la tarea, para y dale el comando para cambiarla.
+- La fase y el área en curso los elige el dueño antes de abrir la conversación: Ctrl+Shift+P → «Tasks: Run Task» → «Arnés: fase de la próxima conversación», o `make fase F=<fase> A=<ÁREA>` desde su terminal. La fase aceptacion necesita área.
+- Con varias conversaciones a la vez, cada una va en su worktree (una conversación = un worktree = una rama = una fase y un área): `make abrir N=<nombre> F=<fase> A=<ÁREA>`, y al acabar `make integrar N=<nombre>` y `make retirar N=<nombre>`, siempre desde el directorio principal y solo el dueño. Si `make integrar` deja un rebase con conflictos en tu rama, resuelve los ficheros que tu fase desbloquea y dale el comando `git -C <worktree> add <ficheros> && GIT_EDITOR=true git -C <worktree> rebase --continue`; si el conflicto está en una ruta protegida, prepara una propuesta.
+- El aviso de SessionStart dice la fase y el área en curso al empezar. Si no son las que pide la tarea, para y dale el comando para cambiarlas.
 - Al empezar un área, copia `docs/areas/plantilla.md` a `docs/areas/<ÁREA>.md`.
 - En MATE, PLAN y las áreas con una pantalla nueva, el paso «Mecanismo» (plan §16) va antes de tocar `src/`: explica el mecanismo en prosa, esboza dos interfaces y para con `[DECISIÓN PENDIENTE]`.
 - En la fase impl, escribe tú los comentarios de interfaz y las firmas, y encarga los cuerpos y los tests unitarios al subagente `implementador`, con las líneas `Tarea: <ÁREA>-<n>` y `Ficheros: <rutas>` en el prompt (plan §7). El modelo lo elige el hook. Un encargo cada vez: espera a que termine antes de tocar sus ficheros. Lo que devuelva en rojo después de Sonnet, y los arreglos de una o dos líneas, los haces tú.
-- Al cerrar el área, completa su archivo con la interfaz descartada, la deuda pagada, la puntuación de mutación y la salida de `make bloqueos A=<ÁREA>`.
+- `make check` en impl no exige la aceptación del área en curso, solo la de las áreas cerradas. Al cerrar el área, pasa `make cerrar-area A=<ÁREA>`: exige además la aceptación y la cobertura del área en verde.
+- Al cerrar el área, completa su archivo con la interfaz descartada, la deuda pagada, la puntuación de mutación y la salida de `make bloqueos A=<ÁREA>` (ejecútalo en el worktree del área, que tiene su propio registro), y prepara una propuesta que añada el área a `areas_cerradas` en `config/alcance.json`. En el bloque del dueño, `make integrar` y `make retirar` van después de commitear.

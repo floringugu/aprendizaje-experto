@@ -34,10 +34,11 @@ describe('parsearRegistro', () => {
       '{"sesion":"a","resultado":"bloq',
       JSON.stringify({ sesion: 'a', resultado: 'otro', areasFueraDeAlcance: [] }),
       JSON.stringify({ sesion: 'a', resultado: 'verde' }),
+      JSON.stringify({ sesion: 'a', resultado: 'verde', areasCerradas: ['MAST'], areaEnCurso: 'MATE' }),
       'null',
       JSON.stringify(bloqueo('unidad')),
     ].join('\n');
-    expect(parsearRegistro(texto).map(({ resultado }) => resultado)).toEqual(['verde', 'bloqueo']);
+    expect(parsearRegistro(texto).map(({ resultado }) => resultado)).toEqual(['verde', 'verde', 'bloqueo']);
   });
 });
 
@@ -121,6 +122,42 @@ describe('resumirArea', () => {
 
   it('un área que nunca estuvo en curso no tiene paradas', () => {
     expect(resumirArea([parada({ areasFueraDeAlcance: ['PLAN'] })], 'PLAN').paradas).toBe(0);
+  });
+});
+
+describe('resumirArea con el área en curso de cada parada', () => {
+  const nueva = (cambios: Partial<ParadaStop> = {}): ParadaStop => {
+    const { resultado, fecha, sesion, fase } = parada();
+    return { resultado, fecha, sesion, fase, areasCerradas: ['DIAG'], areaEnCurso: 'MATE', ...cambios };
+  };
+
+  it('cuenta las paradas de la fase impl que dicen ese área, de todas las conversaciones', () => {
+    const registro = [
+      nueva({ resultado: 'bloqueo', paso: 'lint', sesion: 'a' }),
+      nueva({ resultado: 'decision', sesion: 'b' }),
+      nueva({ areaEnCurso: 'MAST', sesion: 'c' }),
+      // Sin área en curso: regresión pura, no es de ningún área.
+      {
+        fecha: '2026-10-25T10:00:00.000Z',
+        sesion: 'd',
+        fase: 'impl',
+        resultado: 'verde',
+        areasCerradas: ['DIAG'],
+      } satisfies ParadaStop,
+      nueva({ fase: 'aceptacion', sesion: 'e' }),
+    ];
+    const resumen = resumirArea(registro, 'MATE');
+    expect(resumen).toMatchObject({ paradas: 2, sesiones: 2, decisiones: 1, bloqueosPorPaso: [['lint', 1]] });
+    expect(resumirArea(registro, 'MAST').paradas).toBe(1);
+  });
+
+  it('suma las paradas antiguas, que solo copiaban las áreas fuera de alcance, a las nuevas', () => {
+    const registro = [
+      bloqueo('unidad', { fecha: '2026-10-22T10:00:00.000Z', areasFueraDeAlcance: ['MATE'] }),
+      bloqueo('unidad', { fecha: '2026-10-23T10:00:00.000Z', areasFueraDeAlcance: [] }),
+      nueva({ fecha: '2026-10-25T10:00:00.000Z' }),
+    ];
+    expect(resumirArea(registro, 'MATE')).toMatchObject({ paradas: 2, desde: '2026-10-23T10:00:00.000Z' });
   });
 });
 

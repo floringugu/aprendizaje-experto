@@ -23,7 +23,7 @@ export interface DatosCobertura {
   readonly elementos: readonly ElementoGherkin[];
   readonly citas: readonly Cita[];
   readonly estados: ReadonlyMap<string, Estado>;
-  readonly areasFueraDeAlcance: readonly string[];
+  readonly areasEnAlcance: readonly string[];
 }
 
 const FUERA_DE_ALCANCE = 'FUERA_DE_ALCANCE';
@@ -52,7 +52,7 @@ export function construirInforme(datos: DatosCobertura): InformeCobertura {
 function estadoDeFila(actual: ElementoConId, conId: readonly ElementoConId[], datos: DatosCobertura): string {
   const { id } = actual;
   const tipo = actual.elemento.tipo;
-  if (datos.areasFueraDeAlcance.includes(areaDe(id))) return FUERA_DE_ALCANCE;
+  if (!datos.areasEnAlcance.includes(areaDe(id))) return FUERA_DE_ALCANCE;
   if (tipo === 'Scenario') return datos.estados.get(id) ?? 'NO_EJECUTADO';
   // Un Feature o una Rule agregan el peor estado de sus escenarios.
   const prefijo = tipo === 'Feature' ? `${id}-` : `${id}.`;

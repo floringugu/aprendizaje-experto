@@ -4,10 +4,10 @@
 // «make fase» ha llegado a los hooks. Claude lo recibe como contexto (additionalContext),
 // de modo que una conversación nueva de VS Code arranca sabiendo su fase sin que nadie la repita.
 //
-// También dice el modelo y el esfuerzo de la fase (MODELO_POR_FASE en fases.ts), avisa si la
-// conversación usa otro modelo, y señala las áreas con un relevo pendiente
-// (scripts/arnes/comun/relevo.ts).
-import { leerAreasFueraDeAlcance } from '../../scripts/arnes/comun/alcance.ts';
+// También dice el área en curso (ARNES_AREA, la de este worktree) y las cerradas, el modelo y el
+// esfuerzo de la fase (MODELO_POR_FASE en fases.ts), avisa si la conversación usa otro modelo, y
+// señala las áreas con un relevo pendiente (scripts/arnes/comun/relevo.ts).
+import { leerAlcance } from '../../scripts/arnes/comun/alcance.ts';
 import { campoTexto, ejecutarHook, leerEntradaHook, responder } from '../../scripts/arnes/comun/entrada-hook.ts';
 import {
   avisoDeModelo,
@@ -15,18 +15,9 @@ import {
   OBJETIVO_POR_FASE,
   PROPOSITO_POR_FASE,
 } from '../../scripts/arnes/comun/fases.ts';
-import { idDe, leerFeatures } from '../../scripts/arnes/comun/gherkin.ts';
 import { faseDeEntorno, leerProtegidas } from '../../scripts/arnes/comun/protegidas.ts';
 import { RAIZ } from '../../scripts/arnes/comun/raiz.ts';
 import { areasConRelevo, avisoDeRelevoPendiente } from '../../scripts/arnes/comun/relevo.ts';
-
-function areasEnAlcance(): string[] {
-  const fuera = new Set(leerAreasFueraDeAlcance(RAIZ));
-  const areas = leerFeatures(RAIZ).elementos.flatMap((elemento) =>
-    elemento.tipo === 'Feature' ? (idDe(elemento) ?? []) : [],
-  );
-  return [...new Set(areas)].filter((area) => !fuera.has(area)).toSorted((a, b) => a.localeCompare(b));
-}
 
 function lista(elementos: readonly string[]): string {
   return elementos.length === 0 ? 'ninguna' : elementos.join(', ');
@@ -44,11 +35,12 @@ ejecutarHook('anunciar-fase', async () => {
   const desbloqueadas = leerProtegidas(RAIZ)
     .filter((protegida) => protegida.desbloqueadaEn === fase)
     .map((protegida) => protegida.ruta);
-  const areas = areasEnAlcance();
+  const { cerradas, enCurso } = leerAlcance(RAIZ, process.env);
   const avisos = [
     `Arnés: fase ${fase} (${modelo}, esfuerzo ${esfuerzo})`,
     `Stop exige make ${objetivo}`,
-    `áreas en alcance: ${lista(areas)}`,
+    `área en curso: ${enCurso ?? 'ninguna'}`,
+    `áreas cerradas: ${lista(cerradas)}`,
     ...(relevos.length === 0 ? [] : [`relevo pendiente: ${lista(relevos)}`]),
     ...(otroModelo === undefined ? [] : [`Aviso: ${otroModelo}`]),
   ];
@@ -60,7 +52,8 @@ ejecutarHook('anunciar-fase', async () => {
         `Arnés: esta conversación está en la fase «${fase}» (${PROPOSITO_POR_FASE[fase]}).`,
         `El hook Stop exige «make ${objetivo}» en verde antes de terminar, si hay cambios respecto al último commit.`,
         `Rutas protegidas que esta fase desbloquea: ${lista(desbloqueadas)}.`,
-        `Áreas en alcance (config/alcance.json): ${lista(areas)}.`,
+        `Área en curso de esta conversación (ARNES_AREA): ${enCurso ?? 'ninguna'}.`,
+        `Áreas cerradas (config/alcance.json): ${lista(cerradas)}.`,
         'La fase la elige el dueño antes de abrir la conversación; no se cambia desde aquí.',
         ...(relevos.length === 0 ? [] : [avisoDeRelevoPendiente(relevos)]),
       ].join('\n'),

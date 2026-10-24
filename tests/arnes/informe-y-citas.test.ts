@@ -34,8 +34,11 @@ describe('alcance', () => {
     expect(areaDe('MAST')).toBe('MAST');
   });
 
-  it('las áreas fuera de alcance se excluyen de Cucumber por etiqueta', () => {
-    expect(expresionEtiquetasCucumber([])).toBe('');
-    expect(expresionEtiquetasCucumber(['CALI', 'HORA'])).toBe('not (@CALI or @HORA)');
+  it('solo las áreas en alcance se ejecutan en Cucumber, por etiqueta', () => {
+    expect(expresionEtiquetasCucumber(['CALI', 'HORA'])).toBe('@CALI or @HORA');
+  });
+
+  it('sin áreas en alcance Cucumber no ejecuta nada (una expresión vacía ejecutaría todo)', () => {
+    expect(expresionEtiquetasCucumber([])).toBe('@SIN_AREAS_EN_ALCANCE');
   });
 });

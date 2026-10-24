@@ -107,7 +107,7 @@ Todas son dependencias de desarrollo. La aplicación todavía no tiene dependenc
 ```
 config/
   parametros.json        extrapolaciones y umbrales, con su sección del informe (protegido, fase specs)
-  alcance.json           áreas que aún no se implementan (protegido, solo el dueño)
+  alcance.json           áreas cerradas, que la regresión de make check vigila (protegido, solo el dueño)
 contenido/
   <dominio>.json         contenido aprobado: lo único que lee el motor
   borradores/            borradores de MATE pendientes de revisar, un fichero por dominio
@@ -159,7 +159,7 @@ Los pasos se ejecutan en este orden. La ejecución se para en el primero que fal
 | 4 | `codigo-muerto` | knip | hay ficheros, exports o dependencias sin usar | — |
 | 5 | `capas` | dependency-cruiser | se rompe una regla de capas (ver abajo) | — |
 | 6 | `unidad` | Vitest (`tests/unidad/` y `tests/arnes/`) | falla un test | — |
-| 7 | `aceptacion` | Cucumber, en modo `strict` | un escenario falla, está pendiente o tiene pasos sin definir | Excluye las áreas de `config/alcance.json` |
+| 7 | `aceptacion` | Cucumber, en modo `strict` | un escenario falla, está pendiente o tiene pasos sin definir | Solo las áreas cerradas de `config/alcance.json` (regresión), no el área en curso de la conversación (§6) |
 | 8 | `cobertura-ids` | `scripts/arnes/cobertura-ids.ts` | Ver el §8 | — |
 | 9 | `integridad` | `scripts/arnes/integridad.ts` | un fichero protegido difiere del último commit (cambiado, borrado o nuevo, también sin seguimiento) | — |
 
@@ -202,17 +202,19 @@ En `tests/` no se aplica el límite de longitud por función, porque un `describ
 |---|---|---|
 | `make check` | impl (por defecto) | Los 9 de la tabla |
 | `make check-specs` | specs (etapa 2) | Del 1 al 6, `specs` (valida `features/`, sus frases vagas y los parámetros; §8) e `integridad` |
-| `make check-aceptacion` | aceptacion (etapa 3) | Del 1 al 6, `specs`, `estado-aceptacion` (todos los escenarios en alcance deben fallar en rojo: ni pasar, ni quedar pendientes, ni tener pasos sin definir) e `integridad` |
+| `make check-aceptacion` | aceptacion (etapa 3) | Del 1 al 6, `specs`, `estado-aceptacion` (los escenarios del área en curso deben fallar en rojo: ni pasar, ni quedar pendientes, ni tener pasos sin definir; los de las áreas cerradas deben seguir en verde) e `integridad` |
 | `make check-implementador` | impl, la del subagente `implementador` (§7) | Del 1 al 6 salvo `codigo-muerto`: cuando devuelve su encargo, la aplicación aún no usa las funciones nuevas del dominio. El resto lo exige después el hook Stop a la conversación principal |
 
-Fuera de `make check` hay cuatro objetivos más:
+Fuera de `make check` hay ocho objetivos más:
 
 - `make mutacion` (§9);
-- `make fase F=<fase>` (§6), que también es solo tuyo: fija la fase de la próxima conversación;
+- `make cerrar-area A=<ÁREA>` (§6): los pasos de `make check`, pero con la aceptación y la cobertura del área en curso incluidas, que es lo último antes de cerrar el área;
+- `make fase F=<fase> [A=<ÁREA>]` (§6), que es solo tuyo: fija la fase y el área de la próxima conversación;
+- `make abrir`, `make integrar` y `make retirar` (§6), también solo tuyos: un worktree por conversación;
 - `make bloqueos A=<ÁREA>` (§5), que resume las paradas del hook Stop de un área para su archivo;
 - `make formatear`.
 
-`make fase` también se lanza desde VS Code, con la tarea de `.vscode/tasks.json` (Ctrl+Shift+P → «Tasks: Run Task»).
+`make fase`, `make abrir`, `make integrar` y `make retirar` también se lanzan desde VS Code, con las tareas de `.vscode/tasks.json` (Ctrl+Shift+P → «Tasks: Run Task»).
 
 ---
 
@@ -292,7 +294,7 @@ Están en `.claude/settings.json`:
 
 Al empezar cada conversación (y al reanudarla, limpiarla o compactarla), dice en qué fase está:
 
-- **A ti**, con un aviso de una línea: la fase con su modelo y su esfuerzo (§6), la comprobación que exigirá el hook Stop, las áreas en alcance y las que tienen un relevo pendiente. Así compruebas que la fase que elegiste con `make fase` ha llegado a los hooks. Si la conversación usa otro modelo que el de la fase, el aviso lo dice y te recuerda `/model`; si Claude Code no envía el modelo, no hay aviso.
+- **A ti**, con un aviso de una línea: la fase con su modelo y su esfuerzo (§6), la comprobación que exigirá el hook Stop, el área en curso, las áreas cerradas y las que tienen un relevo pendiente. Así compruebas que la fase y el área que elegiste con `make fase` o `make abrir` han llegado a los hooks. Si la conversación usa otro modelo que el de la fase, el aviso lo dice y te recuerda `/model`; si Claude Code no envía el modelo, no hay aviso.
 - **A Claude**, como contexto: además, para qué sirve la fase y qué rutas protegidas desbloquea. Si hay un relevo pendiente, que lea la sección «## Relevo» del área antes de nada y la borre.
 
 ### PreToolUse: `proteger-rutas.ts`
@@ -386,7 +388,7 @@ El mensaje del bloqueo cambia según el fallo (`scripts/arnes/comun/freno-stop.t
 
 **Sin cambios.** Si el árbol de trabajo no difiere del último commit (`git status` no muestra nada), no hay trabajo que comprobar: la conversación ha sido una consulta, o ya has commiteado lo que había. Claude para sin ejecutar make y ves el aviso «Sin cambios respecto al último commit». Exigirle la comprobación lo empujaría a trabajar en una etapa que nadie le ha pedido. Estas paradas tampoco se anotan.
 
-Cada parada queda en `.claude/registro-stop.jsonl` (fuera de git): la conversación (`session_id`), la fase, el resultado, el paso que falla y las áreas fuera de alcance en ese momento. De ahí salen la cuenta del freno y `make bloqueos A=<ÁREA>`, que resume las paradas de la fase impl mientras el área estaba en curso.
+Cada parada queda en `.claude/registro-stop.jsonl` (fuera de git): la conversación (`session_id`), la fase, el resultado, el paso que falla, las áreas cerradas y el área en curso en ese momento. De ahí salen la cuenta del freno y `make bloqueos A=<ÁREA>`, que resume las paradas de la fase impl con esa área en curso, de todas las conversaciones. Cada worktree (§6) tiene su propio registro, así que `make bloqueos` se ejecuta en el worktree del área antes de integrarlo. Las líneas anteriores al área en curso, que solo copiaban las áreas fuera de alcance, se siguen leyendo.
 
 ### SubagentStop: `exigir-check-implementador.ts`
 
@@ -420,8 +422,8 @@ Impide que se cambie la configuración de Claude Code (la del usuario, la del pr
 
 **Fases.** Las eliges tú antes de abrir la conversación; Claude no puede cambiarlas:
 
-1. En VS Code, Ctrl+Shift+P → «Tasks: Run Task» → «Arnés: fase de la próxima conversación», y eliges la fase. Desde un terminal es lo mismo: `make fase F=specs`.
-2. La fase se guarda en `.claude/settings.local.json` (`env.ARNES_FASE`), que está fuera de git. Claude Code pasa esa variable a los hooks. Con ella se guardan el modelo y el esfuerzo con que empieza la conversación (`model` y `effortLevel`): Sonnet con esfuerzo `high` en specs y aceptacion, que escriben specs y steps, y Opus con esfuerzo `xhigh` en impl, donde están el «Mecanismo» y el diseño (`MODELO_POR_FASE` en `scripts/arnes/comun/fases.ts`). Puedes cambiarlos durante la conversación con `/model` y `/effort`.
+1. En VS Code, Ctrl+Shift+P → «Tasks: Run Task» → «Arnés: fase de la próxima conversación», y eliges la fase y, si hace falta, el área. Desde un terminal es lo mismo: `make fase F=specs`, o `make fase F=impl A=MATE`. La fase `aceptacion` exige un área; el área tiene que tener su feature y no estar cerrada.
+2. La fase se guarda en `.claude/settings.local.json` (`env.ARNES_FASE`), que está fuera de git, y el área en curso, en `env.ARNES_AREA`. Claude Code pasa esas variables a los hooks. Con ella se guardan el modelo y el esfuerzo con que empieza la conversación (`model` y `effortLevel`): Sonnet con esfuerzo `high` en specs y aceptacion, que escriben specs y steps, y Opus con esfuerzo `xhigh` en impl, donde están el «Mecanismo» y el diseño (`MODELO_POR_FASE` en `scripts/arnes/comun/fases.ts`). Puedes cambiarlos durante la conversación con `/model` y `/effort`.
 3. Abres una conversación nueva de Claude Code. El aviso de `anunciar-fase.ts` te confirma la fase al empezar. Las conversaciones que ya estaban abiertas siguen en la suya.
 
 | Fase | Desbloquea | Comprobación en Stop |
@@ -431,6 +433,20 @@ Impide que se cambie la configuración de Claude Code (la del usuario, la del pr
 | aceptacion | `tests/aceptacion/` | `make check-aceptacion` |
 
 Al terminar una etapa 2 o 3, vuelve a `impl` antes de abrir la siguiente conversación.
+
+**Área en curso y áreas cerradas.** Lo que se comprueba depende de ellas, no de una lista de áreas pendientes:
+
+- **Cerradas** (`areas_cerradas` en `config/alcance.json`, §8): su aceptación debe seguir en verde. Es la regresión.
+- **En curso** (`ARNES_AREA`): la de la conversación. En la fase `impl`, `make check` no le exige la aceptación, porque mientras se implementa está a medias; `make cerrar-area A=<ÁREA>` sí, y es lo último que se ejecuta al cerrarla. En la fase `aceptacion`, `estado-aceptacion` le exige rojo, y verde a las cerradas.
+- El resto de las áreas no se comprueba. Cuando una área se cierra, una propuesta la añade a `areas_cerradas`.
+
+**Worktrees: una conversación = un worktree = una rama = una fase y un área.** Para trabajar en varias áreas a la vez, cada conversación tiene su directorio hermano del principal, con su rama y sus propios ajustes locales. Los lanzas tú, desde el directorio principal (en main):
+
+- `make abrir N=<nombre> F=<fase> [A=<ÁREA>]` crea `../<directorio principal>-<nombre>` con `git worktree add -b <nombre> main`, enlaza su `node_modules` al del principal, fija la fase y el área (parte de los ajustes locales del principal, con los permisos que ya aceptaste) y abre una ventana nueva de VS Code. Abres allí la conversación de Claude Code.
+- `make integrar N=<nombre>` pone la rama encima de main con `git rebase`, ejecuta `make check` en el worktree y avanza main con `git merge --ff-only`: main se queda sin commits de fusión. Si hay conflictos, se para con el rebase a medias y lista los ficheros; la conversación de esa rama resuelve los que su fase desbloquea y te da el comando `git -C <worktree> add … && GIT_EDITOR=true git -C <worktree> rebase --continue`, y repites `make integrar`. Si la comprobación falla o main ha avanzado entretanto, no toca main.
+- `make retirar N=<nombre>` borra el worktree y la rama, solo si la rama ya está en main.
+
+Límite honesto: el commit que crea `git rebase --continue` no pasa por el pre-commit (`tests/arnes/worktrees.test.ts` lo comprueba en un repositorio temporal). Por eso `make integrar` ejecuta `make check` después del rebase, y por eso el `rebase --continue` lo lanzas tú: si el conflicto toca una ruta protegida, la resuelves o la revisas antes de continuar. `integridad` compara con el último commit de la rama, así que no detectaría un cambio protegido ya commiteado en ella. El registro del hook Stop (`.claude/registro-stop.jsonl`) es de cada worktree.
 
 **Integridad**
 
@@ -557,9 +573,10 @@ Las normas:
 
 **`config/alcance.json`**
 
-- `areas_fuera_de_alcance` lista los prefijos que aún no se implementan, por ejemplo `["AYUD", "INTE"]`.
-- Cucumber los excluye por etiqueta y la tabla los marca como `FUERA_DE_ALCANCE`.
-- Así `make check` puede estar en verde mientras se avanza área por área en la etapa 4.
+- `areas_cerradas` lista los prefijos de las áreas ya implementadas y cerradas, por ejemplo `["DIAG", "RECU"]`. Cambia una vez por área, al cerrarla.
+- El área en curso no está en el fichero: es la de cada conversación (`ARNES_AREA`, §6).
+- En alcance están las cerradas más el área en curso. Cucumber (perfil por defecto, el de `make check`) ejecuta solo las cerradas, por etiqueta; el perfil `area` (`make cerrar-area`, `estado-aceptacion`) suma el área en curso. `--con-area-en-curso` hace lo mismo en la tabla; el resto de las áreas se marca como `FUERA_DE_ALCANCE`.
+- Así `make check` puede estar en verde mientras se avanza área por área en la etapa 4, y varias conversaciones pueden trabajar en áreas distintas a la vez.
 - Solo lo cambias tú.
 
 ---
@@ -681,7 +698,7 @@ Todas aprobadas por el dueño el 18-10-2026, tal como se proponen en la tabla.
 | 4 | Capas de `src/` | <ul><li>Las 4 capas del §3.</li><li>`src/dominio/unidades.ts` como único sitio para constantes técnicas.</li></ul> | Menos capas: se perdería la separación entre lo que se puede probar sin base de datos y lo que no. |
 | 5 | Entrada de la interfaz | `src/interfaz/servidor.ts`, declarada en knip. | — |
 | 6 | Prefijos de los IDs | <ul><li>`DIAG`: diagnóstico.</li><li>`PLAN`: planificador de repasos.</li><li>`RECU`: recuperación con feedback.</li><li>`MAST`: criterio de dominio.</li><li>`AYUD`: ayuda adaptativa y su retirada.</li><li>`INTE`: intercalado.</li><li>`CALI`: calibración.</li><li>`TARE`: tareas representativas.</li><li>`BUCL`: bucle semanal.</li><li>`HORA`: registro de horas.</li><li>`INST`: instrumentación y exportación a CSV.</li><li>`MATE`: material del dominio y borradores redactados por IA.</li></ul> | IDs numéricos sin prefijo: son menos legibles en el código. |
-| 7 | `config/alcance.json` | Para avanzar área por área, como describe el §8. | — |
+| 7 | `config/alcance.json` | Las áreas cerradas; el área en curso va por conversación (§6), para avanzar área por área y en paralelo, como describe el §8. | Una sola lista de áreas fuera de alcance: obligaba a una sola área en curso a la vez, y a cambiar el fichero al empezar cada una. |
 | 8 | Marca `[DECISIÓN PENDIENTE]` | Que Claude pueda parar para preguntarte sin pasar `make check`, y que tú lo veas. | Sin la marca, Claude no podría preguntarte con el check en rojo, y se vería empujado a decidir por su cuenta. |
 | 9 | Matcher de ConfigChange | La configuración del usuario, la del proyecto y la local. | Incluir también skills y políticas: sería innecesario. |
 | 10 | Nivel de evidencia nuevo | «Extrapolación del autor», junto a los tres del informe (bien establecido, prometedor y especulativo). | Usar solo los tres del informe: la secuencia de fases, el 85 % y los percentiles no encajan en ninguno, porque el informe los llama extrapolación (§4). |
@@ -760,7 +777,7 @@ Resueltas el 18-10-2026: el dueño aprobó cada propuesta (la opción b en la 5,
 
 ## 16. Etapas 2 a 5
 
-Cada etapa, y cada área de la etapa 4, empieza en una conversación nueva de Claude Code en VS Code. Antes de abrirla eliges su fase con la tarea «Arnés: fase de la próxima conversación» (§6), y el aviso del principio te la confirma. Lo que Claude no puede hacer (aplicar una propuesta, cambiar la fase, commitear) te lo deja en comandos exactos, listos para copiar.
+Cada etapa, y cada área de la etapa 4, empieza en una conversación nueva de Claude Code en VS Code. Antes de abrirla eliges su fase y su área con la tarea «Arnés: fase de la próxima conversación» (§6), o abres un worktree con `make abrir` si hay otra conversación en marcha, y el aviso del principio te la confirma. Lo que Claude no puede hacer (aplicar una propuesta, cambiar la fase, commitear) te lo deja en comandos exactos, listos para copiar.
 
 ### Etapa 2: especificación
 
@@ -804,12 +821,12 @@ Una conversación nueva en la fase `impl` por cada área. El MVP es DIAG, PLAN, 
 `MATE` aún no tiene feature. Antes de implementarla pasa por una sesión de etapa 2 (su feature) y otra de etapa 3 (sus steps):
 
 - Sus elementos llevan `@extrapolacion`, porque el informe no trata de dónde sale el contenido, salvo los que se apoyen en una sección concreta.
-- Desde que exista su feature hasta que toque implementarla, `MATE` está en `areas_fuera_de_alcance`.
-- En la etapa 3, `estado-aceptacion` exige que todo lo que está en alcance falle en rojo, pero DIAG, RECU y MAST ya pasan. Durante esa conversación, `config/alcance.json` deja en alcance solo `MATE`.
+- Desde que exista su feature hasta que toque implementarla, `MATE` no está en `areas_cerradas` ni es el área en curso de ninguna conversación.
+- En la etapa 3, `estado-aceptacion` exige rojo en el área en curso (`make fase F=aceptacion A=MATE`) y verde en las cerradas: DIAG, RECU y MAST ya pasan, y no se les pide fallar.
 
 Para cada área:
 
-1. Abro su archivo, `docs/areas/<ÁREA>.md`, copiando `docs/areas/plantilla.md`. Te preparo la propuesta que saca el área de `config/alcance.json` (§6) y te propongo qué partidas de `docs/deuda-diseno.md` se pagan con ella: al menos una o, si no, una línea que diga por qué ninguna. Tú aplicas la propuesta y eliges. Pago las partidas primero, sin comportamiento nuevo y con `make check` en verde, y paro para que las commitees aparte (`refactor: …`), con los comandos que te doy.
+1. Abro su archivo, `docs/areas/<ÁREA>.md`, copiando `docs/areas/plantilla.md`. Te propongo qué partidas de `docs/deuda-diseno.md` se pagan con ella: al menos una o, si no, una línea que diga por qué ninguna. Tú aplicas la propuesta y eliges. Pago las partidas primero, sin comportamiento nuevo y con `make check` en verde, y paro para que las commitees aparte (`refactor: …`), con los comandos que te doy.
 2. **Mecanismo.** Solo en las áreas con arquitectura: MATE, PLAN (`ts-fsrs`) y las que añaden una pantalla nueva a la interfaz. Antes de escribir nada en `src/`:
    - explico en prosa cómo funcionará por dentro: qué datos entran, qué módulo hace qué y qué queda guardado;
    - esbozo dos interfaces radicalmente distintas para su módulo central, con sus pros y contras;
@@ -818,10 +835,10 @@ Para cada área:
    Las áreas de dominio puro se saltan este paso y lo dicen en su archivo.
 3. Escribo el comentario de la interfaz y las firmas de `src/dominio`, y encargo los cuerpos y sus tests unitarios, que citan el `@ID`, al subagente `implementador` (§7). Si lo devuelve en rojo, lo reencargo con la misma etiqueta, que sube el modelo, o lo termino yo.
 4. Hago lo mismo con la aplicación y la infraestructura necesarias.
-5. Dejo `make check` en verde.
-6. Ejecuto los dos revisores, `make mutacion` y `make bloqueos A=<ÁREA>`.
+5. Dejo `make check` en verde, que no incluye la aceptación del área en curso.
+6. Cierro el área con `make cerrar-area A=<ÁREA>`: además de lo anterior, exige en verde la aceptación y la cobertura de sus escenarios. Ejecuto los dos revisores, `make mutacion` y `make bloqueos A=<ÁREA>`.
 7. Completo el archivo del área: mecanismo, interfaces descartadas y por qué, deuda pagada, puntuación de mutación y bloqueos del hook Stop.
-8. Te doy un resumen breve, con la propuesta para `docs/deuda-diseno.md` (las partidas nuevas del revisor, las pagadas y la línea del área) y los comandos para aplicarla y commitear el área.
+8. Te doy un resumen breve, con la propuesta para `docs/deuda-diseno.md` (las partidas nuevas del revisor, las pagadas y la línea del área), la que añade el área a `areas_cerradas` en `config/alcance.json` (§6) y los comandos para aplicarlas, commitear el área, integrar su rama (`make integrar`) y retirar el worktree (`make retirar`).
 
 Antes del código de cada fichero nuevo de `src/`, de cualquier capa (`docs/arnes.md`, §6, y skill `codebase-design`):
 

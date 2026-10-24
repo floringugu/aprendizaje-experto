@@ -6,11 +6,13 @@ import path from 'node:path';
 export interface ResultadoGit {
   readonly codigo: number;
   readonly salida: string;
+  /** Lo que git escribe en stderr: el motivo si falla. */
+  readonly errores: string;
 }
 
 export function git(raiz: string, argumentos: readonly string[]): ResultadoGit {
   const resultado = spawnSync('git', argumentos, { cwd: raiz, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
-  return { codigo: resultado.status ?? 1, salida: resultado.stdout };
+  return { codigo: resultado.status ?? 1, salida: resultado.stdout, errores: resultado.stderr };
 }
 
 /** Ficheros versionados y no versionados (sin los ignorados) bajo las rutas dadas. */

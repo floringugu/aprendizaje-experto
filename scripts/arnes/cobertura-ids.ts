@@ -8,10 +8,13 @@
 //   - el código o los tests citan un ID que no existe en features/.
 //
 // Con --solo-specs solo valida features/ y los parámetros (etapas 2 y 3: aún no hay código).
-// Lee el resultado de Cucumber de reports/cucumber.ndjson: ejecútalo después de «make aceptacion».
+// «En alcance» son las áreas cerradas; con --con-area-en-curso, también el área en curso
+// (ARNES_AREA), que es lo que exige make cerrar-area.
+// Lee el resultado de Cucumber de reports/cucumber.ndjson: ejecútalo después de «npm run aceptacion»
+// (o de «npm run aceptacion-area», con --con-area-en-curso).
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
-import { leerAreasFueraDeAlcance } from './comun/alcance.ts';
+import { areaDe, areasEnAlcance, leerAlcance } from './comun/alcance.ts';
 import { buscarCitas } from './comun/citas.ts';
 import { construirInforme, formatearInforme } from './comun/cobertura.ts';
 import { estadosPorEscenario, RUTA_MENSAJES_CUCUMBER } from './comun/estados-cucumber.ts';
@@ -36,7 +39,7 @@ function principal(): number {
     );
     return 0;
   }
-  return informarCobertura(lectura);
+  return informarCobertura(lectura, process.argv.includes('--con-area-en-curso'));
 }
 
 function problemasDeEspecificacion(lectura: LecturaFeatures): string[] {
@@ -49,22 +52,36 @@ function problemasDeEspecificacion(lectura: LecturaFeatures): string[] {
   return [...problemasFeatures, ...validarParametros(leerParametros(RAIZ), secciones)];
 }
 
-function informarCobertura(lectura: LecturaFeatures): number {
+function informarCobertura(lectura: LecturaFeatures, conAreaEnCurso: boolean): number {
   const idsDeEscenario = new Set(
     lectura.elementos.flatMap((elemento) => (elemento.tipo === 'Scenario' ? (idDe(elemento) ?? []) : [])),
   );
+  const alcance = leerAlcance(RAIZ, process.env);
+  const sinArea = conAreaEnCurso ? problemaDelAreaEnCurso(alcance.enCurso, idsDeEscenario) : undefined;
+  if (sinArea !== undefined) {
+    console.error(sinArea);
+    return 1;
+  }
   const rutaMensajes = path.join(RAIZ, RUTA_MENSAJES_CUCUMBER);
   const ndjson = existsSync(rutaMensajes) ? readFileSync(rutaMensajes, 'utf8') : '';
   const informe = construirInforme({
     elementos: lectura.elementos,
     citas: buscarCitas(RAIZ),
     estados: estadosPorEscenario(ndjson, idsDeEscenario),
-    areasFueraDeAlcance: leerAreasFueraDeAlcance(RAIZ),
+    areasEnAlcance: areasEnAlcance(alcance, conAreaEnCurso),
   });
   console.log(informe.filas.length === 0 ? 'Aún no hay features con ID.' : formatearInforme(informe));
   if (informe.errores.length === 0) return 0;
   console.error(`\nCobertura de IDs incompleta:\n${informe.errores.map((error) => `  - ${error}`).join('\n')}`);
   return 1;
+}
+
+/** make cerrar-area exige un área en curso con escenarios: sin ellos, el verde no comprobaría nada. */
+function problemaDelAreaEnCurso(area: string | undefined, idsDeEscenario: ReadonlySet<string>): string | undefined {
+  if (area === undefined) return 'No hay un área en curso (ARNES_AREA): usa make cerrar-area A=<ÁREA>.';
+  if (![...idsDeEscenario].some((id) => areaDe(id) === area))
+    return `El área ${area} no tiene escenarios en features/.`;
+  return undefined;
 }
 
 process.exitCode = principal();

@@ -21,7 +21,7 @@
 // (la conversación ha sido una consulta, o el dueño ya ha commiteado lo que había), y Claude
 // para sin ejecutar make. Exigirle la comprobación lo empujaría a trabajar en una etapa que
 // nadie le ha pedido. Ni las esperas ni estas paradas se anotan en el registro.
-import { leerAreasFueraDeAlcance } from '../../scripts/arnes/comun/alcance.ts';
+import { leerAlcance } from '../../scripts/arnes/comun/alcance.ts';
 import { subagentesEnCurso } from '../../scripts/arnes/comun/enrutador.ts';
 import { campo, campoTexto, ejecutarHook, leerEntradaHook, responder } from '../../scripts/arnes/comun/entrada-hook.ts';
 import { OBJETIVO_POR_FASE } from '../../scripts/arnes/comun/fases.ts';
@@ -46,7 +46,7 @@ import {
 } from '../../scripts/arnes/comun/relevo.ts';
 
 /** Lo que se anota en todas las paradas, pase o no la comprobación. */
-type DatosDeParada = Pick<ParadaStop, 'fecha' | 'sesion' | 'fase' | 'areasFueraDeAlcance'>;
+type DatosDeParada = Pick<ParadaStop, 'fecha' | 'sesion' | 'fase' | 'areasCerradas' | 'areaEnCurso'>;
 
 ejecutarHook('exigir-check', async () => {
   const entrada = await leerEntradaHook();
@@ -85,11 +85,13 @@ ejecutarHook('exigir-check', async () => {
 });
 
 function datosDeParada(entrada: unknown): DatosDeParada {
+  const { cerradas, enCurso } = leerAlcance(RAIZ, process.env);
   return {
     fecha: new Date().toISOString(),
     sesion: campoTexto(entrada, 'session_id') ?? 'desconocida',
     fase: faseDeEntorno(process.env),
-    areasFueraDeAlcance: leerAreasFueraDeAlcance(RAIZ),
+    areasCerradas: cerradas,
+    ...(enCurso === undefined ? {} : { areaEnCurso: enCurso }),
   };
 }
 
