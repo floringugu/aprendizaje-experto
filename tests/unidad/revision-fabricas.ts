@@ -11,14 +11,8 @@ import type {
   TareaContenido,
 } from '../../src/aplicacion/contenido.ts';
 import type { Resultado } from '../../src/aplicacion/resultado.ts';
-import {
-  aplicar,
-  revisar,
-  type Accion,
-  type BorradorDominio,
-  type FiltroRevision,
-  type Mesa,
-} from '../../src/aplicacion/revision.ts';
+import { aplicar, revisar, type Accion, type FiltroRevision } from '../../src/aplicacion/revision.ts';
+import type { BorradorDominio, Mesa } from '../../src/aplicacion/mesa.ts';
 
 export const FUENTE_BUENA: Fuente = { documento: 'apuntes.pdf', lugar: 'página 12', fragmento: 'buena' };
 export const FUENTE_MALA: Fuente = { ...FUENTE_BUENA, fragmento: 'mala' };

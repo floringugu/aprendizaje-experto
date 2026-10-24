@@ -1,36 +1,12 @@
 import type { Marca, Marcador } from '../dominio/citas.ts';
-import type {
-  ContenidoDominio,
-  EjemploResueltoContenido,
-  ItemContenido,
-  ObjetivoContenido,
-  TareaContenido,
-} from './contenido.ts';
+import type { ContenidoDominio, EjemploResueltoContenido, ObjetivoContenido } from './contenido.ts';
 import { falloDeLaPiezaSuelta, type FalloDeFormato, type TipoDePieza } from './formato-contenido.ts';
+import { idRepetido, pendientesDelBorrador, type BorradorDominio, type Mesa, type Pendiente } from './mesa.ts';
 import { aceptar, rechazarElCampo, rechazarPorCausa, type Resultado } from './resultado.ts';
 
 // La revisión del material (MATE-4, MATE-5): cómo pasa cada pieza del borrador al contenido aprobado.
-// Es lógica pura sobre la pareja borrador–aprobado; leer y escribir los ficheros, y guardar lo que había
-// para deshacer, lo hacen los casos de uso de material.ts.
-
-/** Un ejemplo resuelto del borrador para un objetivo que ya está aprobado: va aparte, con su objetivo. */
-export interface EjemploDeObjetivoAprobado extends EjemploResueltoContenido {
-  readonly objetivo: string;
-}
-
-/**
- * `contenido/borradores/<dominio>.json`: el formato del contenido, con las piezas pendientes de revisar.
- * Los ejemplos de un objetivo nuevo van dentro de él; los de un objetivo ya aprobado, en `ejemplos_resueltos`.
- */
-export interface BorradorDominio extends ContenidoDominio {
-  readonly ejemplos_resueltos?: readonly EjemploDeObjetivoAprobado[];
-}
-
-/** Lo que la revisión lee y escribe de un dominio. */
-export interface Mesa {
-  readonly borrador: BorradorDominio;
-  readonly aprobado: ContenidoDominio;
-}
+// Es lógica pura sobre la mesa (mesa.ts); leer y escribir los ficheros, y guardar lo que había para
+// deshacer, lo hacen los casos de uso de revision-del-material.ts.
 
 /** Filtros de la revisión (MATE-4.2): todas las pendientes, o solo las que llevan una marca. */
 export type FiltroRevision = 'pendientes' | Marca;
@@ -126,63 +102,7 @@ export function aplicar(mesa: Mesa, accion: Accion, marcas: Marcador): Resultado
   }
 }
 
-/**
- * El primer id del borrador que se repite, o `undefined` si no hay ninguno. Recorre el borrador en el
- * orden de `revisar` y da el primer id que ya ha salido antes en el borrador, sea cual sea el tipo de
- * pieza, o que también está en el aprobado, en cualquiera de sus piezas. Que el aprobado repita ids
- * entre sus propias piezas no cuenta: el contenido escrito a mano puede hacerlo (plan §0, «Borradores»).
- *
- * La revisión nombra cada pieza solo por su id, así que un id repetido haría ambigua cualquier acción.
- * Los casos de uso de material.ts la comprueban al leer la mesa, antes de llamar a `aplicar`.
- */
-export function idRepetido(mesa: Mesa): string | undefined {
-  // `ContenidoDominio` encaja como borrador sin ejemplos aparte, así que `pendientesDelBorrador` también
-  // da todas las piezas del aprobado, con los ejemplos de dentro de sus objetivos.
-  const aprobados = new Set(pendientesDelBorrador(mesa.aprobado).map(({ pieza }) => pieza.id));
-  const delBorrador = pendientesDelBorrador(mesa.borrador).map(({ pieza }) => pieza.id);
-  // Repetido: está en el aprobado o ya ha salido antes en el borrador (su primera aparición es anterior).
-  return delBorrador.find((id, posicion) => aprobados.has(id) || delBorrador.indexOf(id) < posicion);
-}
-
 // --- Las piezas pendientes del borrador ---
-
-/**
- * Una pieza pendiente, con el sitio del borrador donde está. Todas tienen `id` y `fuente` opcional.
- * Un ejemplo puede estar dentro de su objetivo pendiente o ir aparte, ya con el `objetivo` de un
- * objetivo aprobado.
- */
-type Pendiente =
-  | { readonly tipo: 'objetivo'; readonly pieza: ObjetivoContenido }
-  | {
-      readonly tipo: 'ejemplo';
-      readonly pieza: EjemploResueltoContenido;
-      readonly objetivo: string;
-      readonly aparte: boolean;
-    }
-  | { readonly tipo: 'item'; readonly pieza: ItemContenido }
-  | { readonly tipo: 'tarea'; readonly pieza: TareaContenido };
-
-/** Las pendientes en el orden de la revisión: ver `revisar`. */
-function pendientesDelBorrador(borrador: BorradorDominio): readonly Pendiente[] {
-  const deObjetivos = borrador.objetivos.flatMap((objetivo): Pendiente[] => [
-    { tipo: 'objetivo', pieza: objetivo },
-    ...objetivo.ejemplos_resueltos.map((pieza): Pendiente => ({
-      tipo: 'ejemplo',
-      pieza,
-      objetivo: objetivo.id,
-      aparte: false,
-    })),
-  ]);
-  const aparte = (borrador.ejemplos_resueltos ?? []).map((pieza): Pendiente => ({
-    tipo: 'ejemplo',
-    pieza,
-    objetivo: pieza.objetivo,
-    aparte: true,
-  }));
-  const items = borrador.items.map((pieza): Pendiente => ({ tipo: 'item', pieza }));
-  const tareas = borrador.tareas.map((pieza): Pendiente => ({ tipo: 'tarea', pieza }));
-  return [...deObjetivos, ...aparte, ...items, ...tareas];
-}
 
 /** El objetivo del que cuelga la pieza; las tareas no cuelgan de ninguno. */
 function colgadoDe(pendiente: Pendiente): string | undefined {
@@ -409,7 +329,8 @@ function corregirPieza(mesa: Mesa, pendiente: Pendiente, corregida: unknown): Re
     return rechazo;
   }
   const id = pendiente.pieza.id;
-  const guardada = pendiente.tipo === 'ejemplo' && pendiente.aparte ? conObjetivoDelEjemplo(pendiente, corregida) : corregida;
+  const guardada =
+    pendiente.tipo === 'ejemplo' && pendiente.aparte ? conObjetivoDelEjemplo(pendiente, corregida) : corregida;
   // El `as` es honesto: `falloDeLaPiezaSuelta` ha comprobado que `guardada` es una pieza de su tipo.
   const sustituir: CambioDeLista = (lista) =>
     lista.map((pieza) => (pieza.id === id ? (guardada as typeof pieza) : pieza));
@@ -423,11 +344,17 @@ function corregirPieza(mesa: Mesa, pendiente: Pendiente, corregida: unknown): Re
 
 /** Un ejemplo corregido se valida con el `objetivo` de la pieza que sustituye, venga o no en `corregida`. */
 function conObjetivoDelEjemplo(pendiente: Pendiente, corregida: unknown): unknown {
-  return pendiente.tipo === 'ejemplo' && esRegistro(corregida) ? { ...corregida, objetivo: pendiente.objetivo } : corregida;
+  return pendiente.tipo === 'ejemplo' && esRegistro(corregida)
+    ? { ...corregida, objetivo: pendiente.objetivo }
+    : corregida;
 }
 
 /** El primer rechazo de la corrección, en el orden del plan (formato, `id`, `objetivo`), o `undefined` si pasa todos. */
-function primerRechazoDeLaCorreccion(mesa: Mesa, pendiente: Pendiente, corregida: unknown): Resultado<never> | undefined {
+function primerRechazoDeLaCorreccion(
+  mesa: Mesa,
+  pendiente: Pendiente,
+  corregida: unknown,
+): Resultado<never> | undefined {
   const fallo = falloDeLaPiezaSuelta(pendiente.tipo, conObjetivoDelEjemplo(pendiente, corregida));
   if (fallo !== undefined) {
     return rechazoDeFormato(fallo);
@@ -440,7 +367,11 @@ function primerRechazoDeLaCorreccion(mesa: Mesa, pendiente: Pendiente, corregida
 }
 
 /** Un ítem que pasa a un objetivo que no está ni en el borrador ni en el aprobado nunca se podría aprobar. */
-function rechazoDeObjetivoInexistente(mesa: Mesa, pendiente: Pendiente, corregida: Registro): Resultado<never> | undefined {
+function rechazoDeObjetivoInexistente(
+  mesa: Mesa,
+  pendiente: Pendiente,
+  corregida: Registro,
+): Resultado<never> | undefined {
   const objetivo = corregida['objetivo'];
   const existe = [...mesa.borrador.objetivos, ...mesa.aprobado.objetivos].some(({ id }) => id === objetivo);
   return pendiente.tipo !== 'item' || existe

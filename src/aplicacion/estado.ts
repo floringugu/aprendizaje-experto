@@ -74,6 +74,8 @@ interface CierreDiagnostico {
 export class EstadoDominio {
   private readonly intentos: Intento[] = [];
   private readonly pendientes = new Map<string, RespuestaPendiente>();
+  /** Los ítems en curso: presentados y sin intento registrado todavía. */
+  private readonly presentados = new Set<string>();
   private readonly cambiosDominado: CambioDominado[] = [];
   private readonly cambiosFase: CambioFase[] = [];
   private readonly pasosRetirados = new Map<string, number>();
@@ -130,9 +132,26 @@ export class EstadoDominio {
     this.pendientes.set(item, respuesta);
   }
 
-  /** Registra el intento con los pasos retirados de ahora; su respuesta deja de estar pendiente. */
+  /** La persona tiene el ítem delante: queda en curso hasta que se registre su intento. */
+  marcarPresentado(item: string): void {
+    this.presentados.add(item);
+  }
+
+  /**
+   * Si el ítem está en curso: presentado y todavía sin feedback, también después de responder y antes de
+   * declarar la confianza. Mientras lo está, no se abre su fuente (@MATE-7.1).
+   */
+  enCurso(item: string): boolean {
+    return this.presentados.has(item);
+  }
+
+  /**
+   * Registra el intento con los pasos retirados de ahora; su respuesta deja de estar pendiente, y el
+   * ítem, en curso.
+   */
   registrarIntento(intento: IntentoNuevo): void {
     this.pendientes.delete(intento.item);
+    this.presentados.delete(intento.item);
     this.intentos.push({ ...intento, pasosRetirados: this.pasosRetiradosDe(intento.objetivo) });
   }
 
@@ -154,10 +173,12 @@ export class EstadoDominio {
   /**
    * Deja la fase, los objetivos dominados y los pasos retirados que dio el diagnóstico, registrados
    * como cualquier otro cambio. Una respuesta del diagnóstico sin confianza declarada ya no cuenta: el
-   * diagnóstico está cerrado.
+   * diagnóstico está cerrado. Por lo mismo, ningún ítem sigue en curso: si no, uno que el diagnóstico
+   * presentó y la persona no respondió tendría la fuente cerrada para siempre.
    */
   cerrarDiagnostico(cierre: CierreDiagnostico): void {
     this.pendientes.clear();
+    this.presentados.clear();
     this.cambiarFase(cierre.fecha, cierre.fase);
     cierre.dominados.forEach((acierto, objetivo) => {
       this.cambiarDominado({ fecha: cierre.fecha, objetivo, dominado: true, acierto });

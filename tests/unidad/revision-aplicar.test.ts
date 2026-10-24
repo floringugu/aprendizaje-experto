@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { revisar, type Accion, type Mesa } from '../../src/aplicacion/revision.ts';
+import type { Mesa } from '../../src/aplicacion/mesa.ts';
+import { revisar, type Accion } from '../../src/aplicacion/revision.ts';
 import {
   FUENTE_BUENA,
   FUENTE_MALA,

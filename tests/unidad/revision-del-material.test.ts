@@ -3,7 +3,8 @@ import { guardarDocumento } from '../../src/aplicacion/material-guardado.ts';
 import type { Ficheros } from '../../src/aplicacion/puertos.ts';
 import type { Resultado } from '../../src/aplicacion/resultado.ts';
 import { crearRevisionDelMaterial, type CasosDeRevision } from '../../src/aplicacion/revision-del-material.ts';
-import type { Mesa, Revision } from '../../src/aplicacion/revision.ts';
+import type { Mesa } from '../../src/aplicacion/mesa.ts';
+import type { Revision } from '../../src/aplicacion/revision.ts';
 import { ficherosEnMemoria } from './ficheros-en-memoria.ts';
 import { FUENTE_BUENA, ITEMS, MESA, ids, item, mesaDe, objetivo } from './revision-fabricas.ts';
 

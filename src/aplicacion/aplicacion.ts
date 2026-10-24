@@ -15,7 +15,7 @@ import { evaluarNivelExperto } from './nivel-experto.ts';
 import { iniciarSesion } from './practica.ts';
 import { consultarProgreso } from './progreso.ts';
 import { consultarRepasos } from './repasos.ts';
-import { crearRevisionDelMaterial, type CasosDeRevision } from './revision-del-material.ts';
+import { crearRevisionDelMaterial, verFuente, type CasosDeRevision } from './revision-del-material.ts';
 import { declararConfianza, presentarItem, responderItem } from './respuestas.ts';
 import { sinImplementar } from './sin-implementar.ts';
 import type { CasosDeSesiones } from './sesiones.ts';
@@ -35,9 +35,11 @@ export type Aplicacion = CasosDeDominio &
   CasosDeClaudeCode;
 
 /** Lo que falta del material propio (MATE). */
-const CASOS_DE_MATERIAL: Omit<CasosDeMaterial, 'anadirMaterial' | 'listarMaterial' | keyof CasosDeRevision> = {
+const CASOS_DE_MATERIAL: Omit<
+  CasosDeMaterial,
+  'anadirMaterial' | 'listarMaterial' | 'verFuente' | keyof CasosDeRevision
+> = {
   redactarBorrador: sinImplementar,
-  verFuente: sinImplementar,
 };
 
 /**
@@ -75,6 +77,7 @@ export const crearAplicacion: (dependencias: Dependencias) => Aplicacion = (depe
     listarExportaciones: sinImplementar,
     anadirMaterial: (peticion) => anadirMaterial(dependencias, peticion),
     listarMaterial: (peticion) => listarMaterial(dependencias.ficheros, peticion),
+    verFuente: (peticion) => verFuente(entorno, peticion),
     ...CASOS_DE_MATERIAL,
     ...crearRevisionDelMaterial(dependencias.ficheros),
     ...crearInicioSesion(dependencias.claudeCode, dependencias.temporizador),

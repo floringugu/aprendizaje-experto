@@ -1,28 +1,30 @@
-import { marcadorDelMaterial, type Marcador } from '../dominio/citas.ts';
-import type { ContenidoValidado } from './contenido.ts';
-import { contenidoValidado } from './estado.ts';
+import { contextoDeLaCita, marcadorDelMaterial, type Marcador } from '../dominio/citas.ts';
+import type { ContenidoValidado, Fuente } from './contenido.ts';
+import { contenidoValidado, type Entorno } from './estado.ts';
 import { textosDelMaterial } from './material-guardado.ts';
+import { buscarPieza, idRepetido, type BorradorDominio, type Mesa, type PiezaDeLaMesa } from './mesa.ts';
 import type { PeticionDominio } from './peticiones.ts';
 import type { Ficheros } from './puertos.ts';
 import { aceptar, rechazar, rechazarPorCausa, type Resultado } from './resultado.ts';
-import {
-  aplicar,
-  idRepetido,
-  revisar,
-  type Accion,
-  type BorradorDominio,
-  type FiltroRevision,
-  type Mesa,
-  type Revision,
-} from './revision.ts';
+import { aplicar, revisar, type Accion, type FiltroRevision, type Revision } from './revision.ts';
 
 // Los casos de uso de la pantalla «Revisión del material» (MATE-4, MATE-5) sobre los dos ficheros del
 // dominio, con «Deshacer». Cómo pasa cada pieza del borrador al aprobado es cosa de revision.ts; aquí se
 // leen y se escriben los ficheros y se guarda lo que había para deshacer («Mecanismo» 6 y 8 de MATE).
+// También «Ver fuente», que lee la misma mesa desde la revisión y desde las sesiones («Mecanismo» 7).
 
 export interface PeticionPieza {
   readonly dominio: string;
   readonly pieza: string;
+}
+
+/** La hoja de «Ver fuente»: el fragmento dentro del texto de su lugar (MATE-4.3). */
+export interface FuenteAbierta {
+  readonly documento: string;
+  readonly lugar: string;
+  readonly fragmento: string;
+  /** El texto entero del lugar citado (la página, la diapositiva o el apartado). */
+  readonly texto: string;
 }
 
 export interface CasosDeRevision {
@@ -83,6 +85,74 @@ export function crearRevisionDelMaterial(ficheros: Ficheros): CasosDeRevision {
       ejecutar(almacen, dominio, { tipo: 'corregir', pieza, corregida }),
     deshacer: ({ dominio }) => deshacerLaUltima(almacen, dominio),
   };
+}
+
+/**
+ * «Ver fuente» de una pieza, desde la revisión o desde una sesión (MATE-4.3, MATE-7): su fuente, con el
+ * texto que da `contextoDeLaCita(fuente, textosDelMaterial(…))`. Lee la mesa como los casos de la revisión,
+ * con sus mismos rechazos, y busca la pieza con `buscarPieza`. Después rechaza, por este orden, con `causa`:
+ * - `pieza_no_encontrada` si la pieza no está en la mesa;
+ * - `antes_de_responder` si es un ítem aprobado que la persona tiene en curso (`enCurso`): la fuente va
+ *   con el feedback, y antes adelantaría la respuesta o cambiaría la confianza que declara (@MATE-7.1).
+ *   El estado del dominio se busca en `todosLosDominios`, sin crearlo: abrir la fuente desde la revisión
+ *   no es abrir el dominio. Lo pendiente del borrador no se comprueba, porque las sesiones solo presentan
+ *   lo aprobado (MATE-6); así se abre en la revisión un ítem que se presentó y cuya aprobación se deshizo;
+ * - `sin_fuente` si la pieza no tiene fuente (@MATE-7.3);
+ * - `cita_no_encontrada` si `contextoDeLaCita` da `undefined`.
+ */
+export function verFuente(entorno: Entorno, peticion: PeticionPieza): Resultado<FuenteAbierta> {
+  const { ficheros } = entorno.dependencias;
+  const lectura = leerMesa(ficheros, peticion.dominio);
+  if (!lectura.ok) {
+    return lectura;
+  }
+  const fuente = fuenteQueSePuedeAbrir(entorno, peticion, lectura.valor.mesa);
+  if (!fuente.ok) {
+    return fuente;
+  }
+  const texto = contextoDeLaCita(fuente.valor, textosDelMaterial(ficheros, peticion.dominio));
+  if (texto === undefined) {
+    return rechazarPorCausa(
+      'cita_no_encontrada',
+      `La cita de «${peticion.pieza}» no se encuentra en el material: no hay nada que enseñar.`,
+    );
+  }
+  // Se copian los tres campos uno a uno: la hoja no debe llevar nada más que el contenido haya podido traer.
+  const { documento, lugar, fragmento } = fuente.valor;
+  return aceptar({ documento, lugar, fragmento, texto });
+}
+
+/**
+ * La fuente de la pieza, si se puede abrir: los rechazos que no dependen del material, por el orden que
+ * dice `verFuente`. Con una pieza sin fuente no se llega a mirar el texto del material.
+ */
+function fuenteQueSePuedeAbrir(entorno: Entorno, peticion: PeticionPieza, mesa: Mesa): Resultado<Fuente> {
+  const pieza = buscarPieza(mesa, peticion.pieza);
+  if (pieza === undefined) {
+    return rechazarPorCausa(
+      'pieza_no_encontrada',
+      `«${peticion.pieza}» no está entre las piezas de «${peticion.dominio}».`,
+    );
+  }
+  if (esItemEnCurso(entorno, peticion, pieza)) {
+    return rechazarPorCausa(
+      'antes_de_responder',
+      `«Ver fuente» de «${peticion.pieza}» se abre después del feedback: antes podría adelantar la respuesta.`,
+    );
+  }
+  if (pieza.fuente === undefined) {
+    return rechazarPorCausa('sin_fuente', `«${peticion.pieza}» no tiene fuente: no hay nada que enseñar.`);
+  }
+  return aceptar(pieza.fuente);
+}
+
+/**
+ * Si la pieza es un ítem aprobado que la persona tiene en curso. Solo mira el estado que ya existe
+ * (`todosLosDominios`): `estadoDe` lo crearía, y abrir una fuente desde la revisión no abre el dominio.
+ */
+function esItemEnCurso(entorno: Entorno, peticion: PeticionPieza, pieza: PiezaDeLaMesa): boolean {
+  const estado = entorno.persona.todosLosDominios.get(peticion.dominio);
+  return pieza.aprobada && pieza.tipo === 'item' && estado?.enCurso(peticion.pieza) === true;
 }
 
 // --- Qué se guarda para deshacer ---

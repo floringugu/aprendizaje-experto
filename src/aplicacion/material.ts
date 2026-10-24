@@ -4,29 +4,20 @@ import type { PeticionDominio } from './peticiones.ts';
 import type { Ficheros, LibreOffice, PaginaDescargada } from './puertos.ts';
 import type { Resultado } from './resultado.ts';
 import { aceptar, rechazarElCampo, rechazarPorCausa } from './resultado.ts';
-import type { CasosDeRevision, PeticionPieza } from './revision-del-material.ts';
+import type { CasosDeRevision, FuenteAbierta, PeticionPieza } from './revision-del-material.ts';
 import { textoDelHtml } from './texto-html.ts';
 import { textoDelPdf } from './texto-pdf.ts';
 
 // Material del dominio y borradores que redacta una IA (MATE, plan §17.6). Nada de lo que está en el
 // borrador llega a una sesión: las sesiones solo leen `contenido/<dominio>.json` (MATE-6).
 
-// Los escenarios leen el borrador con estos tipos; se definen en revision.ts, que es quien lo mueve.
-export type { BorradorDominio, EjemploDeObjetivoAprobado } from './revision.ts';
+// Los escenarios leen el borrador con estos tipos; se definen en mesa.ts, con la mesa de la revisión.
+export type { BorradorDominio, EjemploDeObjetivoAprobado } from './mesa.ts';
 
 /** Material que añade la persona: un fichero (PDF, PPTX o DOCX) o una URL (MATE-1.1). */
 type PeticionMaterial =
   | { readonly dominio: string; readonly nombre: string; readonly bytes: Uint8Array }
   | { readonly dominio: string; readonly url: string };
-
-/** La hoja de «Ver fuente»: el fragmento dentro del texto de su lugar (MATE-4.3). */
-interface FuenteAbierta {
-  readonly documento: string;
-  readonly lugar: string;
-  readonly fragmento: string;
-  /** El texto entero del lugar citado (la página, la diapositiva o el apartado). */
-  readonly texto: string;
-}
 
 /** Lo que la aplicación hizo con el borrador que entregó la IA (MATE-2.3). */
 interface BorradorRedactado {

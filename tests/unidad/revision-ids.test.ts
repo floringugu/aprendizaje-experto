@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { idRepetido } from '../../src/aplicacion/revision.ts';
+import { idRepetido } from '../../src/aplicacion/mesa.ts';
 import { ITEMS, aplicado, ejemplo, item, mesaDe, objetivo, rechazado, tarea } from './revision-fabricas.ts';
 
 describe('idRepetido', () => {
@@ -23,9 +23,12 @@ describe('idRepetido', () => {
   it.each([
     ['una tarea', { tareas: [tarea('X1')] }],
     ['un ejemplo de dentro de un objetivo', { objetivos: [objetivo('O1', [ejemplo('X1')])] }],
-  ])('@MATE-4.6 un id del borrador que ya está en el aprobado como %s se repite (regla que la feature no cubre)', (_, aprobado) => {
-    expect(idRepetido(mesaDe({ items: [item('X1')] }, aprobado))).toBe('X1');
-  });
+  ])(
+    '@MATE-4.6 un id del borrador que ya está en el aprobado como %s se repite (regla que la feature no cubre)',
+    (_, aprobado) => {
+      expect(idRepetido(mesaDe({ items: [item('X1')] }, aprobado))).toBe('X1');
+    },
+  );
 
   it('@MATE-4.6 el aprobado que repite ids entre sus propias piezas no cuenta (regla que la feature no cubre)', () => {
     const aprobado = { objetivos: [objetivo('O1', [ejemplo('E1')]), objetivo('O2', [ejemplo('E1')])] };
@@ -54,9 +57,12 @@ describe('aplicar: corregir con ids y objetivos', () => {
     ['una pieza del borrador', [ejemplo('I7')]],
     ['una pieza del aprobado', [ejemplo('E5')]],
     ['otro ejemplo suyo', [ejemplo('E8'), ejemplo('E8')]],
-  ])('@MATE-4.6 un objetivo corregido con un ejemplo que choca con %s se rechaza con el campo «id» (regla que la feature no cubre)', (_, ejemplos) => {
-    expect(rechazado(mesa, corregirObjetivo(ejemplos))).toMatchObject({ ok: false, campo: 'id' });
-  });
+  ])(
+    '@MATE-4.6 un objetivo corregido con un ejemplo que choca con %s se rechaza con el campo «id» (regla que la feature no cubre)',
+    (_, ejemplos) => {
+      expect(rechazado(mesa, corregirObjetivo(ejemplos))).toMatchObject({ ok: false, campo: 'id' });
+    },
+  );
 
   it('@MATE-4.6 el motivo nombra el id repetido y la mesa no cambia (regla que la feature no cubre)', () => {
     const resultado = rechazado(mesa, corregirObjetivo([ejemplo('E5')]));
@@ -71,16 +77,18 @@ describe('aplicar: corregir con ids y objetivos', () => {
   it('@MATE-4.6 un ítem con un objetivo que no existe se rechaza con el campo «objetivo» (regla que la feature no cubre)', () => {
     const resultado = rechazado(mesa, { tipo: 'corregir', pieza: 'I7', corregida: item('I7', undefined, 'O9') });
     expect(resultado).toMatchObject({ ok: false, campo: 'objetivo' });
-    expect(resultado.motivo).toBe('No se guarda la corrección: el objetivo «O9» no está ni en el borrador ni en el aprobado.');
+    expect(resultado.motivo).toBe(
+      'No se guarda la corrección: el objetivo «O9» no está ni en el borrador ni en el aprobado.',
+    );
   });
 
-  it.each([['O2', 'pendiente del borrador'], ['O3', 'del aprobado']])(
-    '@MATE-4.6 un ítem puede pasar al objetivo %s (%s) (regla que la feature no cubre)',
-    (destino) => {
-      const nueva = aplicado(mesa, { tipo: 'corregir', pieza: 'I7', corregida: item('I7', undefined, destino) });
-      expect(nueva.borrador.items).toStrictEqual([item('I7', undefined, destino)]);
-    },
-  );
+  it.each([
+    ['O2', 'pendiente del borrador'],
+    ['O3', 'del aprobado'],
+  ])('@MATE-4.6 un ítem puede pasar al objetivo %s (%s) (regla que la feature no cubre)', (destino) => {
+    const nueva = aplicado(mesa, { tipo: 'corregir', pieza: 'I7', corregida: item('I7', undefined, destino) });
+    expect(nueva.borrador.items).toStrictEqual([item('I7', undefined, destino)]);
+  });
 
   it('@MATE-4.8 con un formato que falla y un objetivo inexistente, el rechazo es el del formato (regla que la feature no cubre)', () => {
     const sinFeedback = Object.fromEntries(
