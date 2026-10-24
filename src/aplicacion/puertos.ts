@@ -44,7 +44,7 @@ export interface PlanificadorFsrs {
 
 /**
  * Los ficheros de la aplicación, por ruta relativa a la carpeta de datos (`contenido/ficticio.json`,
- * `contenido/borradores/ficticio.json`…). Dónde guarda el material es cosa de la aplicación (plan §17.8.3).
+ * `contenido/borradores/ficticio.json`…). Dónde guarda el material es cosa de la aplicación (plan §0, «Material guardado»).
  */
 export interface Ficheros {
   /** El contenido del fichero, o `undefined` si no existe. */
