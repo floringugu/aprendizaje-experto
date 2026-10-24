@@ -1,6 +1,6 @@
 {
   // Tareas del arnés para el dueño (Ctrl+Shift+P → «Tasks: Run Task»).
-  // Se ejecutan en un terminal de VS Code, fuera de Claude Code, como exigen «make fase» y «make sumas».
+  // Se ejecutan en un terminal de VS Code, fuera de Claude Code, como exige «make fase».
   "version": "2.0.0",
   "tasks": [
     {
@@ -8,14 +8,6 @@
       "detail": "Elige la fase y abre después una conversación nueva de Claude Code",
       "type": "shell",
       "command": "make fase F=${input:fase}",
-      "problemMatcher": [],
-      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
-    },
-    {
-      "label": "Arnés: actualizar sumas",
-      "detail": "make sumas, después de aplicar una propuesta que toca ficheros protegidos",
-      "type": "shell",
-      "command": "make sumas",
       "problemMatcher": [],
       "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
     }

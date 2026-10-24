@@ -1,9 +1,9 @@
 // Lectura de .claude/protegidas.txt y decisión de si una ruta está bloqueada.
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import { ficherosVisiblesParaGit } from './git.ts';
 
 export const RUTA_PROTEGIDAS = '.claude/protegidas.txt';
-export const RUTA_SUMAS = '.claude/sumas.sha256';
 
 /**
  * Fase de trabajo de la conversación, en la variable ARNES_FASE. El dueño la fija antes de
@@ -73,4 +73,16 @@ export function entradaQueBloquea(
   fase: Fase,
 ): EntradaProtegida | undefined {
   return entradas.find((entrada) => cubre(entrada, rutaRelativa) && entrada.desbloqueadaEn !== fase);
+}
+
+/**
+ * Ficheros protegidos que hay que vigilar en esta fase: los de la lista y los que git ve dentro
+ * de los directorios protegidos (los ignorados no). Los que la fase desbloquea se quedan fuera:
+ * se están editando legítimamente.
+ */
+export function ficherosVigilados(raiz: string, entradas: readonly EntradaProtegida[], fase: Fase): string[] {
+  const directorios = entradas.filter((entrada) => entrada.ruta.endsWith('/')).map((entrada) => entrada.ruta);
+  const ficheros = entradas.filter((entrada) => !entrada.ruta.endsWith('/')).map((entrada) => entrada.ruta);
+  const candidatos = new Set([...ficheros, ...ficherosVisiblesParaGit(raiz, directorios)]);
+  return [...candidatos].filter((ruta) => entradaQueBloquea(ruta, entradas, fase) !== undefined).sort();
 }

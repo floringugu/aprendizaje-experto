@@ -3,7 +3,7 @@
 // El mensaje cambia según el fallo, para que Claude no se quede probando arreglos a ciegas:
 //   - error del entorno (puerto ocupado, permisos, disco lleno, programa que no existe):
 //     no es su código, así que no lo toca y para a preguntar;
-//   - falla «integridad»: las sumas son cosa del dueño, así que para y le da los comandos;
+//   - falla «integridad»: los cambios en rutas protegidas son cosa del dueño, así que para y le da los comandos;
 //   - tercer bloqueo seguido del mismo paso: antes de seguir, escribe en una frase el
 //     mecanismo del fallo, o para si la causa está en la especificación o en el entorno;
 //   - cualquier otro fallo: el mensaje normal, «arregla la causa».
@@ -98,10 +98,10 @@ function instruccionEntorno(objetivo: string, entorno: ErrorDeEntorno): string {
 }
 
 const INSTRUCCION_INTEGRIDAD =
-  'Falla el paso «integridad»: un fichero protegido no coincide con sus sumas, o las sumas no coinciden ' +
-  'con las del último commit. No es tu código: las sumas solo las actualiza el dueño. No toques nada para ' +
-  'esquivarlo. Dale los comandos exactos que lo arreglan (la salida de abajo dice qué ha cambiado; ' +
-  `normalmente «make sumas», un commit con las sumas y después «make check») y para con ${MARCA_DECISION_PENDIENTE}.`;
+  'Falla el paso «integridad»: un fichero protegido difiere del último commit. No es tu código: ' +
+  'las rutas protegidas solo las cambia el dueño con un commit. No toques nada para esquivarlo. ' +
+  'Dale los comandos exactos que lo arreglan (la salida de abajo dice qué ha cambiado; normalmente ' +
+  `un «git commit» con esos ficheros y después «make check») y para con ${MARCA_DECISION_PENDIENTE}.`;
 
 function instruccionFreno(fallo: Fallo): string {
   return (

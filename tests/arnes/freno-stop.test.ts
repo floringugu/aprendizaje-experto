@@ -68,7 +68,8 @@ describe('motivoDeBloqueo', () => {
   it('si falla «integridad», no deja tocar nada y pide darle al dueño los comandos', () => {
     const motivo = motivoDeBloqueo(fallo({ paso: 'integridad', bloqueosSeguidos: 5 }));
     expect(motivo).toMatch(/Falla el paso «integridad»/);
-    expect(motivo).toMatch(/make sumas/);
+    expect(motivo).toMatch(/git commit/);
+    expect(motivo).not.toMatch(/sumas/);
     expect(motivo).not.toMatch(/mecanismo/);
   });
 

@@ -4,6 +4,9 @@
 // Antes del comando se guarda la suma de cada fichero protegido y una copia de su contenido.
 // Después se vuelven a calcular. Lo que el comando haya cambiado, borrado o creado vuelve a
 // como estaba, y la versión que dejó el comando se aparta en reports/huellas/ para el dueño.
+// Una excepción: lo que al acabar el comando es igual que en el último commit se deja, porque
+// lo ha puesto ahí el dueño (un commit, un rebase) y deshacerlo sería borrar su trabajo.
+import { createHash } from 'node:crypto';
 import {
   copyFileSync,
   existsSync,
@@ -17,11 +20,9 @@ import {
 } from 'node:fs';
 import path from 'node:path';
 import { RUTA_AJUSTES_LOCALES } from './ajustes-locales.ts';
-import { git } from './git.ts';
-import { RUTA_SUMAS } from './protegidas.ts';
+import { estadoConHead, git } from './git.ts';
+import { ficherosVigilados } from './protegidas.ts';
 import type { EntradaProtegida, Fase } from './protegidas.ts';
-import { calcularSumas, compararSumas, ficherosVigilados, parsearSumas, serializarSumas, sha256 } from './sumas.ts';
-import type { Diferencia, Sumas } from './sumas.ts';
 
 const DIRECTORIO_APARTADOS = 'reports/huellas';
 
@@ -33,6 +34,14 @@ export interface Vigilancia {
   readonly almacen: string;
   /** tool_use_id del comando: une las huellas de antes con la comprobación de después. */
   readonly idComando: string;
+}
+
+/** Ruta relativa → suma SHA-256 en hexadecimal. */
+type Huellas = ReadonlyMap<string, string>;
+
+interface Diferencia {
+  readonly ruta: string;
+  readonly tipo: 'cambiado' | 'sin-suma' | 'falta';
 }
 
 interface Restauracion {
@@ -52,11 +61,11 @@ export function almacenDeHuellas(raiz: string): string {
 }
 
 /**
- * Los ficheros que vigila integridad en esta fase, más el fichero de sumas y los ajustes
- * locales: git no ve estos últimos, pero guardan la fase de la próxima conversación.
+ * Los ficheros que vigila integridad en esta fase, más los ajustes locales: git no los ve,
+ * pero guardan la fase de la próxima conversación.
  */
 export function ficherosConHuella(raiz: string, entradas: readonly EntradaProtegida[], fase: Fase): string[] {
-  return [...new Set([...ficherosVigilados(raiz, entradas, fase), RUTA_SUMAS, RUTA_AJUSTES_LOCALES])].sort();
+  return [...new Set([...ficherosVigilados(raiz, entradas, fase), RUTA_AJUSTES_LOCALES])].sort();
 }
 
 /** Antes del comando: guarda la suma de cada fichero y una copia de su contenido. */
@@ -74,12 +83,12 @@ export function tomarHuellas(vigilancia: Vigilancia, rutas: readonly string[], a
     if (!existsSync(copia)) escribirEntero(copia, contenido);
     sumas.set(ruta, suma);
   }
-  escribirEntero(rutaHuellas(vigilancia), serializarSumas(sumas));
+  escribirEntero(rutaHuellas(vigilancia), serializarHuellas(sumas));
 }
 
 /**
  * Después del comando: devuelve a como estaba lo que el comando haya cambiado, borrado o
- * creado. undefined si no hay huellas de antes.
+ * creado, salvo lo que ya es igual que en el último commit. undefined si no hay huellas de antes.
  */
 export function restaurarCambios(
   vigilancia: Vigilancia,
@@ -88,11 +97,13 @@ export function restaurarCambios(
 ): Restauracion | undefined {
   const huellas = rutaHuellas(vigilancia);
   if (!existsSync(huellas)) return undefined;
-  const antes = parsearSumas(readFileSync(huellas, 'utf8'));
+  const antes = parsearHuellas(readFileSync(huellas, 'utf8'));
   rmSync(huellas, { force: true });
-  const despues = calcularSumas(vigilancia.raiz, [...new Set([...antes.keys(), ...rutas])]);
-  const diferencias = compararSumas(antes, despues).filter((diferencia) =>
-    cuentaComoCambio(vigilancia, antes, diferencia),
+  const despues = calcularHuellas(vigilancia.raiz, [...new Set([...antes.keys(), ...rutas])]);
+  const cambios = compararHuellas(antes, despues);
+  const iguales = igualesQueEnHead(vigilancia.raiz, cambios);
+  const diferencias = cambios.filter(
+    (diferencia) => !iguales.has(diferencia.ruta) && cuentaComoCambio(vigilancia, antes, diferencia),
   );
   const apartados = path.posix.join(DIRECTORIO_APARTADOS, `${marcaDeTiempo(ahora)}-${vigilancia.idComando}`);
   for (const { ruta } of diferencias) {
@@ -120,7 +131,7 @@ export function describirRestauracion(restauracion: Restauracion): string {
  * a veces mientras corre un comando. Ese cambio es legítimo: en ese fichero solo cuenta lo
  * que toca al arnés (la fase, en env, los hooks y disableAllHooks).
  */
-function cuentaComoCambio(vigilancia: Vigilancia, antes: Sumas, diferencia: Diferencia): boolean {
+function cuentaComoCambio(vigilancia: Vigilancia, antes: Huellas, diferencia: Diferencia): boolean {
   if (diferencia.ruta !== RUTA_AJUSTES_LOCALES) return true;
   const sumaAntes = antes.get(diferencia.ruta);
   const textoAntes = sumaAntes === undefined ? undefined : readFileSync(rutaCopia(vigilancia, sumaAntes), 'utf8');
@@ -138,6 +149,15 @@ function loQueTocaAlArnes(textoAjustes: string | undefined): string {
     // Si no es JSON válido, cuenta cualquier cambio del texto.
     return textoAjustes ?? '';
   }
+}
+
+/** Rutas que, al acabar el comando, existen y son iguales que en el último commit. */
+function igualesQueEnHead(raiz: string, cambios: readonly Diferencia[]): ReadonlySet<string> {
+  const estados = estadoConHead(
+    raiz,
+    cambios.map(({ ruta }) => ruta),
+  );
+  return new Set([...estados].filter(([, estado]) => estado === 'igual').map(([ruta]) => ruta));
 }
 
 /** Guarda en reports/huellas/ la versión que dejó el comando, si dejó alguna. */
@@ -168,6 +188,52 @@ function borrarHuellasViejas(almacen: string, ahora: Date): void {
     const info = statSync(ruta, { throwIfNoEntry: false });
     if (info !== undefined && ahora.getTime() - info.mtimeMs > MILISEGUNDOS_POR_DIA) rmSync(ruta, { force: true });
   }
+}
+
+function sha256(contenido: string | Buffer): string {
+  return createHash('sha256').update(contenido).digest('hex');
+}
+
+/** Sumas actuales en disco. Un fichero que no existe no aparece (luego sale como «falta»). */
+function calcularHuellas(raiz: string, rutas: readonly string[]): Huellas {
+  const sumas = new Map<string, string>();
+  for (const ruta of rutas) {
+    const absoluta = path.join(raiz, ruta);
+    if (existsSync(absoluta)) sumas.set(ruta, sha256(readFileSync(absoluta)));
+  }
+  return sumas;
+}
+
+function compararHuellas(antes: Huellas, despues: Huellas): Diferencia[] {
+  const diferencias: Diferencia[] = [];
+  for (const [ruta, suma] of despues) {
+    const sumaAntes = antes.get(ruta);
+    if (sumaAntes === undefined) diferencias.push({ ruta, tipo: 'sin-suma' });
+    else if (sumaAntes !== suma) diferencias.push({ ruta, tipo: 'cambiado' });
+  }
+  for (const ruta of antes.keys()) {
+    if (!despues.has(ruta)) diferencias.push({ ruta, tipo: 'falta' });
+  }
+  return diferencias.sort((a, b) => a.ruta.localeCompare(b.ruta));
+}
+
+/** Formato de `sha256sum`: «<suma>  <ruta>» por línea. */
+function serializarHuellas(sumas: Huellas): string {
+  return [...sumas.keys()]
+    .sort()
+    .map((ruta) => `${sumas.get(ruta) ?? ''}  ${ruta}\n`)
+    .join('');
+}
+
+function parsearHuellas(texto: string): Huellas {
+  const sumas = new Map<string, string>();
+  for (const linea of texto.split('\n')) {
+    const coincidencia = /^([0-9a-f]{64}) {2}(.+)$/.exec(linea);
+    if (coincidencia?.[1] !== undefined && coincidencia[2] !== undefined) {
+      sumas.set(coincidencia[2], coincidencia[1]);
+    }
+  }
+  return sumas;
 }
 
 /** Escribe en un temporal y lo renombra: si el hook se corta a medias, no queda un fichero partido. */

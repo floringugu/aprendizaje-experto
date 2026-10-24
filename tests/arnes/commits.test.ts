@@ -1,12 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import {
-  categoriaDe,
-  problemaDeAutoria,
-  problemaDeMezcla,
-  problemasDeSumas,
-} from '../../scripts/arnes/comun/commits.ts';
+import { categoriaDe, problemaDeAutoria, problemaDeMezcla } from '../../scripts/arnes/comun/commits.ts';
 import { parsearProtegidas } from '../../scripts/arnes/comun/protegidas.ts';
-import { sha256 } from '../../scripts/arnes/comun/sumas.ts';
 
 const entradas = parsearProtegidas('features/ @specs\nconfig/parametros.json @specs\nMakefile\n.claude/\n');
 
@@ -44,34 +38,5 @@ describe('problemaDeAutoria', () => {
   it('el dueño sí puede, y Claude Code puede commitear lo que no está protegido', () => {
     expect(problemaDeAutoria(['features/a.feature'], entradas, false)).toBeUndefined();
     expect(problemaDeAutoria(['src/dominio/a.ts'], entradas, true)).toBeUndefined();
-  });
-});
-
-describe('problemasDeSumas', () => {
-  const contenido = Buffer.from('all:\n');
-  const sumas = `${sha256(contenido)}  Makefile\n`;
-
-  it('acepta un fichero protegido cuya suma va en el mismo commit', () => {
-    expect(problemasDeSumas([{ ruta: 'Makefile', contenido }], sumas, entradas)).toEqual([]);
-  });
-
-  it('rechaza un fichero protegido sin sumas o con una suma que no coincide', () => {
-    expect(problemasDeSumas([{ ruta: 'Makefile', contenido }], undefined, entradas)).toEqual([
-      'Faltan las sumas (.claude/sumas.sha256). Ejecuta make sumas.',
-    ]);
-    const otro = Buffer.from('otro');
-    expect(problemasDeSumas([{ ruta: 'Makefile', contenido: otro }], sumas, entradas)).toEqual([
-      'Makefile no coincide con su suma. Ejecuta make sumas y añádelas.',
-    ]);
-  });
-
-  it('rechaza borrar un fichero protegido que sigue en las sumas', () => {
-    expect(problemasDeSumas([{ ruta: 'Makefile', contenido: undefined }], sumas, entradas)).toEqual([
-      'Makefile se borra pero sigue en las sumas.',
-    ]);
-  });
-
-  it('no pide sumas a los ficheros que no están protegidos', () => {
-    expect(problemasDeSumas([{ ruta: 'src/a.ts', contenido }], undefined, entradas)).toEqual([]);
   });
 });

@@ -5,7 +5,7 @@
 // [DECISIÓN PENDIENTE]. Entonces puede parar, y el dueño ve un aviso de que la
 // comprobación no se ha hecho.
 //
-// Freno: si el fallo es del entorno, de las sumas, o es el tercer bloqueo seguido del mismo
+// Freno: si el fallo es del entorno, de la integridad, o es el tercer bloqueo seguido del mismo
 // paso, el mensaje cambia (scripts/arnes/comun/freno-stop.ts). Cada parada se anota en
 // .claude/registro-stop.jsonl (scripts/arnes/comun/registro-stop.ts).
 //

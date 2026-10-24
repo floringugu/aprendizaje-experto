@@ -7,7 +7,7 @@ Este documento es el plan de ingeniería. No es una fuente pedagógica:
 - **Pedagogía.** Todo lo pedagógico sale de `docs/investigacion.md` (en adelante, «el informe»), y solo de ahí.
 - **Ingeniería.** `docs/arnes.md` y `docs/arnes-verificacion.md` orientan cómo se construye el proyecto, pero nunca respaldan una decisión pedagógica.
 
-**Está protegido.** Solo lo cambia el dueño, para que el plan siga siendo el contrato y no se reescriba para encajar con el código. Cuando el dueño aprueba algo nuevo, Claude le prepara una propuesta (un parche en `reports/propuestas/`, §6) y le da los comandos para aplicarla, revisarla y ejecutar `make sumas`.
+**Está protegido.** Solo lo cambia el dueño, para que el plan siga siendo el contrato y no se reescriba para encajar con el código. Cuando el dueño aprueba algo nuevo, Claude le prepara una propuesta (un parche en `reports/propuestas/`, §6) y le da los comandos para aplicarla, revisarla y commitearla.
 
 ---
 
@@ -128,19 +128,18 @@ tests/
   aceptacion/            steps de Cucumber (etapa 3; protegido, fase aceptacion)
   unidad/                tests del dominio; cada uno cita el @ID que cubre
   arnes/                 tests del propio arnés (226 tests; protegido)
-scripts/arnes/           scripts de make check, del pre-commit y de las sumas (protegido)
+scripts/arnes/           scripts de make check y del pre-commit (protegido)
 .claude/
   settings.json          hooks de Claude Code
   settings.local.json    fase de la próxima conversación, con su modelo y esfuerzo (make fase; fuera de git)
   hooks/                 código de los hooks
   agents/                subagentes revisor-evidencia, revisor-codigo e implementador
   protegidas.txt         rutas protegidas
-  sumas.sha256           sumas de las rutas protegidas (las generas tú)
   registro-stop.jsonl    una línea por parada del hook Stop (fuera de git)
   registro-enrutador.jsonl  una línea por encargo al implementador o bloqueo suyo (fuera de git)
   registro-contexto.jsonl   una línea por cada tramo de contexto avisado (relevo; fuera de git)
 .githooks/pre-commit     reglas de los commits
-.vscode/tasks.json       tareas del dueño: fase de la próxima conversación y sumas (protegido)
+.vscode/tasks.json       tarea del dueño: fase de la próxima conversación (protegido)
 CLAUDE.md                reglas de trabajo de Claude, entre ellas las propuestas (protegido)
 ```
 
@@ -162,7 +161,7 @@ Los pasos se ejecutan en este orden. La ejecución se para en el primero que fal
 | 6 | `unidad` | Vitest (`tests/unidad/` y `tests/arnes/`) | falla un test | — |
 | 7 | `aceptacion` | Cucumber, en modo `strict` | un escenario falla, está pendiente o tiene pasos sin definir | Excluye las áreas de `config/alcance.json` |
 | 8 | `cobertura-ids` | `scripts/arnes/cobertura-ids.ts` | Ver el §8 | — |
-| 9 | `integridad` | `scripts/arnes/integridad.ts` | un fichero protegido no coincide con su suma, o el fichero de sumas no coincide con el del último commit | — |
+| 9 | `integridad` | `scripts/arnes/integridad.ts` | un fichero protegido difiere del último commit (cambiado, borrado o nuevo, también sin seguimiento) | — |
 
 **Reglas de ESLint**
 
@@ -206,15 +205,14 @@ En `tests/` no se aplica el límite de longitud por función, porque un `describ
 | `make check-aceptacion` | aceptacion (etapa 3) | Del 1 al 6, `specs`, `estado-aceptacion` (todos los escenarios en alcance deben fallar en rojo: ni pasar, ni quedar pendientes, ni tener pasos sin definir) e `integridad` |
 | `make check-implementador` | impl, la del subagente `implementador` (§7) | Del 1 al 6 salvo `codigo-muerto`: cuando devuelve su encargo, la aplicación aún no usa las funciones nuevas del dominio. El resto lo exige después el hook Stop a la conversación principal |
 
-Fuera de `make check` hay cinco objetivos más:
+Fuera de `make check` hay cuatro objetivos más:
 
 - `make mutacion` (§9);
-- `make sumas` (§6), que solo puedes ejecutar tú;
 - `make fase F=<fase>` (§6), que también es solo tuyo: fija la fase de la próxima conversación;
 - `make bloqueos A=<ÁREA>` (§5), que resume las paradas del hook Stop de un área para su archivo;
 - `make formatear`.
 
-`make fase` y `make sumas` también se lanzan desde VS Code, con las tareas de `.vscode/tasks.json` (Ctrl+Shift+P → «Tasks: Run Task»).
+`make fase` también se lanza desde VS Code, con la tarea de `.vscode/tasks.json` (Ctrl+Shift+P → «Tasks: Run Task»).
 
 ---
 
@@ -324,10 +322,11 @@ El mensaje de bloqueo de una ruta protegida le recuerda a Claude cómo se cambia
 
 Vigila los comandos Bash por su efecto, no por su texto (`scripts/arnes/comun/huellas.ts`):
 
-1. **Antes del comando** guarda la huella (sha256) de cada fichero protegido que la fase no desbloquea, más `.claude/sumas.sha256` y `.claude/settings.local.json`. Guarda también una copia de cada contenido en `.git/arnes-huellas/copias/`, con la suma como nombre: un contenido ya copiado no se vuelve a copiar.
+1. **Antes del comando** guarda la huella (sha256) de cada fichero protegido que la fase no desbloquea, más `.claude/settings.local.json`. Guarda también una copia de cada contenido en `.git/arnes-huellas/copias/`, con la suma como nombre: un contenido ya copiado no se vuelve a copiar.
 2. **Después del comando**, haya acabado bien (PostToolUse) o con error (PostToolUseFailure), vuelve a calcular las huellas y deshace lo que haya cambiado:
    - un fichero cambiado o borrado vuelve a ser la copia de antes del comando;
-   - un fichero nuevo dentro de un directorio protegido se quita.
+   - un fichero nuevo dentro de un directorio protegido se quita;
+   - **salvo lo que al acabar el comando es igual que en el último commit** (HEAD): lo ha puesto ahí un commit o un rebase tuyo mientras corría el comando, y deshacerlo sería borrar tu trabajo.
 3. **La versión que dejó el comando** se aparta en `reports/huellas/<fecha y hora UTC>-<id del comando>/`, con la misma ruta. Se avisa a ti (`systemMessage`) y a Claude (`additionalContext`), y a Claude se le recuerda cómo se cambia una ruta protegida: con una propuesta.
 
 Restaura desde la copia, no desde git: un `git add` o un `git checkout` del comando no cambia lo que se restaura.
@@ -377,7 +376,7 @@ Hay una excepción: si el último mensaje de Claude contiene `[DECISIÓN PENDIEN
 El mensaje del bloqueo cambia según el fallo (`scripts/arnes/comun/freno-stop.ts`):
 
 - **Error del entorno.** Si la salida contiene `EADDRINUSE` (puerto ocupado), `EACCES` (permisos), `ENOSPC` (disco lleno o límite de ficheros vigilados) o «command not found», le dice que no es su código: que no lo toque, te dé el comando que lo arreglaría y pare con `[DECISIÓN PENDIENTE]`.
-- **Falla `integridad`.** Las sumas son tuyas: para y te da los comandos.
+- **Falla `integridad`.** Los cambios en rutas protegidas son tuyos: para y te da los comandos.
 - **Freno.** En el tercer bloqueo seguido del mismo paso en la misma conversación, le pide que deje de probar arreglos y escriba en una frase el mecanismo exacto del fallo. Si la causa está en la especificación, el arnés o el entorno, para con `[DECISIÓN PENDIENTE]`.
 - **Cualquier otro fallo:** que arregle la causa, no la comprobación.
 
@@ -407,7 +406,7 @@ Impide que se cambie la configuración de Claude Code (la del usuario, la del pr
 
 ---
 
-## 6. Rutas protegidas, fases y sumas
+## 6. Rutas protegidas, fases e integridad
 
 **Rutas** (`.claude/protegidas.txt`):
 
@@ -433,19 +432,18 @@ Impide que se cambie la configuración de Claude Code (la del usuario, la del pr
 
 Al terminar una etapa 2 o 3, vuelve a `impl` antes de abrir la siguiente conversación.
 
-**Sumas**
+**Integridad**
 
-- `.claude/sumas.sha256` tiene el formato de `sha256sum` y una línea por cada fichero protegido; en un directorio protegido cuenta cada fichero que git no ignora.
-- El paso `integridad` falla si un fichero ha cambiado o falta, si hay un fichero protegido nuevo sin suma, o si el propio fichero de sumas difiere del último commit.
+- El paso `integridad` compara con git, sin ficheros de sumas: falla si un fichero protegido está cambiado o borrado respecto al último commit, o si hay uno nuevo (también sin seguimiento o preparado pero sin commitear). En un directorio protegido cuenta cada fichero que git no ignora.
 - En las fases `specs` y `aceptacion` no se vigila lo que esa fase desbloquea.
 
-**Cómo actualizas las sumas.** Como dijiste, «Solo yo actualizo las sumas»:
+**Cómo cambias lo protegido.** Solo tú:
 
 1. Aplicas una propuesta que cambia un fichero protegido, o revisas lo que ha escrito Claude en una fase.
-2. Desde tu terminal o la tarea «Arnés: actualizar sumas», no desde Claude Code, ejecutas `make sumas`. El script se niega a ejecutarse si detecta Claude Code (`CLAUDECODE`) o si no hay un terminal interactivo. Te muestra qué ha cambiado.
-3. Commiteas el cambio y las sumas juntos. El pre-commit comprueba que coinciden.
+2. Commiteas el cambio. El pre-commit rechaza que Claude Code commitee rutas protegidas; si el commit es tuyo, pasa.
+3. `make check` después del commit: `integridad` solo queda en verde cuando lo protegido es igual que en HEAD.
 
-**Propuestas.** Regla dura (`CLAUDE.md`): cuando hay que cambiar algo que Claude no puede tocar (una ruta protegida, las sumas, la fase, un commit), Claude no te pide que lo edites a mano. Te da los comandos exactos, listos para copiar. Si el cambio es de ficheros protegidos:
+**Propuestas.** Regla dura (`CLAUDE.md`): cuando hay que cambiar algo que Claude no puede tocar (una ruta protegida, la fase, un commit), Claude no te pide que lo edites a mano. Te da los comandos exactos, listos para copiar. Si el cambio es de ficheros protegidos:
 
 1. Claude clona el repositorio fuera de él (en su directorio temporal), hace allí los cambios y comprueba lo que pueda.
 2. Guarda el parche en `reports/propuestas/<AAAA-MM-DD>-<tema>.patch` (fuera de git) y para con `[DECISIÓN PENDIENTE]`.
@@ -455,11 +453,9 @@ Al terminar una etapa 2 o 3, vuelve a `impl` antes de abrir la siguiente convers
    git apply --3way reports/propuestas/<AAAA-MM-DD>-<tema>.patch
    ```
 
-4. Si te convence, actualizas las sumas, commiteas con el mensaje que te propone Claude y compruebas. `make check` va después del commit porque `integridad` compara las sumas con las del último commit:
+4. Si te convence, commiteas con el mensaje que te propone Claude y compruebas. `git apply --3way` ya ha dejado el parche preparado, así que el commit no arrastra cambios de otras conversaciones. `make check` va después del commit porque `integridad` compara lo protegido con el último commit:
 
    ```sh
-   make sumas
-   git add .claude/sumas.sha256
    git commit -m "<mensaje que propone Claude>"
    make check
    ```
@@ -468,7 +464,6 @@ Al terminar una etapa 2 o 3, vuelve a `impl` antes de abrir la siguiente convers
 
    ```sh
    git apply -R --index reports/propuestas/<AAAA-MM-DD>-<tema>.patch
-   git restore --source=HEAD --staged --worktree .claude/sumas.sha256
    ```
 
    Después del commit: `git revert --no-edit HEAD`.
@@ -586,7 +581,6 @@ Se activa con `npm ci`: el script `prepare` ejecuta `git config core.hooksPath .
 
 1. **Mezcla especificación y código.** Especificación es `features/`, `tests/aceptacion/` y `config/`; código es `src/` y `tests/unidad/`. El resto (docs, arnés) puede ir con cualquiera de los dos.
 2. **Claude Code intenta commitear un fichero protegido** (lo detecta por la variable `CLAUDECODE`).
-3. **Un fichero protegido no coincide con las sumas** que van en el mismo commit, o faltan las sumas.
 
 ---
 
@@ -597,24 +591,21 @@ Se activa con `npm ci`: el script `prepare` ejecuta `git config core.hooksPath .
 1. **Guardia textual de Bash.** Bloquea los atajos para saltarse el arnés, también aplicar un parche (las propuestas las aplicas tú), y los comandos que nombran `.git/` o `~/.claude/`.
 2. **Huellas de Bash.** Lo que un comando cambie en las rutas protegidas vuelve a como estaba al acabar el comando, sin depender de cómo esté escrito.
 3. **Guardia de ficheros.** Resuelve la ruta real, así que los enlaces simbólicos y los `..` no sirven para colarse.
-4. **Sumas sha256** de todo lo protegido, en cada `make check`.
-5. **Comparación del fichero de sumas con el último commit.** Recalcular las sumas no basta para ocultar un cambio.
-6. **`make sumas` se niega a ejecutarse** dentro de Claude Code o sin un terminal interactivo.
-7. **Pre-commit:** separa la especificación del código, comprueba la autoría de los ficheros protegidos y comprueba las sumas.
-8. **ConfigChange:** los hooks no se cambian en caliente.
-9. **Tu revisión del diff antes de cada commit.**
+4. **Integridad con el último commit**, en cada `make check`: lo protegido no puede diferir de HEAD. Sin ficheros de sumas que recalcular, un cambio solo se oculta commiteándolo, y eso lo impide el pre-commit.
+5. **Pre-commit:** separa la especificación del código y comprueba la autoría de los ficheros protegidos.
+6. **ConfigChange:** los hooks no se cambian en caliente.
+7. **Tu revisión del diff antes de cada commit.**
 
 **Límites que conviene conocer:**
 
-- **La guardia de Bash es textual.** Un comando ofuscado (una ruta construida por partes, en base64 o en variables) puede llegar a `.git/` o a `~/.claude/`, también a las copias de las huellas. Por eso existen las capas 4, 5, 8 y 9: lo que no se bloquea, se detecta. Las rutas protegidas del repositorio ya no dependen del texto: las vigilan las huellas.
+- **La guardia de Bash es textual.** Un comando ofuscado (una ruta construida por partes, en base64 o en variables) puede llegar a `.git/` o a `~/.claude/`, también a las copias de las huellas. Por eso existen las capas 4, 6 y 7: lo que no se bloquea, se detecta. Las rutas protegidas del repositorio ya no dependen del texto: las vigilan las huellas.
 - **Las huellas deshacen, no impiden.** Mientras dura el comando, el cambio existe, y el propio comando puede usarlo: por ejemplo, relajar `eslint.config.js` y pasar el lint en la misma línea. Por eso el hook Stop ejecuta `make check` cuando todo ya está restaurado, y lo que el comando deje fuera de las rutas protegidas lo ve tu revisión.
 - **Las huellas no ven los comandos en segundo plano ni los cancelados.** Un comando en segundo plano sigue trabajando después de PostToolUse, y uno cancelado no dispara ningún hook Post. Lo que cambien lo detectan integridad, en el hook Stop (capa 4), y tu revisión.
-- **Si cambias una ruta protegida mientras corre un comando de Claude**, por ejemplo al aplicar una propuesta, las huellas también deshacen tu cambio. No se pierde: queda en `reports/huellas/` y el aviso te lo dice. Aplica las propuestas cuando Claude haya parado.
+- **Si cambias una ruta protegida mientras corre un comando de Claude**, por ejemplo al aplicar una propuesta, las huellas también deshacen tu cambio, salvo que al acabar el comando ya sea igual que en el último commit (si lo commiteas durante el comando, se queda). No se pierde: lo deshecho queda en `reports/huellas/` y el aviso te lo dice. Aplica las propuestas cuando Claude haya parado. Un fichero que tu commit borra sí se vuelve a poner, porque «igual que en HEAD» solo se mira en los ficheros que HEAD tiene.
 - **Las copias de las huellas crecen** en `.git/arnes-huellas/copias/`: una por cada contenido distinto de un fichero protegido. Puedes borrar la carpeta cuando ninguna conversación esté ejecutando comandos.
 - **`npx <paquete>` puede descargar y ejecutar un paquete** que no está en el lockfile. No cambia `package.json`, pero se ejecuta.
-- **La comprobación del terminal de `make sumas` se puede engañar** simulando uno (por ejemplo, con `script`). Si ocurriera, la capa 5 lo detectaría, porque las sumas ya no coincidirían con el último commit, y también tu revisión.
 - **ConfigChange también te bloquea a ti** si cambias la configuración con `/config` durante una conversación. Edita la configuración fuera de Claude Code y abre una conversación nueva. `make fase` también cambia la configuración local, así que las conversaciones abiertas pueden mostrarte ese bloqueo: es lo esperado, y siguen en su fase.
-- **La fase vive en un fichero local** (`.claude/settings.local.json`), fuera de git y de las sumas. Claude no puede editarlo con Edit o Write, porque está dentro de `.claude/`, y si un comando Bash le cambia la fase, los hooks o `disableAllHooks`, las huellas lo deshacen; tú sí puedes. Si lo cambias a mano, el aviso de `anunciar-fase.ts` te muestra la fase con la que empieza cada conversación. El modelo y el esfuerzo que guarda ahí `make fase` no los vigilan las huellas: si cambian, lo ves en ese mismo aviso.
+- **La fase vive en un fichero local** (`.claude/settings.local.json`), fuera de git. Claude no puede editarlo con Edit o Write, porque está dentro de `.claude/`, y si un comando Bash le cambia la fase, los hooks o `disableAllHooks`, las huellas lo deshacen; tú sí puedes. Si lo cambias a mano, el aviso de `anunciar-fase.ts` te muestra la fase con la que empieza cada conversación. El modelo y el esfuerzo que guarda ahí `make fase` no los vigilan las huellas: si cambian, lo ves en ese mismo aviso.
 - **Los errores del entorno se reconocen por el texto** de la salida. Un test que imprima `EACCES` a propósito daría un falso aviso; solo le pide a Claude que pare y pregunte.
 - **El freno cuenta bloqueos seguidos del mismo paso.** Si Claude alterna dos pasos que fallan, la racha empieza de cero cada vez. Lo verás en `make bloqueos`.
 - **Los hooks solo vigilan a Claude Code.** A ti no te frenan, a propósito.
@@ -671,11 +662,10 @@ Se activa con `npm ci`: el script `prepare` ejecuta `git config core.hooksPath .
 
 1. `cd ~/aprendizaje-experto && npm ci`. Instala las dependencias y activa el pre-commit.
 2. Revisa los ficheros. Todo es nuevo.
-3. **Desde tu terminal:** `make sumas`.
-4. `make check`. Debe quedar todo en verde, con el aviso de que aún no hay commits.
-5. Commitea todo junto. Está permitido porque todavía no hay código en `src/`: `git add -A && git commit -m "chore: arnés de desarrollo (etapa 1)"`.
-6. `make check` otra vez. Ahora también compara las sumas con el último commit.
-7. Para la etapa 2, elige la fase `specs` con la tarea de VS Code (§6) y abre una conversación nueva.
+3. `make check`. Debe quedar todo en verde, con el aviso de que aún no hay commits.
+4. Commitea todo junto. Está permitido porque todavía no hay código en `src/`: `git add -A && git commit -m "chore: arnés de desarrollo (etapa 1)"`.
+5. `make check` otra vez. Ahora `integridad` también compara lo protegido con el último commit.
+6. Para la etapa 2, elige la fase `specs` con la tarea de VS Code (§6) y abre una conversación nueva.
 
 ---
 
@@ -770,7 +760,7 @@ Resueltas el 18-10-2026: el dueño aprobó cada propuesta (la opción b en la 5,
 
 ## 16. Etapas 2 a 5
 
-Cada etapa, y cada área de la etapa 4, empieza en una conversación nueva de Claude Code en VS Code. Antes de abrirla eliges su fase con la tarea «Arnés: fase de la próxima conversación» (§6), y el aviso del principio te la confirma. Lo que Claude no puede hacer (aplicar una propuesta, actualizar las sumas, cambiar la fase, commitear) te lo deja en comandos exactos, listos para copiar.
+Cada etapa, y cada área de la etapa 4, empieza en una conversación nueva de Claude Code en VS Code. Antes de abrirla eliges su fase con la tarea «Arnés: fase de la próxima conversación» (§6), y el aviso del principio te la confirma. Lo que Claude no puede hacer (aplicar una propuesta, cambiar la fase, commitear) te lo deja en comandos exactos, listos para copiar.
 
 ### Etapa 2: especificación
 

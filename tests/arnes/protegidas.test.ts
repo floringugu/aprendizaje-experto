@@ -1,5 +1,13 @@
+import { spawnSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
-import { cubre, entradaQueBloquea, faseDeEntorno, parsearProtegidas } from '../../scripts/arnes/comun/protegidas.ts';
+import {
+  cubre,
+  entradaQueBloquea,
+  faseDeEntorno,
+  ficherosVigilados,
+  parsearProtegidas,
+} from '../../scripts/arnes/comun/protegidas.ts';
+import { directorioTemporal, escribirFicheros } from './temporal.ts';
 
 const TEXTO = `
 # comentario
@@ -67,5 +75,28 @@ describe('faseDeEntorno', () => {
     expect(faseDeEntorno({ ARNES_FASE: 'specs' })).toBe('specs');
     expect(faseDeEntorno({ ARNES_FASE: 'aceptacion' })).toBe('aceptacion');
     expect(() => faseDeEntorno({ ARNES_FASE: 'libre' })).toThrow(/no es válida/);
+  });
+});
+
+describe('ficherosVigilados', () => {
+  const entradas = parsearProtegidas('docs/a.md\nfeatures/ @specs\n.claude/\n');
+
+  it('lista los ficheros reales de los directorios protegidos, sin los ignorados ni los que la fase desbloquea', () => {
+    const raiz = directorioTemporal();
+    spawnSync('git', ['init', '--quiet'], { cwd: raiz });
+    escribirFicheros(raiz, {
+      '.gitignore': '.claude/settings.local.json\n',
+      'docs/a.md': 'a',
+      'features/x.feature': 'x',
+      '.claude/settings.json': '{}',
+      '.claude/settings.local.json': '{}',
+      'src/libre.ts': '',
+    });
+    expect(ficherosVigilados(raiz, entradas, 'impl')).toEqual([
+      '.claude/settings.json',
+      'docs/a.md',
+      'features/x.feature',
+    ]);
+    expect(ficherosVigilados(raiz, entradas, 'specs')).toEqual(['.claude/settings.json', 'docs/a.md']);
   });
 });

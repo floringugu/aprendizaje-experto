@@ -12,7 +12,7 @@ import {
 import type { Vigilancia } from '../../scripts/arnes/comun/huellas.ts';
 import { parsearProtegidas } from '../../scripts/arnes/comun/protegidas.ts';
 import type { Fase } from '../../scripts/arnes/comun/protegidas.ts';
-import { directorioTemporal, escribirFicheros } from './temporal.ts';
+import { directorioTemporal, escribirFicheros, gitEn } from './temporal.ts';
 
 const ENTRADAS = parsearProtegidas('docs/informe.md\nfeatures/ @specs\n.claude/\n');
 const AHORA = new Date('2026-10-24T10:15:30.123Z');
@@ -53,17 +53,15 @@ beforeEach(() => {
     'features/a.feature': 'a',
     '.claude/settings.json': '{}',
     '.claude/settings.local.json': AJUSTES_LOCALES,
-    '.claude/sumas.sha256': '',
     'src/libre.ts': '',
   });
 });
 
 describe('ficherosConHuella', () => {
-  it('añade el fichero de sumas y los ajustes locales, aunque git los ignore', () => {
+  it('añade los ajustes locales, aunque git los ignore', () => {
     expect(rutas()).toEqual([
       '.claude/settings.json',
       '.claude/settings.local.json',
-      '.claude/sumas.sha256',
       'docs/informe.md',
       'features/a.feature',
     ]);
@@ -170,6 +168,55 @@ describe('restaurarCambios', () => {
     expect(() => {
       tomarHuellas(vigilancia('../x'), rutas(), AHORA);
     }).toThrow(/tool_use_id/);
+  });
+});
+
+describe('restaurarCambios y el último commit', () => {
+  function commitear(): void {
+    gitEn(raiz, ['add', '-A']);
+    gitEn(raiz, ['commit', '--quiet', '-m', 'dueño']);
+  }
+
+  it('deja un fichero que el comando deja igual que en HEAD (el dueño commitea durante el comando)', () => {
+    commitear();
+    const restauracion = alrededorDe(() => {
+      escribir('docs/informe.md', '# del dueño');
+      commitear();
+    });
+    expect(restauracion?.diferencias).toEqual([]);
+    expect(leer('docs/informe.md')).toBe('# del dueño');
+    expect(existsSync(path.join(raiz, 'reports'))).toBe(false);
+  });
+
+  it('deja un fichero nuevo que el comando deja igual que en HEAD', () => {
+    commitear();
+    const restauracion = alrededorDe(() => {
+      escribir('features/nueva.feature', 'nueva');
+      commitear();
+    });
+    expect(restauracion?.diferencias).toEqual([]);
+    expect(leer('features/nueva.feature')).toBe('nueva');
+  });
+
+  it('sigue deshaciendo lo que difiere de HEAD mientras deja lo que el dueño commitea', () => {
+    commitear();
+    const restauracion = alrededorDe(() => {
+      escribir('features/a.feature', 'del dueño');
+      commitear();
+      escribir('docs/informe.md', '# cambiado');
+    });
+    expect(restauracion?.diferencias).toEqual([{ ruta: 'docs/informe.md', tipo: 'cambiado' }]);
+    expect(leer('docs/informe.md')).toBe('# informe');
+    expect(leer('features/a.feature')).toBe('del dueño');
+  });
+
+  it('vuelve a poner un fichero borrado, también si HEAD lo tiene', () => {
+    commitear();
+    const restauracion = alrededorDe(() => {
+      rmSync(path.join(raiz, 'docs/informe.md'));
+    });
+    expect(restauracion?.diferencias).toEqual([{ ruta: 'docs/informe.md', tipo: 'falta' }]);
+    expect(leer('docs/informe.md')).toBe('# informe');
   });
 });
 

@@ -102,7 +102,7 @@ describe('motivoBloqueoBash', () => {
     ['git config core.hooksPath /dev/null', /hooksPath/],
     ['env -u CLAUDECODE git commit -m x', /entorno/],
     ['CLAUDECODE= git commit -m x', /entorno/],
-    ['env -i PATH=/usr/bin make sumas', /entorno/],
+    ['env -i PATH=/usr/bin make fase F=specs', /entorno/],
     ['ARNES_FASE=specs make check', /ARNES_FASE/],
     ['npm install left-pad', /dependencias/],
     ['npm i -D left-pad', /dependencias/],

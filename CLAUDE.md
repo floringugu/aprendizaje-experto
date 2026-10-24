@@ -5,7 +5,7 @@
 
 ## Comandos para el dueño (regla dura)
 
-Cuando el dueño tenga que hacer algo que Claude no puede hacer, dale los comandos exactos en un único bloque `sh`. Esto incluye aplicar una propuesta, actualizar las sumas, elegir la fase, commitear y deshacer.
+Cuando el dueño tenga que hacer algo que Claude no puede hacer, dale los comandos exactos en un único bloque `sh`. Esto incluye aplicar una propuesta, elegir la fase, commitear y deshacer.
 
 - El bloque se copia y se pega tal cual: rutas y mensajes de commit ya rellenos, en el orden en que se ejecutan, desde la raíz del repositorio.
 - Nunca le pidas que edite un fichero a mano ni le describas un cambio para que lo escriba él. Si el cambio toca una ruta protegida, prepárale una propuesta.
@@ -15,7 +15,7 @@ Cuando el dueño tenga que hacer algo que Claude no puede hacer, dale los comand
 Una ruta de `.claude/protegidas.txt` sin anotación de fase no se edita en el repositorio. El cambio se propone así (plan §6):
 
 1. Clona el repositorio en el scratchpad, enlaza `node_modules` y haz allí los cambios con Edit o Write.
-2. En el clon, pasa las comprobaciones que no dependen de las sumas: `npm run --silent <paso>` para tipos, lint, duplicacion, codigo-muerto, capas, unidad, specs, aceptacion y cobertura-ids.
+2. En el clon, pasa las comprobaciones que no dependen del commit (todas salvo `integridad`): `npm run --silent <paso>` para tipos, lint, duplicacion, codigo-muerto, capas, unidad, specs, aceptacion y cobertura-ids.
 3. Guarda el parche fuera de git:
    - `git -C <clon> add -A -- . ':!node_modules'`
    - `git -C <clon> diff --cached --binary > reports/propuestas/<AAAA-MM-DD>-<tema>.patch`
@@ -27,9 +27,7 @@ git apply --3way reports/propuestas/<AAAA-MM-DD>-<tema>.patch
 ```
 
 ```sh
-# Si le convence. make check va después del commit: integridad compara las sumas con él.
-make sumas
-git add .claude/sumas.sha256
+# Si le convence. El parche ya está preparado, así que el commit es solo suyo. make check va después: integridad compara con él.
 git commit -m "<tipo>: <mensaje en inglés>"
 make check
 ```
@@ -37,7 +35,6 @@ make check
 ```sh
 # Si no le convence, antes del commit.
 git apply -R --index reports/propuestas/<AAAA-MM-DD>-<tema>.patch
-git restore --source=HEAD --staged --worktree .claude/sumas.sha256
 ```
 
 Después del commit se deshace con `git revert --no-edit HEAD`. Claude no aplica parches: la guardia bloquea `git apply`, `git am` y `patch`.

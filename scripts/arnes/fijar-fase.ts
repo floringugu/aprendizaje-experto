@@ -3,7 +3,7 @@
 // próxima conversación» (.vscode/tasks.json).
 //
 // Se niega a ejecutarse dentro de Claude Code (variable CLAUDECODE) o sin un terminal
-// interactivo, igual que «make sumas». La conversación que ya está abierta no cambia de fase:
+// interactivo, que es como Claude Code lanza los comandos. La conversación que ya está abierta no cambia de fase:
 // Claude Code lee los ajustes al empezar, y el hook ConfigChange bloquea los cambios en caliente.
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';

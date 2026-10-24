@@ -8,7 +8,6 @@
 #
 # Objetivos solo para el dueño, desde su terminal o las tareas de VS Code (.vscode/tasks.json):
 #   make fase F=<fase>     fija la fase de la próxima conversación de Claude Code
-#   make sumas             recalcula .claude/sumas.sha256 tras cambiar un fichero protegido
 # Y uno de consulta: make bloqueos A=<ÁREA> resume las paradas del hook Stop de un área.
 
 ESTATICOS := tipos lint duplicacion codigo-muerto capas unidad
@@ -22,7 +21,7 @@ define ejecutar_pasos
 	printf '\n✓ Todo en verde.\n'
 endef
 
-.PHONY: check check-specs check-aceptacion check-implementador mutacion sumas fase bloqueos instalar formatear
+.PHONY: check check-specs check-aceptacion check-implementador mutacion fase bloqueos instalar formatear
 
 check:
 	$(call ejecutar_pasos,$(ESTATICOS) aceptacion cobertura-ids integridad)
@@ -42,10 +41,6 @@ check-implementador:
 # Mutation testing de src/dominio/. No forma parte de make check: es lento.
 mutacion:
 	npm run --silent mutacion
-
-# Solo el dueño, desde su terminal: recalcula .claude/sumas.sha256.
-sumas:
-	@node scripts/arnes/actualizar-sumas.ts
 
 # Solo el dueño: guarda la fase en .claude/settings.local.json (fuera de git). Vale para la
 # próxima conversación; las que están abiertas siguen en su fase.

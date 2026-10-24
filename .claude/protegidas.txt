@@ -3,7 +3,7 @@
 # «@specs» o «@aceptacion» la desbloquea solo en una conversación con esa fase (etapas 2 y 3).
 # La fase la elige el dueño antes de abrirla: «make fase F=…» o la tarea de VS Code.
 # Sin anotación, la cambia el dueño aplicando una propuesta de Claude (reports/propuestas/*.patch,
-# con «git apply --3way»). Después ejecuta «make sumas» y commitea.
+# con «git apply --3way», que lo deja preparado) y lo commitea; la integridad lo compara con HEAD.
 
 # Fuentes
 docs/investigacion.md
@@ -41,6 +41,5 @@ scripts/arnes/
 tests/arnes/
 .claude/
 .claude/protegidas.txt
-.claude/sumas.sha256
 .vscode/tasks.json
 CLAUDE.md
