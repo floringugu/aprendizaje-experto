@@ -113,17 +113,18 @@ src/
 tests/
   aceptacion/            steps de Cucumber (etapa 3; protegido, fase aceptacion)
   unidad/                tests del dominio; cada uno cita el @ID que cubre
-  arnes/                 tests del propio arnés (203 tests; protegido)
+  arnes/                 tests del propio arnés (226 tests; protegido)
 scripts/arnes/           scripts de make check, del pre-commit y de las sumas (protegido)
 .claude/
   settings.json          hooks de Claude Code
-  settings.local.json    fase de la próxima conversación (make fase; fuera de git)
+  settings.local.json    fase de la próxima conversación, con su modelo y esfuerzo (make fase; fuera de git)
   hooks/                 código de los hooks
   agents/                subagentes revisor-evidencia, revisor-codigo e implementador
   protegidas.txt         rutas protegidas
   sumas.sha256           sumas de las rutas protegidas (las generas tú)
   registro-stop.jsonl    una línea por parada del hook Stop (fuera de git)
   registro-enrutador.jsonl  una línea por encargo al implementador o bloqueo suyo (fuera de git)
+  registro-contexto.jsonl   una línea por cada tramo de contexto avisado (relevo; fuera de git)
 .githooks/pre-commit     reglas de los commits
 .vscode/tasks.json       tareas del dueño: fase de la próxima conversación y sumas (protegido)
 CLAUDE.md                reglas de trabajo de Claude, entre ellas las propuestas (protegido)
@@ -228,6 +229,10 @@ Están en `.claude/settings.json`:
       {
         "matcher": "Agent",
         "hooks": [{ "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/enrutar-modelo.ts\"", "timeout": 30 }]
+      },
+      {
+        "matcher": "Read",
+        "hooks": [{ "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/indice-markdown.ts\"", "timeout": 30 }]
       }
     ],
     "PostToolUse": [
@@ -238,6 +243,10 @@ Están en `.claude/settings.json`:
       {
         "matcher": "Bash",
         "hooks": [{ "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/vigilar-huellas.ts\"", "timeout": 30 }]
+      },
+      {
+        "matcher": "*",
+        "hooks": [{ "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/vigilar-contexto.ts\"", "timeout": 30 }]
       }
     ],
     "PostToolUseFailure": [
@@ -271,8 +280,8 @@ Están en `.claude/settings.json`:
 
 Al empezar cada conversación (y al reanudarla, limpiarla o compactarla), dice en qué fase está:
 
-- **A ti**, con un aviso de una línea: la fase, la comprobación que exigirá el hook Stop y las áreas en alcance. Así compruebas que la fase que elegiste con `make fase` ha llegado a los hooks.
-- **A Claude**, como contexto: además, para qué sirve la fase y qué rutas protegidas desbloquea.
+- **A ti**, con un aviso de una línea: la fase con su modelo y su esfuerzo (§6), la comprobación que exigirá el hook Stop, las áreas en alcance y las que tienen un relevo pendiente. Así compruebas que la fase que elegiste con `make fase` ha llegado a los hooks. Si la conversación usa otro modelo que el de la fase, el aviso lo dice y te recuerda `/model`; si Claude Code no envía el modelo, no hay aviso.
+- **A Claude**, como contexto: además, para qué sirve la fase y qué rutas protegidas desbloquea. Si hay un relevo pendiente, que lea la sección «## Relevo» del área antes de nada y la borre.
 
 ### PreToolUse: `proteger-rutas.ts`
 
@@ -323,13 +332,27 @@ Elige el modelo de cada subagente con una regla fija (`scripts/arnes/comun/enrut
 
   Si la misma conversación vuelve a encargar la misma tarea, es que el encargo anterior no salió bien, y sube un escalón: de Haiku a Sonnet. Después de Sonnet no hay más: el encargo se bloquea, y Claude hace la tarea él mismo o para con `[DECISIÓN PENDIENTE]`. También se bloquea un encargo fuera de la fase impl, sin las dos líneas o con rutas fuera de `src/` y `tests/unidad/`.
 - **`revisor-codigo` y `revisor-evidencia`:** les quita el modelo y el esfuerzo que pase Claude, para que valgan los de su cabecera.
-- **Los demás subagentes:** no los toca.
+- **Los demás subagentes,** si Claude no les da modelo: Haiku a los de búsqueda (`Explore` y `claude-code-guide`) y Sonnet al resto (`general-purpose`, `Plan`…). Así ningún subagente hereda Opus de la conversación sin que lo veas: el aviso dice qué modelo le ha tocado. Si Claude pasa un modelo, se respeta. Los forks (`subagent_type: "fork"`) siguen con el de la conversación, porque comparten su contexto.
 
 Cada encargo al implementador queda en `.claude/registro-enrutador.jsonl` (fuera de git): la conversación, la tarea, el modelo y los ficheros. De ahí sale la escalera.
+
+### PreToolUse en Read: `indice-markdown.ts`
+
+Un Markdown largo leído entero llena el contexto de golpe, y cada llamada siguiente lo vuelve a pagar. Si Claude intenta leer entero un `.md` del repositorio de más de 200 líneas (sin `limit`, o con uno mayor de 200), el hook bloquea la lectura y le devuelve el índice de encabezados con el rango de líneas de cada sección (`scripts/arnes/comun/indice-markdown.ts`). Con él, Claude busca con Grep o lee solo la sección que necesita, con `offset` y `limit`. Cubre `docs/plan.md`, `docs/investigacion.md`, `docs/arnes.md`, `docs/arnes-verificacion.md` y cualquier otro que crezca. Los encabezados dentro de un bloque de código no cuentan.
 
 ### PostToolUse: `formatear-y-lintear.ts`
 
 Formatea con Prettier el fichero que se acaba de editar y le pasa ESLint. Si hay errores, se los devuelve a Claude con la pista de cómo arreglarlos.
+
+### PostToolUse en todas las herramientas: `vigilar-contexto.ts` (relevo)
+
+En cada llamada, el modelo vuelve a leer el contexto entero de la conversación, así que una conversación larga encarece cada paso. En vez de compactar, el trabajo se pasa a una conversación nueva (`scripts/arnes/comun/relevo.ts`):
+
+1. Después de cada herramienta, el hook lee del transcript de Claude Code el tamaño del contexto de la última llamada: los tokens de entrada más los de la caché.
+2. Al pasar de **120 k tokens**, te avisa a ti y le pide a Claude que acabe el paso en curso sin empezar otro, apunte el estado al final de `docs/areas/<ÁREA>.md` en una sección «## Relevo» (qué está hecho, qué falta, el paso siguiente y los ficheros que hay que leer primero) y termine con `[RELEVO]`. Si la conversación no trabaja en un área, el relevo va en su mensaje final. El aviso se repite cada 20 k tokens más.
+3. Abres una conversación nueva. El aviso de inicio te dice qué área tiene el relevo, y Claude lee la sección y la borra.
+
+Los subagentes no cuentan: tienen su propio contexto. El último tramo avisado de cada conversación queda en `.claude/registro-contexto.jsonl` (fuera de git), para no repetir el aviso en cada herramienta.
 
 ### Stop: `exigir-check.ts`
 
@@ -345,6 +368,8 @@ El mensaje del bloqueo cambia según el fallo (`scripts/arnes/comun/freno-stop.t
 - **Cualquier otro fallo:** que arregle la causa, no la comprobación.
 
 **Espera.** Si quedan subagentes trabajando en segundo plano, como el implementador, no comprueba nada, porque vería sus ficheros a medio escribir; ves el aviso «Claude espera a N subagente(s)». Claude Code despierta a Claude cuando terminan, y el hook se ejecuta de nuevo al parar. Las esperas no se anotan en el registro.
+
+**Relevo.** Si el último mensaje de Claude contiene `[RELEVO]` y el contexto pasa de 120 k tokens, Claude para sin la comprobación y ves el aviso «Claude ha parado con [RELEVO]». Por debajo del umbral, la marca no cuenta: el hook sigue como siempre y, si bloquea, le explica a Claude por qué no ha podido parar.
 
 **Sin cambios.** Si el árbol de trabajo no difiere del último commit (`git status` no muestra nada), no hay trabajo que comprobar: la conversación ha sido una consulta, o ya has commiteado lo que había. Claude para sin ejecutar make y ves el aviso «Sin cambios respecto al último commit». Exigirle la comprobación lo empujaría a trabajar en una etapa que nadie le ha pedido. Estas paradas tampoco se anotan.
 
@@ -383,7 +408,7 @@ Impide que se cambie la configuración de Claude Code (la del usuario, la del pr
 **Fases.** Las eliges tú antes de abrir la conversación; Claude no puede cambiarlas:
 
 1. En VS Code, Ctrl+Shift+P → «Tasks: Run Task» → «Arnés: fase de la próxima conversación», y eliges la fase. Desde un terminal es lo mismo: `make fase F=specs`.
-2. La fase se guarda en `.claude/settings.local.json` (`env.ARNES_FASE`), que está fuera de git. Claude Code pasa esa variable a los hooks.
+2. La fase se guarda en `.claude/settings.local.json` (`env.ARNES_FASE`), que está fuera de git. Claude Code pasa esa variable a los hooks. Con ella se guardan el modelo y el esfuerzo con que empieza la conversación (`model` y `effortLevel`): Sonnet con esfuerzo `high` en specs y aceptacion, que escriben specs y steps, y Opus con esfuerzo `xhigh` en impl, donde están el «Mecanismo» y el diseño (`MODELO_POR_FASE` en `scripts/arnes/comun/fases.ts`). Puedes cambiarlos durante la conversación con `/model` y `/effort`.
 3. Abres una conversación nueva de Claude Code. El aviso de `anunciar-fase.ts` te confirma la fase al empezar. Las conversaciones que ya estaban abiertas siguen en la suya.
 
 | Fase | Desbloquea | Comprobación en Stop |
@@ -475,7 +500,7 @@ Hay tres. Los dos revisores son de solo lectura: solo tienen Read, Grep y Glob. 
   ```
 
   Cada tarea nueva lleva un número nuevo; repetir uno es reencargar esa tarea, y sube el modelo. Un encargo cada vez: la conversación principal espera a que termine antes de tocar sus ficheros.
-- **Modelo:** Haiku o Sonnet, según la regla del §5; nunca lo elige Claude. La conversación principal sigue con el modelo con el que la abriste.
+- **Modelo:** Haiku o Sonnet, según la regla del §5; nunca lo elige Claude. La conversación principal sigue con el modelo con el que la abriste (el de la fase, §6), y los demás subagentes van a Haiku o a Sonnet si Claude no les da modelo (§5).
 - **Qué entrega:** «VERDE» o «ROJO», los ficheros que ha tocado y sus dudas. Lo devuelve con `make check-implementador` en verde, o en rojo tras dos bloqueos del hook SubagentStop (§5).
 
 **Cuándo se ejecutan:**
@@ -573,7 +598,7 @@ Se activa con `npm ci`: el script `prepare` ejecuta `git config core.hooksPath .
 - **`npx <paquete>` puede descargar y ejecutar un paquete** que no está en el lockfile. No cambia `package.json`, pero se ejecuta.
 - **La comprobación del terminal de `make sumas` se puede engañar** simulando uno (por ejemplo, con `script`). Si ocurriera, la capa 5 lo detectaría, porque las sumas ya no coincidirían con el último commit, y también tu revisión.
 - **ConfigChange también te bloquea a ti** si cambias la configuración con `/config` durante una conversación. Edita la configuración fuera de Claude Code y abre una conversación nueva. `make fase` también cambia la configuración local, así que las conversaciones abiertas pueden mostrarte ese bloqueo: es lo esperado, y siguen en su fase.
-- **La fase vive en un fichero local** (`.claude/settings.local.json`), fuera de git y de las sumas. Claude no puede editarlo con Edit o Write, porque está dentro de `.claude/`, y si un comando Bash le cambia la fase, los hooks o `disableAllHooks`, las huellas lo deshacen; tú sí puedes. Si lo cambias a mano, el aviso de `anunciar-fase.ts` te muestra la fase con la que empieza cada conversación.
+- **La fase vive en un fichero local** (`.claude/settings.local.json`), fuera de git y de las sumas. Claude no puede editarlo con Edit o Write, porque está dentro de `.claude/`, y si un comando Bash le cambia la fase, los hooks o `disableAllHooks`, las huellas lo deshacen; tú sí puedes. Si lo cambias a mano, el aviso de `anunciar-fase.ts` te muestra la fase con la que empieza cada conversación. El modelo y el esfuerzo que guarda ahí `make fase` no los vigilan las huellas: si cambian, lo ves en ese mismo aviso.
 - **Los errores del entorno se reconocen por el texto** de la salida. Un test que imprima `EACCES` a propósito daría un falso aviso; solo le pide a Claude que pare y pregunte.
 - **El freno cuenta bloqueos seguidos del mismo paso.** Si Claude alterna dos pasos que fallan, la racha empieza de cero cada vez. Lo verás en `make bloqueos`.
 - **Los hooks solo vigilan a Claude Code.** A ti no te frenan, a propósito.
@@ -581,9 +606,12 @@ Se activa con `npm ci`: el script `prepare` ejecuta `git config core.hooksPath .
 - **El implementador puede tocar ficheros fuera de su encargo.** La línea `Ficheros:` elige el modelo y rechaza las rutas fuera de `src/` y `tests/unidad/`, pero no limita lo que edita después. Lo frenan sus instrucciones, `make check` en la conversación principal y tu revisión del diff.
 - **La escalera depende de las etiquetas.** Si Claude reencarga una tarea con otro número, vuelve a empezar en Haiku. Lo verás en `.claude/registro-enrutador.jsonl`.
 - **Un implementador cada vez es una instrucción**, no un bloqueo. Dos a la vez podrían pisarse los ficheros, y la comprobación de uno vería los cambios a medias del otro.
-- **Claude podría escribir código con otro subagente** (`general-purpose`, por ejemplo), cuyo modelo el enrutador no toca. Lo frenan CLAUDE.md y tu revisión.
+- **Claude podría escribir código con otro subagente** (`general-purpose`, por ejemplo). Va a Sonnet si Claude no le da modelo, pero si se lo da, el enrutador lo respeta. Lo frenan CLAUDE.md y tu revisión.
 - **`make bloqueos` no cuenta los bloqueos del implementador:** están en `.claude/registro-enrutador.jsonl`.
 - **Un árbol limpio deja parar sin comprobar.** Si Claude commiteara su propio trabajo en rojo, el hook Stop lo dejaría parar. Lo frenan sus instrucciones (no commitea si no se lo pides), el `make check` que ejecutas después de cada commit y tu revisión.
+- **El índice de Markdown solo vigila Read.** `cat docs/plan.md` en Bash lee el fichero entero; lo frena la regla de CLAUDE.md. Tampoco cubre los `.md` de fuera del repositorio, como el clon de una propuesta.
+- **El relevo depende del transcript de Claude Code.** El tamaño sale de su campo `usage`, que puede ir una llamada por detrás y cuyo formato no es una interfaz estable. Si cambia, no hay aviso y `[RELEVO]` no deja parar: el hook Stop exige la comprobación como siempre. Como la marca solo vale por encima del umbral, tampoco sirve para saltarse la comprobación en una conversación corta.
+- **El relevo es una instrucción.** Claude podría seguir trabajando después del aviso; lo ves tú, porque el aviso se repite cada 20 k tokens.
 - **Que pasen los tests no demuestra eficacia pedagógica.** Lo dirá el README de la etapa 5.
 
 ---

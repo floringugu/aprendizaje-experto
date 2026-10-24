@@ -12,7 +12,12 @@
 // principal lo hace ella misma o para con [DECISIÓN PENDIENTE].
 //
 // Los revisores usan siempre el modelo y el esfuerzo de su cabecera (.claude/agents/), aunque
-// Claude pase otros. Los demás subagentes no se tocan.
+// Claude pase otros.
+//
+// Los demás subagentes (general-purpose, Explore, Plan…) usarían el modelo de la conversación
+// principal, que puede ser Opus. Si Claude no les pasa un modelo, van a Haiku los de búsqueda y
+// consulta, y a Sonnet el resto. Un fork no se toca: Claude Code le da siempre el modelo de la
+// conversación y no admite otro.
 import path from 'node:path';
 import { campoTexto } from './entrada-hook.ts';
 import { MARCA_DECISION_PENDIENTE } from './freno-stop.ts';
@@ -22,6 +27,11 @@ import type { EventoEnrutador } from './registro-enrutador.ts';
 
 const IMPLEMENTADOR = 'implementador';
 const AGENTES_CON_MODELO_FIJO: readonly string[] = ['revisor-codigo', 'revisor-evidencia'];
+const FORK = 'fork';
+/** Subagentes que solo buscan o consultan: Haiku les basta. */
+const AGENTES_DE_BUSQUEDA: readonly string[] = ['Explore', 'claude-code-guide'];
+/** El subagente que lanza Agent cuando la llamada no dice cuál. */
+const AGENTE_POR_DEFECTO = 'general-purpose';
 
 /** Campos de la llamada a Agent que eligen el modelo; el enrutador no deja que los elija Claude. */
 const CAMPOS_DEL_MODELO: readonly string[] = ['model', 'effort'];
@@ -70,7 +80,17 @@ export function enrutar(entrada: unknown, contexto: ContextoEnrutador): Enrutado
   const agente = campoTexto(original, 'subagent_type');
   if (agente === IMPLEMENTADOR) return enrutarImplementador(original, contexto);
   if (agente !== undefined && AGENTES_CON_MODELO_FIJO.includes(agente)) return usarCabecera(original, agente);
-  return SIN_CAMBIOS;
+  if (agente === FORK || 'model' in original) return SIN_CAMBIOS;
+  return conModeloPorDefecto(original, agente ?? AGENTE_POR_DEFECTO);
+}
+
+function conModeloPorDefecto(entrada: Record<string, unknown>, agente: string): Enrutado {
+  const modelo = AGENTES_DE_BUSQUEDA.includes(agente) ? 'haiku' : 'sonnet';
+  return {
+    tipo: 'reescribir',
+    entrada: { ...entrada, model: modelo },
+    aviso: `Enrutador: ${agente} va a ${modelo}, el modelo de los subagentes que no lo eligen.`,
+  };
 }
 
 function enrutarImplementador(entrada: Record<string, unknown>, contexto: ContextoEnrutador): Enrutado {

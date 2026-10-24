@@ -1,6 +1,7 @@
 // Hook PreToolUse (Agent): el modelo de los subagentes lo elige una regla fija, no Claude.
-// Encarga al implementador con Haiku o Sonnet según los ficheros y los reencargos, y deja a los
-// revisores con el modelo de su cabecera. La regla está en scripts/arnes/comun/enrutador.ts.
+// Encarga al implementador con Haiku o Sonnet según los ficheros y los reencargos, deja a los
+// revisores con el modelo de su cabecera y manda a Haiku o Sonnet a los demás subagentes que no
+// lleven modelo. La regla está en scripts/arnes/comun/enrutador.ts.
 // Cada encargo al implementador se anota en .claude/registro-enrutador.jsonl, para la escalera.
 import { campo, campoTexto, ejecutarHook, leerEntradaHook, responder } from '../../scripts/arnes/comun/entrada-hook.ts';
 import { enrutar } from '../../scripts/arnes/comun/enrutador.ts';

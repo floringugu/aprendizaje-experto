@@ -1,6 +1,6 @@
 # aprendizaje-experto
 
-- **docs/plan.md:** nunca lo leas entero. Busca primero lo que necesitas (con Grep o con `git grep -n "<texto>" -- docs/plan.md`) y luego lee solo esas líneas con Read, usando offset y limit.
+- **Markdown largos:** los `.md` de más de 200 líneas (`docs/plan.md`, `docs/investigacion.md`, `docs/arnes.md`, `docs/arnes-verificacion.md`) nunca se leen enteros, tampoco con `cat`. Busca primero lo que necesitas (con Grep o con `git grep -n "<texto>" -- <fichero>`) y luego lee solo esas líneas con Read, usando offset y limit. Si intentas leer uno entero, el hook te devuelve su índice de secciones.
 - **Rutas protegidas en Bash:** se pueden leer (`cat`, `grep`, `git diff`), pero lo que un comando cambie en ellas vuelve a como estaba al acabar el comando, y la versión del comando queda en `reports/huellas/`. Para cambiarlas, prepara una propuesta.
 
 ## Comandos para el dueño (regla dura)

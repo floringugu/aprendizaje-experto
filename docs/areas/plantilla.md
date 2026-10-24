@@ -2,6 +2,8 @@
 
 Archivo del área: qué se decidió al implementarla y cómo fue. Se crea en la primera conversación del área copiando esta plantilla a `docs/areas/<ÁREA>.md`, y se completa al cerrarla (docs/plan.md §16, etapa 4).
 
+Si una conversación del área llega al umbral de contexto (docs/plan.md §5, «Relevo»), añade al final de este fichero una sección «## Relevo» con lo que está hecho, lo que falta, el paso siguiente y los ficheros que hay que leer primero. La conversación siguiente la lee y la borra.
+
 ## Mecanismo
 
 Solo en las áreas con arquitectura: MATE, PLAN (ts-fsrs) y las que añaden pantallas nuevas. En las demás, escribe «Dominio puro: sin paso de mecanismo».

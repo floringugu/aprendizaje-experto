@@ -9,6 +9,10 @@
 // paso, el mensaje cambia (scripts/arnes/comun/freno-stop.ts). Cada parada se anota en
 // .claude/registro-stop.jsonl (scripts/arnes/comun/registro-stop.ts).
 //
+// Relevo: si el contexto ha pasado del umbral (scripts/arnes/comun/relevo.ts), Claude acaba el paso
+// en curso, apunta el relevo y termina con [RELEVO]. Entonces puede parar sin la comprobación: el
+// dueño sigue en una conversación nueva. Por debajo del umbral, la marca no cuenta.
+//
 // Espera: si quedan subagentes trabajando en segundo plano (el implementador), no comprueba
 // nada, porque vería sus ficheros a medio escribir. Claude Code despierta a Claude cuando
 // terminan, y el hook vuelve a ejecutarse al parar de nuevo.
@@ -33,19 +37,22 @@ import { faseDeEntorno } from '../../scripts/arnes/comun/protegidas.ts';
 import { RAIZ } from '../../scripts/arnes/comun/raiz.ts';
 import { anotarParada, bloqueosSeguidos, leerRegistro } from '../../scripts/arnes/comun/registro-stop.ts';
 import type { ParadaStop } from '../../scripts/arnes/comun/registro-stop.ts';
+import {
+  avisoDeRelevoPasado,
+  MARCA_RELEVO,
+  NOTA_DE_RELEVO_ANTES_DE_TIEMPO,
+  puedePasarElRelevo,
+  tokensDelTranscript,
+} from '../../scripts/arnes/comun/relevo.ts';
 
 /** Lo que se anota en todas las paradas, pase o no la comprobación. */
 type DatosDeParada = Pick<ParadaStop, 'fecha' | 'sesion' | 'fase' | 'areasFueraDeAlcance'>;
 
 ejecutarHook('exigir-check', async () => {
   const entrada = await leerEntradaHook();
-  const datos: DatosDeParada = {
-    fecha: new Date().toISOString(),
-    sesion: campoTexto(entrada, 'session_id') ?? 'desconocida',
-    fase: faseDeEntorno(process.env),
-    areasFueraDeAlcance: leerAreasFueraDeAlcance(RAIZ),
-  };
-  if ((campoTexto(entrada, 'last_assistant_message') ?? '').includes(MARCA_DECISION_PENDIENTE)) {
+  const datos = datosDeParada(entrada);
+  const ultimoMensaje = campoTexto(entrada, 'last_assistant_message') ?? '';
+  if (ultimoMensaje.includes(MARCA_DECISION_PENDIENTE)) {
     anotarParada(RAIZ, { ...datos, resultado: 'decision' });
     responder({
       systemMessage: `Claude ha parado con ${MARCA_DECISION_PENDIENTE}: espera tu decisión. La comprobación no se ha ejecutado.`,
@@ -59,6 +66,9 @@ ejecutarHook('exigir-check', async () => {
     });
     return;
   }
+  // Se mira después de la espera: con un subagente aún escribiendo, el relevo saldría a medias.
+  const conRelevo = ultimoMensaje.includes(MARCA_RELEVO);
+  if (conRelevo && pasarRelevo(entrada, datos)) return;
   const objetivo = OBJETIVO_POR_FASE[datos.fase];
   if (!hayCambiosSinCommitear(RAIZ)) {
     responder({ systemMessage: `Sin cambios respecto al último commit: Claude para sin ejecutar make ${objetivo}.` });
@@ -69,10 +79,31 @@ ejecutarHook('exigir-check', async () => {
     anotarParada(RAIZ, { ...datos, resultado: 'verde' });
     return;
   }
-  bloquear(datos, objetivo, make.salida);
+  const motivo = anotarBloqueo(datos, objetivo, make.salida);
+  // Si Claude ha intentado pasar el relevo antes de tiempo, se le explica por qué no ha podido parar.
+  responder({ decision: 'block', reason: conRelevo ? `${NOTA_DE_RELEVO_ANTES_DE_TIEMPO}\n\n${motivo}` : motivo });
 });
 
-function bloquear(datos: DatosDeParada, objetivo: string, salida: string): void {
+function datosDeParada(entrada: unknown): DatosDeParada {
+  return {
+    fecha: new Date().toISOString(),
+    sesion: campoTexto(entrada, 'session_id') ?? 'desconocida',
+    fase: faseDeEntorno(process.env),
+    areasFueraDeAlcance: leerAreasFueraDeAlcance(RAIZ),
+  };
+}
+
+/** Si el contexto pasa del umbral, deja parar a Claude con [RELEVO] y devuelve true. */
+function pasarRelevo(entrada: unknown, datos: DatosDeParada): boolean {
+  const tokens = tokensDelTranscript(campoTexto(entrada, 'transcript_path'));
+  if (tokens === undefined || !puedePasarElRelevo(tokens)) return false;
+  anotarParada(RAIZ, { ...datos, resultado: 'relevo' });
+  responder({ systemMessage: avisoDeRelevoPasado(tokens) });
+  return true;
+}
+
+/** Anota el bloqueo en el registro y devuelve el motivo que verá Claude. */
+function anotarBloqueo(datos: DatosDeParada, objetivo: string, salida: string): string {
   const paso = pasoQueFalla(salida);
   const entorno = errorDeEntorno(salida);
   // La racha incluye este bloqueo: se lee el registro antes de anotarlo.
@@ -84,8 +115,5 @@ function bloquear(datos: DatosDeParada, objetivo: string, salida: string): void 
     seguidos,
     ...(entorno === undefined ? {} : { entorno: entorno.codigo }),
   });
-  responder({
-    decision: 'block',
-    reason: motivoDeBloqueo({ objetivo, paso, entorno, bloqueosSeguidos: seguidos, salida }),
-  });
+  return motivoDeBloqueo({ objetivo, paso, entorno, bloqueosSeguidos: seguidos, salida });
 }

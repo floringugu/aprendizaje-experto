@@ -8,6 +8,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { ajustesConFase, RUTA_AJUSTES_LOCALES } from './comun/ajustes-locales.ts';
+import { MODELO_POR_FASE } from './comun/fases.ts';
 import { esFase, FASES } from './comun/protegidas.ts';
 import { RAIZ } from './comun/raiz.ts';
 
@@ -26,7 +27,10 @@ function principal(): number {
   const ruta = path.join(RAIZ, RUTA_AJUSTES_LOCALES);
   const anterior = existsSync(ruta) ? readFileSync(ruta, 'utf8') : undefined;
   writeFileSync(ruta, ajustesConFase(anterior, fase));
-  console.log(`Fase de la próxima conversación: ${fase} (${RUTA_AJUSTES_LOCALES}).`);
+  const { modelo, esfuerzo } = MODELO_POR_FASE[fase];
+  console.log(
+    `Fase de la próxima conversación: ${fase}, con ${modelo} y esfuerzo ${esfuerzo} (${RUTA_AJUSTES_LOCALES}).`,
+  );
   console.log('Abre una conversación nueva de Claude Code. Al empezar, un aviso te confirmará la fase.');
   console.log('Las conversaciones que ya están abiertas siguen en su fase.');
   return 0;

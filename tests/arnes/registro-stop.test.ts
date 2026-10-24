@@ -89,6 +89,7 @@ describe('resumirArea', () => {
     bloqueo('unidad', { seguidos: 2 }),
     bloqueo('unidad', { seguidos: 3, entorno: 'ENOSPC' }),
     parada({ resultado: 'decision' }),
+    parada({ resultado: 'relevo' }),
     bloqueo('lint', { sesion: 'b', seguidos: 1 }),
     // La fase specs trata todas las áreas a la vez: no cuenta.
     bloqueo('specs', { sesion: 'c', fase: 'specs' }),
@@ -102,7 +103,7 @@ describe('resumirArea', () => {
       area: 'DIAG',
       desde: '2026-10-20T09:00:00.000Z',
       sesiones: 2,
-      paradas: 6,
+      paradas: 7,
       bloqueosPorPaso: [
         ['unidad', 3],
         ['lint', 1],
@@ -110,6 +111,7 @@ describe('resumirArea', () => {
       erroresDeEntorno: ['ENOSPC'],
       frenos: 1,
       decisiones: 1,
+      relevos: 1,
     });
   });
 
@@ -125,15 +127,23 @@ describe('resumirArea', () => {
 describe('formatearResumen', () => {
   it('resume el área en unas líneas para copiarlas al archivo del área', () => {
     const texto = formatearResumen(
-      resumirArea([bloqueo('unidad', { seguidos: 3, entorno: 'EACCES' }), parada({ resultado: 'decision' })], 'DIAG'),
+      resumirArea(
+        [
+          bloqueo('unidad', { seguidos: 3, entorno: 'EACCES' }),
+          parada({ resultado: 'decision' }),
+          parada({ resultado: 'relevo' }),
+        ],
+        'DIAG',
+      ),
     );
     expect(texto).toBe(
       [
-        'DIAG: 2 paradas del hook Stop en 1 conversaciones, desde 2026-10-23T10:00:00.000Z.',
+        'DIAG: 3 paradas del hook Stop en 1 conversaciones, desde 2026-10-23T10:00:00.000Z.',
         '  - Bloqueos: 1 (unidad 1).',
         '  - Por el entorno: 1 (EACCES).',
         '  - Con el freno (3.º bloqueo seguido o más): 1.',
         '  - Paradas con [DECISIÓN PENDIENTE]: 1.',
+        '  - Paradas con [RELEVO]: 1.',
       ].join('\n'),
     );
   });

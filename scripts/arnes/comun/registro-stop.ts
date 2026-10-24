@@ -14,8 +14,11 @@ import type { Fase } from './protegidas.ts';
 // Fuera de git (.gitignore): cada copia del repositorio lleva su propio registro.
 const RUTA_REGISTRO_STOP = '.claude/registro-stop.jsonl';
 
-const RESULTADOS = ['verde', 'bloqueo', 'decision'] as const;
-/** verde: la comprobación pasa; bloqueo: falla y no deja parar; decision: Claude para con [DECISIÓN PENDIENTE]. */
+const RESULTADOS = ['verde', 'bloqueo', 'decision', 'relevo'] as const;
+/**
+ * verde: la comprobación pasa; bloqueo: falla y no deja parar; decision: Claude para con
+ * [DECISIÓN PENDIENTE]; relevo: Claude para con [RELEVO] porque el contexto ha pasado del umbral.
+ */
 type ResultadoParada = (typeof RESULTADOS)[number];
 
 export interface ParadaStop {
@@ -84,6 +87,7 @@ export interface ResumenDeArea {
   /** Bloqueos en los que saltó el freno (tercero seguido o más). */
   readonly frenos: number;
   readonly decisiones: number;
+  readonly relevos: number;
 }
 
 export function resumirArea(registro: readonly ParadaStop[], area: string): ResumenDeArea {
@@ -98,6 +102,7 @@ export function resumirArea(registro: readonly ParadaStop[], area: string): Resu
     erroresDeEntorno: bloqueos.flatMap((parada) => parada.entorno ?? []),
     frenos: bloqueos.filter((parada) => (parada.seguidos ?? 0) >= BLOQUEOS_PARA_FRENAR).length,
     decisiones: paradas.filter((parada) => parada.resultado === 'decision').length,
+    relevos: paradas.filter((parada) => parada.resultado === 'relevo').length,
   };
 }
 
@@ -142,5 +147,6 @@ export function formatearResumen(resumen: ResumenDeArea): string {
     `  - Por el entorno: ${String(entorno.length)}${entorno.length === 0 ? '' : ` (${entorno.join(', ')})`}.`,
     `  - Con el freno (${String(BLOQUEOS_PARA_FRENAR)}.º bloqueo seguido o más): ${String(resumen.frenos)}.`,
     `  - Paradas con [DECISIÓN PENDIENTE]: ${String(resumen.decisiones)}.`,
+    `  - Paradas con [RELEVO]: ${String(resumen.relevos)}.`,
   ].join('\n');
 }

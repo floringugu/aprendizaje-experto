@@ -136,9 +136,21 @@ describe('enrutar: otros subagentes', () => {
     expect(enrutar(llamada('revisor-evidencia', 'Revisa.'), contexto())).toEqual({ tipo: 'sin-cambios' });
   });
 
-  it('no toca los demás subagentes ni una entrada que no es un objeto', () => {
-    expect(enrutar(llamada('Explore', 'Busca.', { model: 'haiku' }), contexto())).toEqual({ tipo: 'sin-cambios' });
-    expect(enrutar({ prompt: PROMPT_DE_DOMINIO }, contexto())).toEqual({ tipo: 'sin-cambios' });
+  it('a los demás subagentes sin modelo les da Haiku si solo buscan, y Sonnet si no', () => {
+    expect(entradaReescrita(enrutar(llamada('Explore', 'Busca.'), contexto()))).toEqual(
+      llamada('Explore', 'Busca.', { model: 'haiku' }),
+    );
+    expect(entradaReescrita(enrutar(llamada('Plan', 'Diseña.'), contexto()))).toEqual(
+      llamada('Plan', 'Diseña.', { model: 'sonnet' }),
+    );
+    const sinTipo = enrutar({ prompt: 'Investiga.' }, contexto());
+    expect(entradaReescrita(sinTipo)).toEqual({ prompt: 'Investiga.', model: 'sonnet' });
+    expect(sinTipo).toMatchObject({ aviso: expect.stringMatching(/general-purpose va a sonnet/) as unknown });
+  });
+
+  it('respeta el modelo que pase Claude, no toca un fork ni una entrada que no es un objeto', () => {
+    expect(enrutar(llamada('Explore', 'Busca.', { model: 'sonnet' }), contexto())).toEqual({ tipo: 'sin-cambios' });
+    expect(enrutar(llamada('fork', 'Sigue.'), contexto())).toEqual({ tipo: 'sin-cambios' });
     expect(enrutar(null, contexto())).toEqual({ tipo: 'sin-cambios' });
   });
 });
