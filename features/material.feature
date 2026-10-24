@@ -95,6 +95,10 @@ Característica: Material del dominio y borradores
     aunque se escriban con otros espacios o mayúsculas: la corrección no los distingue, así que
     elegir la repetida contaría como acierto.
 
+    Un objetivo o un ejemplo resuelto puede traer un diagrama, que acompaña a su texto (codificación
+    dual, sección 3: prometedora, sin metaanálisis verificado; el campo es extrapolación). Es un SVG
+    escrito como texto y se enseña como imagen, así que no ejecuta nada; uno que no es SVG no entra.
+
     @MATE-2.1 @extrapolacion
     Esquema del escenario: Cada pieza redactada va al borrador con su fuente
       Cuando la IA configurada redacta a partir de «apuntes.pdf» un borrador con <pieza>, que cita la página 12
@@ -150,6 +154,17 @@ Característica: Material del dominio y borradores
     Escenario: Un ítem que la IA marca para el diagnóstico entra en el borrador sin marcar
       Cuando la IA configurada entrega un borrador con un ítem de O1 marcado para el diagnóstico
       Entonces contenido/borradores/ficticio.json tiene ese ítem de O1, sin marcar para el diagnóstico
+
+    @MATE-2.7 @extrapolacion
+    Esquema del escenario: Una pieza con un diagrama que no es SVG no entra en el borrador
+      Cuando la IA configurada entrega un borrador con un ítem de O1 completo y <pieza> cuyo diagrama es «graph TD; A-->B»
+      Entonces contenido/borradores/ficticio.json tiene ese ítem de O1 y ninguna otra pieza
+      Y la aplicación indica que ha apartado 1 pieza porque su diagrama no es SVG
+
+      Ejemplos:
+        | pieza                     |
+        | un objetivo               |
+        | un ejemplo resuelto de O1 |
 
   @MATE-3 @evidencia-3 @extrapolacion
   Regla: Las marcas las pone la aplicación, no la IA
@@ -216,6 +231,10 @@ Característica: Material del dominio y borradores
 
   @MATE-4 @extrapolacion
   Regla: Cada pieza se revisa, por objetivo, y se aprueba, se corrige o se descarta
+    En la Fase 3 se practica con tareas cada vez más difíciles (sección 4, que marca como
+    extrapolación la secuencia de fases), y la aplicación las presenta en el orden del contenido.
+    Por eso una tarea del borrador puede decir delante de qué tarea va («antes de»), y al aprobarla
+    entra ahí; si no dice ninguna, va al final. Que lo diga la IA es decisión del autor.
 
     Antecedentes:
       Dado que contenido/borradores/ficticio.json tiene estos ítems pendientes de O1:
@@ -297,6 +316,19 @@ Característica: Material del dominio y borradores
       Cuando pulsa «Deshacer»
       Entonces I7 está pendiente en contenido/borradores/ficticio.json
       Y I8 sigue fuera de contenido/borradores/ficticio.json
+
+    @MATE-4.11 @evidencia-4 @extrapolacion
+    Esquema del escenario: Una tarea aprobada entra delante de la que dice su «antes de», o al final si no dice ninguna
+      Dado que contenido/ficticio.json tiene las tareas T1 y T2, en ese orden
+      Y que contenido/borradores/ficticio.json tiene la tarea T3, pendiente, <antes de>
+      Cuando la persona aprueba T3
+      Entonces contenido/ficticio.json tiene las tareas <orden>, en ese orden
+
+      Ejemplos:
+        | antes de           | orden       |
+        | que va antes de T1 | T3, T1 y T2 |
+        | que va antes de T2 | T1, T3 y T2 |
+        | sin «antes de»     | T1, T2 y T3 |
 
   @MATE-5 @extrapolacion
   Regla: Cada pieza se aprueba una a una, también las que no tienen marca
