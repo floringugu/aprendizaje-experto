@@ -172,29 +172,3 @@ Salida de `make bloqueos A=<ÁREA>` al cerrar el área, y una frase sobre el blo
 ```text
 …
 ```
-
-## Relevo
-
-Conversación `mate-formato` (fase impl; las otras tres en paralelo son mate-pasos, mate-limpieza y mate-revision).
-
-**Hecho, en el worktree `/home/florin/aprendizaje-experto-mate-formato`, sin commitear, con `make check` en verde:**
-- Encargo 1: `tests/unidad/formato-contenido.test.ts` partido en `formato-contenido-piezas.ts` (ayudantes), `formato-contenido-respuesta.test.ts` y `formato-contenido-suelta.test.ts`; el test de `lugarDelFallo` ya está en el segundo y sale de `revision-aplicar.test.ts`.
-- Encargo 3 (MATE-2.7): `diagrama` opcional en objetivos y ejemplos resueltos, `esDiagramaSvg` (empieza por `<svg` y acaba en `</svg>`, sin recortar espacios ni distinguir otra cosa que los extremos); falla con `falta: 'diagrama'`, después de `instruccion` o `pasos` y antes de la fuente.
-- Encargo 2 (MATE-2.5): `REGLA_DE_LAS_OPCIONES_DISTINTAS` (falla en `opciones`, antes de `correcta`). El dueño aprobó exportar `normalizar` de `src/dominio/correccion.ts` para que formato y corrección usen la misma.
-
-**Falta, encargo 4 (MATE-2.3, `descripcion` obligatoria en la categoría), como propuesta:**
-- Decisión del dueño: arreglar también el tipo y los fixtures. `tests/aceptacion/` es `@aceptacion` y no se edita en impl, así que va por propuesta, y el encargo 4 entero va en el parche para que el worktree siga en verde.
-- Clon de trabajo: `/tmp/claude-1000/-home-florin-aprendizaje-experto/973bf4eb-03e5-4191-88da-98f35b5b4476/scratchpad/clon-formato`. Su commit `base: encargos 1 a 3` contiene lo hecho arriba. Encima, sin commitear, ya están:
-  - `src/aplicacion/contenido.ts`: `CategoriaContenido.descripcion: string` (obligatoria);
-  - `src/aplicacion/formato-contenido.ts`: regla `exigir('descripcion', esTextoNoVacio)` antes de `grupo_parecidas`, y su línea en el comentario de `validarContenido`;
-  - `tests/aceptacion/soporte/contenido.ts` (`CATEGORIAS_INTERCALABLES`), `tests/aceptacion/pasos/contenido.ts` (categorías de la tabla) y `tests/aceptacion/soporte/escenario-material.ts` (`CategoriaDelBorrador` ya no repite `descripcion`).
-- Pendiente en el clon:
-  1. Pasar `tests/unidad/formato-contenido-piezas.ts` (`categoria()` lleva `descripcion: 'Descripción'`) y añadir al implementador (con ruta del clon) los tests de categorías: `descripcion` que falta, vacía o no texto → `{ pieza: 'la categoría C1', falta: 'descripcion' }`; se mira antes que `grupo_parecidas`; `falloDe` del contenido de aceptación sigue válido. Con `@MATE-2.3` en el nombre.
-  2. En el clon: `npx tsc --noEmit`, `npx eslint src tests`, `npx prettier --check`, y `npm run --silent <paso>` para unidad, aceptacion, specs, cobertura-ids, capas, duplicacion y codigo-muerto (todas menos `integridad`). Ver qué más rompe la nueva regla, p. ej. `tests/unidad/diagnostico.test.ts:121` (tipo propio, debería valer) y cualquier otro fixture de categorías (`git grep -n "grupo_parecidas"`).
-  3. `git -C <clon> add -A` y `git -C <clon> diff --cached --binary > reports/propuestas/2026-10-25-mate-categoria-descripcion.patch` en el worktree (desde su raíz). Ojo: el parche debe salir sobre el commit `base`, no sobre HEAD del worktree, porque el dueño lo aplica después de commitear los encargos 1 a 3.
-  4. Parar con `[DECISIÓN PENDIENTE]` y dar al dueño los bloques de CLAUDE.md (aplicar, commitear, deshacer).
-- Dar al dueño un único bloque `sh`, desde la raíz del worktree: `git add -A`, `git commit -m "refactor: split the content format tests and validate diagrams and repeated options (MATE-2.5, MATE-2.7)"` y `make check`; después el bloque de la propuesta; al final `make integrar N=mate-formato` y `make retirar N=mate-formato` desde el directorio principal.
-
-**No hecho, a decir al dueño:** el tipo `diagrama?` de `ObjetivoContenido` y `EjemploResueltoContenido` (`src/aplicacion/contenido.ts`) no se ha añadido; el validador funciona sin él, pero `redactarBorrador` lo necesitará. Tampoco se ha editado `docs/deuda-diseno.md` ni se han completado «Deuda pagada» y «Mutación» de esta sección: no es el cierre del área.
-
-**Leer primero:** este relevo, `git status` del worktree y del clon, `src/aplicacion/formato-contenido.ts` (reglas y comentarios), `tests/unidad/formato-contenido-piezas.ts`.

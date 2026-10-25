@@ -38,7 +38,7 @@ export function objetivo(cambios: Pieza = {}): Pieza {
   return { id: 'O2', instruccion: 'Instrucción', ejemplos_resueltos: [ejemplo()], ...cambios };
 }
 export function categoria(cambios: Pieza = {}): Pieza {
-  return { id: 'C1', ...cambios };
+  return { id: 'C1', descripcion: 'Descripción', ...cambios };
 }
 export function item(cambios: Pieza = {}): Pieza {
   return {

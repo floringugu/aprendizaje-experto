@@ -58,6 +58,12 @@ export interface ObjetivoContenido {
 /** Las categorías del mismo `grupo_parecidas` son las que se pueden intercalar entre sí. */
 export interface CategoriaContenido {
   readonly id: string;
+  /**
+   * Qué rasgos de un problema indican que se aplica la regla o el procedimiento de la categoría y, si
+   * tiene grupo, cómo distinguirla de las demás del grupo. La lee la persona al revisar el borrador y la
+   * IA al clasificar ítems en categorías ya aprobadas (MATE-2.3).
+   */
+  readonly descripcion: string;
   readonly grupo_parecidas?: string;
 }
 

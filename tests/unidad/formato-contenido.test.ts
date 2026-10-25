@@ -198,6 +198,16 @@ describe('validarContenido: categorías', () => {
     ['un grupo_parecidas vacío', enCategoria({ grupo_parecidas: '' }), CATEGORIA, 'grupo_parecidas'],
     ['un grupo_parecidas que no es un texto', enCategoria({ grupo_parecidas: 1 }), CATEGORIA, 'grupo_parecidas'],
   ]);
+
+  it.each([
+    ['que falta', contenido({ categorias: [sin(categoria(), 'descripcion')] })],
+    ['que vale undefined', enCategoria({ descripcion: undefined })],
+    ['vacía', enCategoria({ descripcion: '' })],
+    ['que no es un texto', enCategoria({ descripcion: 3 })],
+    ['vacía, con un grupo_parecidas también vacío', enCategoria({ descripcion: '', grupo_parecidas: '' })],
+  ])('@MATE-2.3 una descripción %s falla en descripcion', (_caso, leido) => {
+    expect(falloDe(leido)).toStrictEqual({ pieza: CATEGORIA, falta: 'descripcion' });
+  });
 });
 
 describe('validarContenido: ítems', () => {

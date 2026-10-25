@@ -46,6 +46,7 @@ export function lugarDelFallo(fallo: FalloDeFormato): string {
  *   ser una de las `opciones`, y `nivel` es un número. Dos `opciones` que solo cambian en espacios o
  *   mayúsculas son la misma opción (MATE-2.5) y el fallo es `opciones`.
  * - `tipo` es `hecho` o `problema`, y `diagnostico` es un booleano.
+ * - Una categoría lleva `descripcion`, un texto no vacío (MATE-2.3); se mira antes que `grupo_parecidas`.
  * - `categoria`, `grupo_parecidas`, `fuente` y, en objetivos y ejemplos resueltos, `diagrama` son
  *   opcionales; una propiedad opcional que vale `undefined` cuenta como ausente. Una `fuente` que viene
  *   tiene `documento`, `lugar` y `fragmento`; un `diagrama` que viene empieza por `<svg` y acaba en
@@ -344,7 +345,7 @@ const MOLDE_DEL_EJEMPLO: Molde = {
 };
 
 const MOLDE_DE_LA_CATEGORIA: Molde = {
-  reglas: [exigir('grupo_parecidas', opcional(esTextoNoVacio))],
+  reglas: [exigir('descripcion', esTextoNoVacio), exigir('grupo_parecidas', opcional(esTextoNoVacio))],
   interior: () => undefined,
 };
 
