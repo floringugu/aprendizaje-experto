@@ -99,6 +99,13 @@ Característica: Material del dominio y borradores
     dual, sección 3: «Prometedor», sin metaanálisis verificado; el campo es extrapolación). Es un SVG
     escrito como texto y se enseña como imagen, así que no ejecuta nada; uno que no es SVG no entra.
 
+    La IA marca `reservado: true` los ítems que sirven para medir la transferencia (MAST-8): casos
+    que la persona no practica y se le presentan una sola vez. La IA es quien conoce de qué ítem es
+    variante cada reservado, y la persona corrige lo que no le cuadre al revisar (MATE-4.12). Si
+    la transferencia falla y no quedan reservados por responder, la persona puede pedir más
+    reservados de un objetivo (MAST-6.12, MAST-6.13): el borrador lleva solo ítems reservados, y la petición
+    incluye los enunciados de los ítems que ya tiene el objetivo, para que el caso sea otro.
+
     @MATE-2.1 @extrapolacion
     Esquema del escenario: Cada pieza redactada va al borrador con su fuente
       Cuando la IA configurada redacta a partir de «apuntes.pdf» un borrador con <pieza>, que cita la página 12
@@ -166,6 +173,31 @@ Característica: Material del dominio y borradores
         | un objetivo               |
         | un ejemplo resuelto de O1 |
 
+    @MATE-2.8 @extrapolacion
+    Escenario: Un ítem que la IA marca como reservado entra en el borrador con la marca
+      Cuando la IA configurada entrega un borrador con un ítem de O1 completo y marcado como reservado
+      Entonces contenido/borradores/ficticio.json tiene ese ítem de O1 con «reservado» a verdadero
+
+    @MATE-2.9 @extrapolacion
+    Escenario: Un ítem con un «reservado» que no es verdadero o falso no entra en el borrador
+      Cuando la IA configurada entrega un borrador con un ítem de O1 completo y un ítem de O1 con «reservado» igual a «sí»
+      Entonces contenido/borradores/ficticio.json tiene el ítem de O1 completo y ninguna otra pieza
+      Y la aplicación indica que ha apartado 1 pieza porque su «reservado» no es verdadero ni falso
+
+    @MATE-2.10 @extrapolacion
+    Escenario: Pedir más reservados pide solo ítems reservados del objetivo
+      Dado que contenido/ficticio.json tiene los ítems I1 e I2 de O1
+      Cuando la persona pide más problemas reservados de O1 a partir de «apuntes.pdf»
+      Entonces la petición a la IA pide solo ítems reservados de O1
+      Y la petición incluye los enunciados de I1 e I2
+
+    @MATE-2.11 @extrapolacion
+    Escenario: En una petición de reservados, un ítem que no es reservado no entra en el borrador
+      Dado que la persona pidió más problemas reservados de O1
+      Cuando la IA configurada entrega un ítem de O1 completo y reservado, y otro completo sin marcar como reservado
+      Entonces contenido/borradores/ficticio.json tiene el ítem reservado y ninguna otra pieza
+      Y la aplicación indica que ha apartado 1 pieza porque no es reservado
+
   @MATE-3 @evidencia-3 @extrapolacion
   Regla: Las marcas las pone la aplicación, no la IA
     La aplicación las calcula a partir del borrador y del material. Al comparar una cita con su
@@ -177,6 +209,11 @@ Característica: Material del dominio y borradores
     Un ejemplo resuelto se estudia paso a paso y sus pasos se retiran a medida que sube el
     rendimiento (sección 3); con un solo paso no hay retirada gradual, porque la ayuda desaparece de
     golpe. Que hagan falta al menos 2 es decisión del autor.
+
+    La aplicación también avisa de lo que falta para medir la transferencia, a partir solo del
+    contenido aprobado, que es lo que usa (MAST-6.7). Sin reservados no se llega a la fase
+    avanzada. La petición a la IA (I9) le pide marcarlos, pero solo la aplicación comprueba si
+    salen.
 
     @MATE-3.1 @extrapolacion
     Escenario: Una pieza sin fuente lleva la marca «No está en tu material»
@@ -229,12 +266,43 @@ Característica: Material del dominio y borradores
         | 1 paso  | tiene la marca «Un solo paso» |
         | 2 pasos | no tiene ninguna marca        |
 
+    @MATE-3.6 @extrapolacion
+    Esquema del escenario: Una categoría con grupo sin ningún problema reservado en un objetivo lleva un aviso
+      Dado que C1 es de un grupo de parecidas y C5 no tiene grupo
+      Y que contenido/ficticio.json tiene en O1 problemas de C1 y de C5, <reservados>
+      Cuando la persona abre la revisión del material de «ficticio»
+      Entonces bajo O1 <aviso>
+
+      Ejemplos:
+        | reservados                               | aviso                                                  |
+        | ninguno de ellos reservado               | ve el aviso «C1 no tiene ningún problema reservado»    |
+        | el de C1 reservado                       | no ve ningún aviso de problemas reservados             |
+        | solo el de C5 reservado                  | ve el aviso «C1 no tiene ningún problema reservado»    |
+
+    @MATE-3.7 @extrapolacion
+    Esquema del escenario: Con menos problemas reservados que el mínimo se avisa en la revisión
+      Dado que el mínimo de problemas reservados configurado es 5
+      Y que contenido/ficticio.json tiene <reservados> problemas reservados en categorías con grupo de parecidas
+      Y que contenido/borradores/ficticio.json tiene otros 5 problemas reservados pendientes
+      Cuando la persona abre la revisión del material de «ficticio»
+      Entonces <aviso>
+
+      Ejemplos:
+        | reservados | aviso                                                                                                  |
+        | 3          | ve el aviso «Hay 3 problemas reservados en categorías con grupo; hacen falta 5»                        |
+        | 4          | ve el aviso «Hay 4 problemas reservados en categorías con grupo; hacen falta 5»                        |
+        | 5          | no ve ningún aviso de mínimo de problemas reservados                                                   |
+
   @MATE-4 @extrapolacion
   Regla: Cada pieza se revisa, por objetivo, y se aprueba, se corrige o se descarta
     En la Fase 3 se practica con tareas cada vez más difíciles (sección 4, que marca como
     extrapolación la secuencia de fases), y la aplicación las presenta en el orden del contenido.
     Por eso una tarea del borrador puede decir delante de qué tarea va («antes de»), y al aprobarla
     entra ahí; si no dice ninguna, va al final. Que lo diga la IA es decisión del autor.
+
+    Al revisar, la persona ve el enunciado, la respuesta y el feedback de cada pieza, también de las
+    reservadas: un reservado es un caso que no practica, no uno que no ha visto. Que siga siendo un
+    caso nuevo para medir la transferencia es decisión del autor.
 
     Antecedentes:
       Dado que contenido/borradores/ficticio.json tiene estos ítems pendientes de O1:
@@ -329,6 +397,19 @@ Característica: Material del dominio y borradores
         | que va antes de T1 | T3, T1 y T2 |
         | que va antes de T2 | T1, T3 y T2 |
         | sin «antes de»     | T1, T2 y T3 |
+
+    @MATE-4.12 @extrapolacion
+    Esquema del escenario: La marca «Reservado» se ve y se puede poner o quitar al corregir
+      Dado que contenido/borradores/ficticio.json tiene el ítem I7 de O1, pendiente y <antes>
+      Cuando la persona abre la revisión del material de «ficticio»
+      Entonces I7 <ve>
+      Cuando la persona <acción> en I7 y guarda la corrección
+      Entonces I7 sigue pendiente en contenido/borradores/ficticio.json, <después>
+
+      Ejemplos:
+        | antes                  | ve                                  | acción                      | después                                |
+        | marcado como reservado | tiene la marca «Reservado»          | quita «Reservado»           | sin «reservado» a verdadero            |
+        | sin marcar             | no tiene la marca «Reservado»       | pone «Reservado»            | con «reservado» a verdadero            |
 
   @MATE-5 @extrapolacion
   Regla: Cada pieza se aprueba una a una, también las que no tienen marca

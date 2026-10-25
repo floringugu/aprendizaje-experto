@@ -152,10 +152,18 @@ Característica: Criterio de dominio
     se han intercalado (MAST-6.6). Si no, no se intercalarían nunca, porque la fase avanzada no
     intercala (INTE-1.1). Es decisión del autor.
 
+    La transferencia se mide con los problemas reservados de categorías con grupo (MAST-6.7). Cada
+    uno se presenta una sola vez, así que quien falla no puede mejorar su acierto con los mismos:
+    la aplicación avisa de que faltan casos nuevos y ofrece pedir más (MATE-2.10, MATE-2.11), y el acierto se
+    calcula sobre todos los reservados respondidos, los viejos y los nuevos (MAST-6.12). Que haya
+    al menos `minimo_problemas_reservados` (MAST-6.11) es decisión del autor: con el 85 %, hasta 6
+    problemas obligan a acertarlos todos.
+
     Antecedentes:
       Dado que el umbral de dominio configurado es del 85 %
       Y que el umbral de paso a la fase avanzada configurado es del 85 %
       Y que el umbral de transferencia configurado es del 85 %
+      Y que el mínimo de problemas reservados configurado es 5
 
     @MAST-6.1 @evidencia-4 @extrapolacion
     Escenario: Dominar todos los objetivos lleva a la fase intermedia
@@ -170,7 +178,7 @@ Característica: Criterio de dominio
       Y que el dominio tiene 20 ítems de tipo «problema» en categorías intercalables
       Y que cada uno tiene al menos un intento en sesiones intercaladas
       Y que en su último intento intercalado acertó <aciertos> de ellos
-      Y que el dominio tiene además 10 problemas reservados en categorías intercalables, todos respondidos y acertados
+      Y que el dominio tiene además 10 problemas reservados en categorías con grupo de parecidas, todos respondidos y acertados
       Cuando la aplicación evalúa la fase
       Entonces la fase es «<fase>»
 
@@ -192,7 +200,7 @@ Característica: Criterio de dominio
       Y que la persona está en la fase «intermedio»
       Y que el dominio tiene 20 ítems de tipo «problema» en categorías intercalables
       Y que en su último intento intercalado acertó 16 de ellos
-      Y que el dominio tiene además 10 problemas reservados en categorías intercalables, todos respondidos y acertados
+      Y que el dominio tiene además 10 problemas reservados en categorías con grupo de parecidas, todos respondidos y acertados
       Cuando la aplicación evalúa la fase
       Entonces la fase es «avanzado_experto»
 
@@ -209,7 +217,7 @@ Característica: Criterio de dominio
       Dado que la persona está en la fase «intermedio»
       Y que O1, O2 y O3 tienen 20 ítems de tipo «problema» en categorías intercalables
       Y que en su último intento intercalado acertó los 20
-      Y que el dominio tiene además 10 problemas reservados en categorías intercalables, todos respondidos y acertados
+      Y que el dominio tiene además 10 problemas reservados en categorías con grupo de parecidas, todos respondidos y acertados
       Y que O4 se aprobó en la revisión del material con problemas en categorías intercalables
       Y que la persona acertó el problema de exploración de O4
       Cuando la aplicación evalúa la fase
@@ -252,6 +260,7 @@ Característica: Criterio de dominio
       Cuando la aplicación evalúa la fase
       Entonces la fase sigue siendo «intermedio»
       Y la aplicación indica que faltan casos nuevos para medir la transferencia
+      Y ofrece pedir más problemas reservados
 
     @MAST-6.10 @extrapolacion
     Escenario: El umbral de transferencia se lee de la configuración
@@ -262,6 +271,56 @@ Característica: Criterio de dominio
       Y que en su último intento intercalado acertó los 20
       Y que el dominio tiene además 10 problemas reservados en categorías con grupo de parecidas, todos respondidos
       Y que la persona acertó 8 de ellos
+      Cuando la aplicación evalúa la fase
+      Entonces la fase es «avanzado_experto»
+
+    @MAST-6.11 @extrapolacion
+    Escenario: Con menos problemas reservados que el mínimo, la fase no avanza aunque se acierten todos
+      Dado que la persona está en la fase «intermedio»
+      Y que el dominio tiene 20 ítems de tipo «problema» en categorías intercalables
+      Y que cada uno tiene al menos un intento en sesiones intercaladas
+      Y que en su último intento intercalado acertó los 20
+      Y que el dominio tiene además 4 problemas reservados en categorías con grupo de parecidas, todos respondidos y acertados
+      Cuando la aplicación evalúa la fase
+      Entonces la fase sigue siendo «intermedio»
+      Y la aplicación indica que faltan casos nuevos para medir la transferencia
+      Y ofrece pedir más problemas reservados
+
+    @MAST-6.12 @extrapolacion
+    Escenario: Tras fallar la transferencia, los reservados nuevos se suman a los ya respondidos
+      Dado que la persona está en la fase «intermedio»
+      Y que el dominio tiene 20 ítems de tipo «problema» en categorías intercalables
+      Y que cada uno tiene al menos un intento en sesiones intercaladas
+      Y que en su último intento intercalado acertó los 20
+      Y que el dominio tiene 10 problemas reservados en categorías con grupo de parecidas, todos respondidos
+      Y que la persona acertó 8 de ellos
+      Y que la aplicación le indicó que faltan casos nuevos para medir la transferencia
+      Cuando se aprueban 10 problemas reservados nuevos en categorías con grupo de parecidas
+      Y la persona los responde y acierta los 10
+      Y la aplicación evalúa la fase
+      Entonces la fase es «avanzado_experto», porque acertó 18 de 20 problemas reservados
+
+    @MAST-6.13 @extrapolacion
+    Escenario: Si falla la transferencia y no quedan reservados por responder, se avisa y se ofrece pedir más
+      Dado que la persona está en la fase «intermedio»
+      Y que el dominio tiene 20 ítems de tipo «problema» en categorías intercalables
+      Y que cada uno tiene al menos un intento en sesiones intercaladas
+      Y que en su último intento intercalado acertó los 20
+      Y que el dominio tiene 10 problemas reservados en categorías con grupo de parecidas, todos respondidos
+      Y que la persona acertó 8 de ellos
+      Cuando la aplicación evalúa la fase
+      Entonces la fase sigue siendo «intermedio»
+      Y la aplicación indica que faltan casos nuevos para medir la transferencia
+      Y ofrece pedir más problemas reservados
+
+    @MAST-6.14 @extrapolacion
+    Escenario: El mínimo de problemas reservados se lee de la configuración
+      Dado que se cambia en config/parametros.json «minimo_problemas_reservados» a 3
+      Y que la persona está en la fase «intermedio»
+      Y que el dominio tiene 20 ítems de tipo «problema» en categorías intercalables
+      Y que cada uno tiene al menos un intento en sesiones intercaladas
+      Y que en su último intento intercalado acertó los 20
+      Y que el dominio tiene además 3 problemas reservados en categorías con grupo de parecidas, todos respondidos y acertados
       Cuando la aplicación evalúa la fase
       Entonces la fase es «avanzado_experto»
 
@@ -306,6 +365,10 @@ Característica: Criterio de dominio
     partes iguales entre las pruebas de retención de las semanas configuradas, en el orden del
     contenido; si no sale exacto, las primeras pruebas llevan uno más. En la prueba de retención un
     reservado solo se registra: no cambia el dominio ni la fase (MAST-8.4).
+
+    Un reservado se gasta cuando se declara la confianza, que es cuando el intento está completo
+    (CALI-1.1, PANT-2): uno que se mostró y se abandonó antes vuelve a presentarse, porque la
+    persona no llegó a ver la respuesta ni el feedback (MAST-8.6).
 
     Antecedentes:
       Dado que el umbral de dominio configurado es del 85 %
@@ -369,3 +432,10 @@ Característica: Criterio de dominio
       Cuando se prepara la prueba de retención de O1 del 2026-03-30
       Entonces la prueba no incluye I15
       Y I15 no se presenta en ninguna sesión de práctica, repaso ni sesión intercalada
+
+    @MAST-8.6 @extrapolacion
+    Escenario: Un reservado abandonado sin declarar la confianza no se gasta
+      Dado que se le presentó a la persona el reservado I15 de O1 y cerró la aplicación sin declarar su confianza
+      Cuando se prepara la siguiente prueba de retención de O1
+      Entonces I15 sigue disponible para presentarse
+      Y I15 no tiene ningún intento registrado

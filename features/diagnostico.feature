@@ -38,13 +38,12 @@ Característica: Diagnóstico inicial
 
   @DIAG-2 @evidencia-4 @evidencia-2.3 @extrapolacion
   Regla: El diagnóstico da una ruta personalizada
-    El acierto en problemas sin pista del tipo se mide, como en MAST-6.2, sobre los ítems de tipo
-    «problema» de categorías intercalables; en el diagnóstico, con su único intento. Usar el
-    diagnóstico para situar directamente en una fase posterior es decisión del autor.
+    Usar el diagnóstico para situar directamente en la fase intermedia es decisión del autor. No
+    sitúa en la avanzada: esa fase exige además haber intercalado los problemas y acertar los reservados
+    (MAST-6.7), y el diagnóstico nunca presenta reservados (MAST-8.1).
 
     Antecedentes:
       Dado que el umbral de dominio configurado es del 85 %
-      Y que el umbral de paso a la fase avanzada configurado es del 85 %
 
     @DIAG-2.1 @evidencia-4 @extrapolacion
     Escenario: Un objetivo superado en el diagnóstico queda dominado y sale de la ruta
@@ -67,20 +66,21 @@ Característica: Diagnóstico inicial
         | 16       | no queda dominado |
 
     @DIAG-2.3 @evidencia-4 @extrapolacion
-    Escenario: Quien domina todos los objetivos pero no los problemas sin pista empieza en la fase intermedia
+    Escenario: Quien domina todos los objetivos empieza en la fase intermedia
       Dado que en el diagnóstico la persona acierta los 30 ítems de tipo «hecho»
       Y acierta 8 de los 10 ítems de tipo «problema» de cada objetivo
       Cuando termina el diagnóstico
       Entonces O1, O2 y O3 quedan dominados, con un 90 % de acierto cada uno
-      Y su fase es «intermedio», porque su acierto en problemas sin pista del tipo es del 80 %
+      Y su fase es «intermedio», porque todos sus objetivos están dominados (MAST-6.1)
       Y su ruta no tiene objetivos pendientes
 
     @DIAG-2.4 @evidencia-4 @extrapolacion
-    Escenario: El diagnóstico puede situar a la persona directamente en la fase avanzada
+    Escenario: El diagnóstico no sitúa a la persona en la fase avanzada
       Dado que en el diagnóstico la persona acierta los 30 ítems de tipo «hecho»
       Y acierta 9 de los 10 ítems de tipo «problema» de cada objetivo
       Cuando termina el diagnóstico
-      Entonces su fase es «avanzado_experto», porque su acierto en problemas sin pista del tipo es del 90 %
+      Entonces su fase es «intermedio», aunque su acierto en problemas sin pista del tipo es del 90 %
+      Y su ruta no tiene objetivos pendientes
 
     @DIAG-2.5 @evidencia-2.3 @evidencia-3
     Escenario: La ayuda inicial depende del diagnóstico

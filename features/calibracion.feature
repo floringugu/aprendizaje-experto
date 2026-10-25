@@ -69,6 +69,19 @@ Característica: Calibración de la confianza
       Entonces el paso de calibración muestra una confianza media del 70 %
       Y un acierto del 50 %
 
+    @CALI-2.4 @evidencia-4 @evidencia-2.5 @extrapolacion
+    Escenario: Los reservados sí entran en la calibración
+      Dado que en la última semana la persona respondió estos ítems:
+        | ítem | contexto      | confianza | correcta |
+        | I1   | practica      | 80        | sí       |
+        | I2   | practica      | 60        | sí       |
+        | I3   | transferencia | 90        | no       |
+        | I4   | transferencia | 70        | no       |
+      Cuando se ejecuta el bucle semanal
+      Entonces el paso de calibración muestra una confianza media del 75 %
+      Y un acierto del 50 %
+      Y una diferencia de +25 puntos entre confianza y acierto
+
   @CALI-3 @evidencia-2.5 @evidencia-5
   Regla: La confianza nunca afecta al progreso
 
