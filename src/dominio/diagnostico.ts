@@ -1,6 +1,6 @@
 import { aciertoSinAyuda, llegaAlUmbral } from './acierto.ts';
 import type { Fase } from './fases.ts';
-import { faseTrasDominio, faseTrasProblemas } from './fases.ts';
+import { faseTrasDominio } from './fases.ts';
 import { objetivosPendientes } from './ruta.ts';
 
 interface ObjetivoDiagnosticado {
@@ -12,12 +12,11 @@ interface ObjetivoDiagnosticado {
 export interface EntradaDiagnostico {
   /** En el orden del contenido, que es el orden de la ruta. */
   readonly objetivos: readonly ObjetivoDiagnosticado[];
-  /** Problemas del diagnóstico de categorías intercalables: los que deciden la fase avanzada. */
+  /** Problemas del diagnóstico de categorías intercalables: su acierto se informa, no decide la fase. */
   readonly problemasIntercalables: readonly string[];
   /** Último intento de cada ítem del diagnóstico: `true` si lo acertó. */
   readonly respuestas: ReadonlyMap<string, boolean>;
   readonly umbralDominio: number;
-  readonly umbralPasoAAvanzado: number;
 }
 
 /**
@@ -29,6 +28,7 @@ interface ConclusionDiagnostico {
   readonly ruta: readonly string[];
   readonly objetivosDominados: readonly string[];
   readonly aciertoPorObjetivo: Readonly<Record<string, number>>;
+  /** Se informa aunque no cambie la fase (@DIAG-2.4). Falta si algún problema quedó sin responder. */
   readonly aciertoProblemasSinPista?: number;
 }
 
@@ -46,7 +46,8 @@ interface CategoriaClasificada {
 
 /**
  * Problemas de categorías que tienen un grupo de parecidas, es decir, que se pueden intercalar con
- * otras. Son los que deciden el paso a la fase avanzada (@DIAG-2.3, @DIAG-2.4).
+ * otras. Su acierto es la métrica del paso a la fase avanzada en la práctica (@MAST-6.2); el
+ * diagnóstico solo la mide e informa de ella (@DIAG-2.4).
  */
 export function problemasIntercalables(
   items: readonly ItemClasificado[],
@@ -61,21 +62,13 @@ export function problemasIntercalables(
 }
 
 /**
- * El diagnóstico aplica, partiendo de novato, las mismas reglas de fase que la práctica: no se pasa
- * de novato mientras quede algún objetivo por dominar, y con todos dominados el acierto en problemas
- * intercalables decide entre intermedio y avanzado/experto (@DIAG-2.3, @DIAG-2.4).
- */
-function faseTrasDiagnostico(
-  todosDominados: boolean,
-  aciertoProblemas: number | undefined,
-  umbralPasoAAvanzado: number,
-): Fase {
-  return faseTrasProblemas(faseTrasDominio('novato', todosDominados), aciertoProblemas, umbralPasoAAvanzado);
-}
-
-/**
  * Un objetivo con un acierto igual o superior al umbral de dominio queda dominado y sale de la ruta
  * (@DIAG-2.1, @DIAG-2.2). La confianza declarada no entra en el cálculo (@DIAG-1.2).
+ *
+ * La fase es «novato» mientras quede algún objetivo por dominar, e «intermedio» con todos dominados
+ * (@DIAG-2.3, @MAST-6.1). Nunca «avanzado_experto», acierte lo que acierte en los problemas
+ * intercalables: esa fase exige haberlos practicado intercalados y acertar los reservados, y el
+ * diagnóstico no hace ninguna de las dos cosas (@DIAG-2.4, @MAST-6.7).
  */
 export function evaluarDiagnostico(entrada: EntradaDiagnostico): ConclusionDiagnostico {
   const aciertoPorObjetivo: Record<string, number> = {};
@@ -93,7 +86,7 @@ export function evaluarDiagnostico(entrada: EntradaDiagnostico): ConclusionDiagn
   const pendientes = objetivosPendientes(ids, dominados);
   const aciertoProblemas = aciertoSinAyuda(entrada.problemasIntercalables, entrada.respuestas);
   const conclusion: ConclusionDiagnostico = {
-    fase: faseTrasDiagnostico(pendientes.length === 0, aciertoProblemas, entrada.umbralPasoAAvanzado),
+    fase: faseTrasDominio('novato', pendientes.length === 0),
     ruta: pendientes,
     objetivosDominados: ids.filter((id) => dominados.has(id)),
     aciertoPorObjetivo,

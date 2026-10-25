@@ -18,14 +18,13 @@ const O1 = objetivo('O1', 4);
 const O2 = objetivo('O2', 4);
 const VEINTE = objetivo('O1', 20);
 
-/** Evalúa con los dos umbrales a 0,85 salvo que la prueba cambie alguno. */
+/** Evalúa con el umbral de dominio a 0,85 salvo que la prueba lo cambie. */
 function evaluar(cambios: Partial<EntradaDiagnostico>) {
   return evaluarDiagnostico({
     objetivos: [O1, O2],
     problemasIntercalables: [],
     respuestas: new Map(),
     umbralDominio: UMBRAL,
-    umbralPasoAAvanzado: UMBRAL,
     ...cambios,
   });
 }
@@ -34,12 +33,11 @@ function evaluar(cambios: Partial<EntradaDiagnostico>) {
  * Un solo objetivo de 20 ítems, todos dominados salvo los `fallos`; los 10 primeros son problemas
  * intercalables, así que cada fallo entre ellos resta 0,1 a su acierto.
  */
-function diagnosticoDeVeinte(fallos: readonly string[], cambios: Partial<EntradaDiagnostico> = {}) {
+function diagnosticoDeVeinte(fallos: readonly string[]) {
   return evaluar({
     objetivos: [VEINTE],
     problemasIntercalables: VEINTE.items.slice(0, 10),
     respuestas: new Map(VEINTE.items.map((item) => [item, !fallos.includes(item)])),
-    ...cambios,
   });
 }
 
@@ -75,11 +73,12 @@ describe('evaluarDiagnostico', () => {
     expect(resultado.fase).toBe('novato');
   });
 
-  it('@DIAG-2.3 un problema intercalable sin responder impide pasar a avanzado/experto', () => {
+  it('@DIAG-2.3 un problema intercalable sin responder deja sin informar su acierto', () => {
     const resultado = evaluar({
       problemasIntercalables: [...O1.items, 'SIN-RESPONDER'],
       respuestas: new Map([...acertar(O1.items, 4), ...acertar(O2.items, 4)]),
     });
+    expect(resultado).not.toHaveProperty('aciertoProblemasSinPista');
     expect(resultado.fase).toBe('intermedio');
   });
 
@@ -90,16 +89,19 @@ describe('evaluarDiagnostico', () => {
     expect(resultado.aciertoProblemasSinPista).toBe(0.8);
   });
 
-  it('@DIAG-2.4 avanzado/experto cuando el acierto en problemas intercalables llega al umbral', () => {
+  it('@DIAG-2.4 intermedio aunque el acierto en problemas intercalables sea del 0,9', () => {
     const resultado = diagnosticoDeVeinte(['O1-10']);
-    expect(resultado.fase).toBe('avanzado_experto');
+    expect(resultado.fase).toBe('intermedio');
     expect(resultado.aciertoProblemasSinPista).toBe(0.9);
   });
 
-  it('@DIAG-2.4 el paso a avanzado/experto usa su propio umbral, no el de dominio', () => {
-    const resultado = diagnosticoDeVeinte(['O1-10'], { umbralPasoAAvanzado: 0.95 });
-    expect(resultado.objetivosDominados).toEqual(['O1']);
-    expect(resultado.fase).toBe('intermedio');
+  it('@DIAG-2.4 ningún acierto en problemas intercalables sitúa en avanzado/experto', () => {
+    const fallosPosibles = VEINTE.items.slice(0, 10);
+    for (let fallos = 0; fallos <= fallosPosibles.length; fallos += 1) {
+      const resultado = diagnosticoDeVeinte(fallosPosibles.slice(0, fallos));
+      expect(resultado.aciertoProblemasSinPista).toBeCloseTo(1 - fallos / 10);
+      expect(resultado.fase).not.toBe('avanzado_experto');
+    }
   });
 
   it('@DIAG-3.1 sin problemas intercalables no informa de su acierto', () => {

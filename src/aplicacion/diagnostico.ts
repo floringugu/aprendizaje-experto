@@ -54,7 +54,6 @@ function entradaDelDiagnostico(situacion: Situacion, parametros: ParametrosJson)
     problemasIntercalables: problemasIntercalables(items, contenido.categorias),
     respuestas: estado.ultimoIntentoDeCadaItem('diagnostico'),
     umbralDominio: parametroNumerico(parametros, 'umbral_dominio'),
-    umbralPasoAAvanzado: parametroNumerico(parametros, 'umbral_paso_a_avanzado'),
   };
 }
 
