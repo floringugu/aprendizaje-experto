@@ -209,3 +209,32 @@ Conversación fase `impl`, worktree `mate-revision` (rama `mate-revision`, HEAD 
 7. Al acabar: bloque `sh` para el dueño con `git add -A`, el commit (en inglés) y, desde el directorio principal, `make integrar N=mate-revision` y `make retirar N=mate-revision`; más el punto 5 y el hueco de «descartar una categoría» con [DECISIÓN PENDIENTE].
 
 **Leer primero:** este relevo; `src/aplicacion/revision.ts` y `mesa.ts` (bajo 360 y 120 líneas, enteros); plan §0, fila «Reglas de `MATE` que la feature no cubre» (con `git grep -n "Reglas de .MATE. que la feature" -- docs/plan.md`); `features/material.feature` (MATE-3.5, 4.11 y 5.5) y `tests/aceptacion/pasos/aprobacion.ts` y `revision.ts`.
+Conversación `mate-limpieza` (fase impl, 25-10-2026). Tocó solo `estado.ts`, `respuestas.ts`, `texto-html.ts`, `material-guardado.ts`, tres tests de `tests/unidad/`, `deuda-diseno.md` y este fichero.
+
+**Hecho (sin commitear; `make check` en verde):**
+- `presentados` y `marcarPresentado` de `estado.ts` son `itemsEnCurso` y `marcarEnCurso`, con sus usos en `respuestas.ts` y `ver-fuente.test.ts`. `enCurso(item)` se queda con su nombre: lo llama `revision-del-material.ts:178`, que es de mate-revision.
+- Las citas `@MATE-3.3` de `texto-pdf.test.ts` y `texto-html.test.ts`, y las `@MATE-1.1` de `texto-html.test.ts` y `material.test.ts:245`, ahora dicen «(regla que la feature no cubre)».
+- El comentario de `textoDelHtml` ya no copia las listas de etiquetas y entidades (están junto a `ETIQUETAS_DE_BLOQUE` y `ENTIDADES_CON_NOMBRE`), ni cita MATE-3.3.
+- `material-guardado.ts` pasa `prettier --check`.
+- `docs/deuda-diseno.md`: D9 con sus líneas (`estado.ts:261-267`), ampliaciones de D2, D4, D8 y D21, y D22 nueva (`causa` y `campo` sin catálogo). Las líneas del informe estaban desfasadas y se comprobaron en HEAD b63f35c:
+  - D21: los cinco ternarios están ahora en `inicio-sesion.ts:151`, `material.ts:121`, `material-guardado.ts:134` y `revision.ts:131,275`; además hay dos más, `revision.ts:206` y `presentacion.ts:17`.
+  - D4: `FiltroRevision` y `FuenteAbierta` ya se exportan (`revision.ts:19`, `revision-del-material.ts:22`), pero los steps siguen sacándolos con `Parameters` y `ReturnType`.
+
+**Falta: decisiones del dueño [DECISIÓN PENDIENTE]**, para la conversación que toque los ficheros de mate-revision. Cuando decida, esta conversación anota aquí cuál elige.
+
+1. *El aprobado se lee por dos caminos* (`Dependencias.leerContenido`, para las sesiones, y `Ficheros` con `contenido/<d>.json`, para la revisión):
+   - **A, un solo lector:** `mesa-guardada.ts` con las rutas, `codificarJson` y `leerJson`, `leerMesa` y `escribirPar`; `enDominio` lee el aprobado por ahí y se quita `leerContenido`. Coste: cambia `Dependencias`, y `tests/aceptacion/soporte/mundo.ts:166` (protegido, propuesta), que ya no podría tener `contenidoEscrito ?? contenidos.get` y escribiría el contenido por `Ficheros`; los tres tests que copian rutas y `codificar` se simplifican.
+   - **B, un solo sitio para rutas y bytes:** `mesa-guardada.ts` con lo mismo, y `leerContenido` pasa a ser `contenidoDeFicheros(ficheros)`, que lo da a quien arranca la aplicación. Coste: pequeño, no toca rutas protegidas. El doble camino sigue en `mundo.ts`.
+   - Recomendación: B ahora; A cuando PANT construya el servidor y las `Dependencias`.
+2. *`dominio` va sin validar dentro de las rutas* (`material-guardado.ts:106-108`, `revision-del-material.ts:184-185`, `material.ts:105-107`: con `../` se escribe fuera de la carpeta):
+   - **A, validar al entrar:** `dominioValido(dominio): Resultado<string>`, que rechaza con `campo` `dominio`; lo llaman los casos de uso que reciben un dominio. Coste: hay que decidir qué caracteres se admiten, cada caso de uso gana una llamada, y un caso que se olvide sigue escribiendo fuera.
+   - **B, que `Ficheros` rechace las rutas que salgan de la carpeta de datos:** un solo sitio, que protege también las áreas siguientes. Coste: el puerto lanza un error en vez de rechazar con `campo`, y el doble de `Ficheros` de `mundo.ts` (protegido) tendría que imitarlo para poder probarse; el adaptador real aún no existe (PANT).
+   - Recomendación: A ahora, y B como defensa cuando exista el adaptador en PANT.
+3. *MATE-6.3:* el step llama a `pedirTarea`, que es `sinImplementar` (`aplicacion.ts:71`) y pertenece a TARE-1.1, después de MATE en el orden y hoy fuera de alcance. Lanza «Sin implementar», y `make cerrar-area A=MATE` exige la aceptación del área en verde. Opciones:
+   - **a)** implementar `pedirTarea` en MATE: TARE-1.1, 1.4 y 1.5 pasarían en verde antes de su área, el mismo problema que la etapa 3 de «estado-aceptacion»;
+   - **b)** pasar el escenario 6.3 a `tareas.feature` (fase specs, ruta protegida) y cerrar MATE citando 6.1, 6.2, 6.4 y 6.5. Es lo que recomiendo.
+   - No he vuelto a ejecutar MATE-6.1: la nota de «Hallazgos» sobre repasos y retención puede estar desfasada.
+
+**Paso siguiente:** el dueño commitea y decide los tres puntos (bloque en el mensaje final); una conversación nueva implementa lo decidido en los ficheros de mate-revision.
+
+**Leer primero:** este relevo, `reports/revisor-codigo-MATE.md` (está en el directorio principal, no en los worktrees; `reports/` no se versiona), `docs/deuda-diseno.md` (D22) y `features/material.feature` (MATE-6).

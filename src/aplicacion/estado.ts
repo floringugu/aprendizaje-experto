@@ -75,7 +75,7 @@ export class EstadoDominio {
   private readonly intentos: Intento[] = [];
   private readonly pendientes = new Map<string, RespuestaPendiente>();
   /** Los ítems en curso: presentados y sin intento registrado todavía. */
-  private readonly presentados = new Set<string>();
+  private readonly itemsEnCurso = new Set<string>();
   private readonly cambiosDominado: CambioDominado[] = [];
   private readonly cambiosFase: CambioFase[] = [];
   private readonly pasosRetirados = new Map<string, number>();
@@ -133,8 +133,8 @@ export class EstadoDominio {
   }
 
   /** La persona tiene el ítem delante: queda en curso hasta que se registre su intento. */
-  marcarPresentado(item: string): void {
-    this.presentados.add(item);
+  marcarEnCurso(item: string): void {
+    this.itemsEnCurso.add(item);
   }
 
   /**
@@ -142,7 +142,7 @@ export class EstadoDominio {
    * declarar la confianza. Mientras lo está, no se abre su fuente (@MATE-7.1).
    */
   enCurso(item: string): boolean {
-    return this.presentados.has(item);
+    return this.itemsEnCurso.has(item);
   }
 
   /**
@@ -151,7 +151,7 @@ export class EstadoDominio {
    */
   registrarIntento(intento: IntentoNuevo): void {
     this.pendientes.delete(intento.item);
-    this.presentados.delete(intento.item);
+    this.itemsEnCurso.delete(intento.item);
     this.intentos.push({ ...intento, pasosRetirados: this.pasosRetiradosDe(intento.objetivo) });
   }
 
@@ -178,7 +178,7 @@ export class EstadoDominio {
    */
   cerrarDiagnostico(cierre: CierreDiagnostico): void {
     this.pendientes.clear();
-    this.presentados.clear();
+    this.itemsEnCurso.clear();
     this.cambiarFase(cierre.fecha, cierre.fase);
     cierre.dominados.forEach((acierto, objetivo) => {
       this.cambiarDominado({ fecha: cierre.fecha, objetivo, dominado: true, acierto });

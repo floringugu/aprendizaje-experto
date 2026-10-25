@@ -56,7 +56,7 @@ function itemQueSePuedeResponder(situacion: Situacion, peticion: PeticionItem): 
 /**
  * El contexto decide si el ítem se puede responder, pero no cómo se ve: se presenta igual en la
  * práctica, en los repasos y en las pruebas de retención (@RECU-4.1). El ítem que se presenta queda
- * marcado como presentado (`marcarPresentado`): hasta su feedback no se abre su fuente (@MATE-7.1).
+ * en curso (`marcarEnCurso`): hasta su feedback no se abre su fuente (@MATE-7.1).
  */
 export function presentarItem(entorno: Entorno, peticion: PeticionItem): Resultado<ItemPresentado> {
   return enDominio(entorno, peticion.dominio, (situacion) => {
@@ -65,7 +65,7 @@ export function presentarItem(entorno: Entorno, peticion: PeticionItem): Resulta
       return item;
     }
     // Solo si se acepta: un rechazo no presenta nada, así que tampoco deja nada en curso.
-    situacion.estado.marcarPresentado(item.valor.id);
+    situacion.estado.marcarEnCurso(item.valor.id);
     return aceptar(presentar(item.valor));
   });
 }

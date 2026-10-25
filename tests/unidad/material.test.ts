@@ -242,7 +242,7 @@ describe('anadirMaterial: un fichero', () => {
     comprobarQueNoSeGuardoNada(mesa);
   });
 
-  it('@MATE-1.1 sin pdftotext instalado, un PDF se rechaza con falta_poppler y no se guarda nada', async () => {
+  it('sin pdftotext instalado, un PDF se rechaza con falta_poppler y no se guarda nada (regla que la feature no cubre)', async () => {
     // Una carpeta que no existe como único sitio donde buscar programas: pdftotext no arranca.
     vi.stubEnv('PATH', '/ruta/que/no/existe');
     const mesa = entorno();

@@ -90,17 +90,12 @@ const ENTIDADES_CON_NOMBRE: ReadonlyMap<string, string> = new Map(
  * 2. Fuera los comentarios `<!-- … -->` y los elementos `script` y `style`, con lo que llevan dentro.
  * 3. Cada tramo de espacios del código (espacios, tabuladores, saltos de línea) es un solo espacio, como
  *    en el navegador.
- * 4. Las etiquetas de bloque, al abrirse y al cerrarse, pasan a un salto de línea: `p`, `div`, `br`, `hr`,
- *    `li`, `ul`, `ol`, `dl`, `dt`, `dd`, `h1`…`h6`, `table`, `caption`, `tr`, `td`, `th`, `title`, `section`,
- *    `article`, `header`, `footer`, `nav`, `aside`, `main`, `blockquote`, `pre`, `figure` y `figcaption`. Las
- *    celdas también, para que no se peguen: una cita de una fila las une con un espacio (MATE-3.3). Las demás
- *    desaparecen sin dejar espacio: «<b>ho</b>la» da «hola».
- * 5. Se decodifican las entidades, después de quitar las etiquetas para que `&lt;p&gt;` quede como texto:
- *    las numéricas (`&#233;`, `&#xE9;`) y las de nombre más comunes en español (`&amp;`, `&lt;`, `&gt;`,
- *    `&quot;`, `&apos;`, `&nbsp;`, las vocales con tilde y con diéresis en mayúscula y en minúscula,
- *    `&ntilde;`, `&Ntilde;`, `&iquest;`, `&iexcl;`, `&laquo;`, `&raquo;`, `&ordm;`, `&ordf;`, `&ndash;`,
- *    `&mdash;`, `&lsquo;`, `&rsquo;`, `&ldquo;`, `&rdquo;`, `&hellip;`, `&middot;` y `&euro;`). Una entidad
- *    que no se conoce, o un número que no es un carácter, se queda tal cual.
+ * 4. Las etiquetas de bloque (`ETIQUETAS_DE_BLOQUE`), al abrirse y al cerrarse, pasan a un salto de línea;
+ *    las celdas también, para que no se peguen. Las demás desaparecen sin dejar espacio: «<b>ho</b>la» da
+ *    «hola».
+ * 5. Se decodifican las entidades (`ENTIDADES_CON_NOMBRE` y las numéricas), después de quitar las etiquetas
+ *    para que `&lt;p&gt;` quede como texto. Una entidad que no se conoce, o un número que no es un
+ *    carácter, se queda tal cual.
  * 6. Cada línea, sin espacios al principio ni al final; las líneas vacías no salen.
  */
 export function textoDelHtml(bytes: Uint8Array, tipoContenido: string): string {

@@ -47,9 +47,7 @@ export type DocumentoNuevo =
 export function guardarDocumento(ficheros: Ficheros, dominio: string, documento: DocumentoNuevo): void {
   const indice = leerIndice(ficheros, dominio);
   const { entrada, escrituras } =
-    'url' in documento
-      ? guardadoDeUrl(dominio, documento, indice)
-      : guardadoDeFichero(dominio, documento);
+    'url' in documento ? guardadoDeUrl(dominio, documento, indice) : guardadoDeFichero(dominio, documento);
   for (const [ruta, bytes] of escrituras) {
     ficheros.escribir(ruta, bytes);
   }

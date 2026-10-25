@@ -147,15 +147,15 @@ describe('verFuente: los rechazos', () => {
 
   it('@MATE-7.1 un ítem aprobado en curso rechaza con antes_de_responder', () => {
     const { entorno } = preparar();
-    entorno.persona.estadoDe(DOMINIO).marcarPresentado('I7');
+    entorno.persona.estadoDe(DOMINIO).marcarEnCurso('I7');
     expect(ver(entorno, 'I7')).toMatchObject(ANTES_DE_RESPONDER);
   });
 
   it('@MATE-7.2 el ítem aprobado se abre en cuanto se registra su intento, y solo ese ítem', () => {
     const { entorno } = preparar();
     const estado = entorno.persona.estadoDe(DOMINIO);
-    estado.marcarPresentado('I7');
-    estado.marcarPresentado('I3');
+    estado.marcarEnCurso('I7');
+    estado.marcarEnCurso('I3');
     estado.registrarIntento(intento('I7'));
     expect(ver(entorno, 'I7')).toStrictEqual({ ok: true, valor: HOJA });
     expect(ver(entorno, 'I3')).toMatchObject(rechazo('antes_de_responder', '«I3»'));
@@ -163,34 +163,34 @@ describe('verFuente: los rechazos', () => {
 
   it('@MATE-7.1 un ítem del borrador en curso se abre: las sesiones solo presentan lo aprobado (regla que la feature no cubre)', () => {
     const { entorno } = preparar();
-    entorno.persona.estadoDe(DOMINIO).marcarPresentado('I9');
+    entorno.persona.estadoDe(DOMINIO).marcarEnCurso('I9');
     expect(ver(entorno, 'I9')).toStrictEqual({ ok: true, valor: HOJA });
   });
 
   it('@MATE-7.1 solo cuenta el ítem en curso del dominio pedido (regla que la feature no cubre)', () => {
     const { entorno } = preparar();
-    entorno.persona.estadoDe('otro').marcarPresentado('I7');
+    entorno.persona.estadoDe('otro').marcarEnCurso('I7');
     expect(ver(entorno, 'I7')).toStrictEqual({ ok: true, valor: HOJA });
   });
 
   it('@MATE-7.1 solo se cierra la fuente de un ítem, no la de otro tipo de pieza con ese id (regla que la feature no cubre)', () => {
     const { entorno } = preparar();
-    entorno.persona.estadoDe(DOMINIO).marcarPresentado('O1');
+    entorno.persona.estadoDe(DOMINIO).marcarEnCurso('O1');
     expect(ver(entorno, 'O1')).toStrictEqual({ ok: true, valor: HOJA });
   });
 
   it('@MATE-7.1 el orden de los rechazos: antes_de_responder va antes que sin_fuente y que cita_no_encontrada', () => {
     const { entorno } = preparar();
     const estado = entorno.persona.estadoDe(DOMINIO);
-    estado.marcarPresentado('I1');
-    estado.marcarPresentado('I3');
+    estado.marcarEnCurso('I1');
+    estado.marcarEnCurso('I3');
     expect(ver(entorno, 'I1')).toMatchObject({ ok: false, causa: 'antes_de_responder' });
     expect(ver(entorno, 'I3')).toMatchObject({ ok: false, causa: 'antes_de_responder' });
   });
 
   it('@MATE-7.1 un ítem en curso que no está en la mesa rechaza con pieza_no_encontrada (regla que la feature no cubre)', () => {
     const { entorno } = preparar();
-    entorno.persona.estadoDe(DOMINIO).marcarPresentado('I99');
+    entorno.persona.estadoDe(DOMINIO).marcarEnCurso('I99');
     expect(ver(entorno, 'I99')).toMatchObject({ ok: false, causa: 'pieza_no_encontrada' });
   });
 });
@@ -235,22 +235,22 @@ describe('EstadoDominio: los ítems en curso', () => {
   it('@MATE-7.1 un ítem está en curso desde que se marca presentado, y solo él', () => {
     const estado = new EstadoDominio();
     expect(estado.enCurso('I7')).toBe(false);
-    estado.marcarPresentado('I7');
+    estado.marcarEnCurso('I7');
     expect(estado.enCurso('I7')).toBe(true);
     expect(estado.enCurso('I8')).toBe(false);
   });
 
   it('@MATE-7.1 sigue en curso después de responder y antes de declarar la confianza', () => {
     const estado = new EstadoDominio();
-    estado.marcarPresentado('I7');
+    estado.marcarEnCurso('I7');
     estado.guardarRespuesta('I7', { fecha: AHORA, contexto: 'practica', respuesta: 'a' });
     expect(estado.enCurso('I7')).toBe(true);
   });
 
   it('@MATE-7.2 registrar el intento de un ítem lo saca de en curso y deja los demás', () => {
     const estado = new EstadoDominio();
-    estado.marcarPresentado('I7');
-    estado.marcarPresentado('I8');
+    estado.marcarEnCurso('I7');
+    estado.marcarEnCurso('I8');
     estado.registrarIntento(intento('I7'));
     expect(estado.enCurso('I7')).toBe(false);
     expect(estado.enCurso('I8')).toBe(true);
@@ -258,16 +258,16 @@ describe('EstadoDominio: los ítems en curso', () => {
 
   it('@MATE-7.2 un ítem vuelve a estar en curso si se presenta otra vez después de su intento', () => {
     const estado = new EstadoDominio();
-    estado.marcarPresentado('I7');
+    estado.marcarEnCurso('I7');
     estado.registrarIntento(intento('I7'));
-    estado.marcarPresentado('I7');
+    estado.marcarEnCurso('I7');
     expect(estado.enCurso('I7')).toBe(true);
   });
 
   it('@MATE-7.1 cerrar el diagnóstico deja todos los ítems fuera de en curso (regla que la feature no cubre)', () => {
     const estado = new EstadoDominio();
-    estado.marcarPresentado('I7');
-    estado.marcarPresentado('I8');
+    estado.marcarEnCurso('I7');
+    estado.marcarEnCurso('I8');
     estado.cerrarDiagnostico({ fecha: AHORA, fase: 'novato', dominados: new Map(), pasosRetirados: new Map() });
     expect([estado.enCurso('I7'), estado.enCurso('I8')]).toStrictEqual([false, false]);
   });
