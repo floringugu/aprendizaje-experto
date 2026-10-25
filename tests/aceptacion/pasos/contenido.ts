@@ -20,8 +20,10 @@ Given('el dominio de prueba {texto} con las tareas {ids}, en ese orden', (nombre
 Given('el dominio de prueba {texto} con estas categorías:', (nombre: string, tabla: DataTable) => {
   mundo().dominio = nombre;
   const categorias = tabla.hashes().map((fila): CategoriaContenido => {
+    const id = fila['categoría'] ?? '';
     const grupo = fila['grupo de parecidas'] ?? '';
-    return grupo === '' ? { id: fila['categoría'] ?? '' } : { id: fila['categoría'] ?? '', grupo_parecidas: grupo };
+    const base = { id, descripcion: `Descripción de ${id}` };
+    return grupo === '' ? base : { ...base, grupo_parecidas: grupo };
   });
   mundo().contenido().fijarCategorias(categorias);
 });

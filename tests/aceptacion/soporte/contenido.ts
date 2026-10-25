@@ -12,8 +12,8 @@ const OBJETIVOS_POR_DEFECTO = ['O1', 'O2', 'O3'];
 const PASOS_POR_DEFECTO = ['P1', 'P2', 'P3'];
 const NIVELES_POR_DEFECTO = [0, 1, 2];
 const CATEGORIAS_INTERCALABLES = [
-  { id: 'C1', grupo_parecidas: 'G1' },
-  { id: 'C2', grupo_parecidas: 'G1' },
+  { id: 'C1', descripcion: 'Descripción de C1', grupo_parecidas: 'G1' },
+  { id: 'C2', descripcion: 'Descripción de C2', grupo_parecidas: 'G1' },
 ];
 
 /** Datos mínimos de un ítem; el resto se rellena con valores por defecto. */

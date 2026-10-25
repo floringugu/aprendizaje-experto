@@ -24,10 +24,10 @@ export type FuenteAbierta = Aceptado<ReturnType<CasosDeMaterial['verFuente']>>;
 export type BorradorRedactado = Aceptado<Awaited<ReturnType<CasosDeMaterial['redactarBorrador']>>>;
 export type InicioSesionEnCurso = Aceptado<Awaited<ReturnType<CasosDeClaudeCode['consultarInicioSesion']>>>;
 /**
- * Una categoría del borrador, con la descripción y la fuente que el formato del contenido aún no declara
- * (MATE-2.1, MATE-2.3). Se añaden por intersección: si el formato las declara, el tipo sigue valiendo.
+ * Una categoría del borrador, con la fuente que el formato del contenido aún no declara (MATE-2.1). Se
+ * añade por intersección: si el formato la declara, el tipo sigue valiendo.
  */
-export type CategoriaDelBorrador = CategoriaContenido & { readonly descripcion?: string; readonly fuente?: Fuente };
+export type CategoriaDelBorrador = CategoriaContenido & { readonly fuente?: Fuente };
 export type Pieza =
   ObjetivoContenido | EjemploResueltoContenido | ItemContenido | TareaContenido | CategoriaDelBorrador;
 
