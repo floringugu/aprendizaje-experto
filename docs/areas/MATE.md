@@ -172,3 +172,40 @@ Salida de `make bloqueos A=<ÁREA>` al cerrar el área, y una frase sobre el blo
 ```text
 …
 ```
+
+## Relevo
+
+Conversación fase `impl`, worktree `mate-revision` (rama `mate-revision`, HEAD b63f35c). No se ha tocado ningún fichero salvo esta sección: la conversación gastó el presupuesto de contexto leyendo y diseñando.
+
+**Hecho:**
+- Encargo 1 (MATE-5.5): ya estaba en b63f35c. `git grep aprobablesEnBloque aprobarSinMarca aprobar_sin_marca` solo da `docs/areas/MATE.md:58` (el boceto «A» de «Dos interfaces», que conserva `aprobar_sin_marca` en la `Accion`) y los dos `assert` de `tests/aceptacion/pasos/aprobacion.ts`, que son lo correcto. Falta quitar `aprobar_sin_marca` del boceto (docs, lo hace Claude directamente).
+- Lectura completa de `revision.ts`, `mesa.ts`, `revision-del-material.ts`, `citas.ts`, `formato-contenido.ts`, `contenido.ts`, `config/peticion-ia.md`, los steps `revision.ts` y `aprobacion.ts`, y plan §0 (filas «Reglas de MATE que la feature no cubre», «Categorías en el borrador» y «Comprobación y aprobación de los borradores»), que ya fijan todas las reglas de los puntos 2, 3 y 4. Las otras tres conversaciones (mate-formato, mate-pasos, mate-limpieza) siguen en b63f35c; solo mate-limpieza tiene cambios sin commitear (estado.ts, material-guardado.ts, respuestas.ts, texto-html.ts y tests de material, texto-html, texto-pdf y ver-fuente).
+
+**Diseño decidido (nada escrito aún):**
+- **Ficheros fuera de mi lista, no tocar:** `contenido.ts` es de mate-formato (`descripcion` de la categoría, `diagrama`). Por eso lo nuevo del borrador va en `mesa.ts`:
+  - `TareaDelBorrador extends TareaContenido { antes_de?: string }` y `CategoriaDelBorrador extends CategoriaContenido { fuente?: Fuente }`;
+  - `BorradorDominio` pasa a tener `tareas: readonly TareaDelBorrador[]` y `categorias: readonly CategoriaDelBorrador[]` (sigue siendo asignable desde `ContenidoDominio`, así que `idRepetido` y `buscarPieza` siguen usando el aprobado como borrador sin ejemplos aparte);
+  - `Pendiente` gana `{ tipo: 'categoria'; pieza: CategoriaDelBorrador }` y `pendientesDelBorrador` las lista después de los ítems y antes de las tareas (así el grupo sin `objetivo`, que lleva categorías y tareas, sigue saliendo el último).
+- **`formato-contenido.ts`:** solo `TipoDePieza` gana `'categoria'` (y su comentario) y `falloDeLaPiezaSuelta` el `case 'categoria': return falloDeLaCategoria(pieza, 0)`, que no compila sin él. La validación de `descripcion` y la de la `fuente` de una categoría (`MOLDE_DE_LA_CATEGORIA.interior` es `() => undefined`, debería ser `falloDeLaFuenteOpcional`) son de mate-formato: decírselo al dueño.
+- **`citas.ts`:** `type MarcaDeCita = 'sin_fuente' | 'cita_no_encontrada'`, `Marca = MarcaDeCita | 'un_solo_paso'` y `Marcador` devuelve `MarcaDeCita | undefined`. En `revision.ts`, `piezaPendiente` calcula `marcas` como la de la cita (si hay) seguida de `un_solo_paso` cuando la pieza es un `ejemplo` con `pasos.length < 2` (de 0 a 2 marcas; el filtro `un_solo_paso` sale solo, porque `FiltroRevision` usa `Marca`).
+- **`antes_de` (MATE-4.11), en `revision.ts`:**
+  - aprobar una tarea: se quita `antes_de`; se sigue la cadena desde el suyo con un conjunto de ids visitados (empieza con la propia tarea); la primera id que esté entre las tareas aprobadas es el destino, y la tarea entra delante de ella; si la cadena llega a una tarea sin `antes_de`, a un id desconocido o a uno ya visitado, va al final;
+  - descartar una tarea: las del borrador con `antes_de` igual a su id pasan a llevar el `antes_de` de ella, o ninguno;
+  - corregir una tarea: si `corregida.antes_de` no es `undefined` y es el id de la propia tarea, o no es el id de ninguna tarea del borrador ni del aprobado, rechaza con `campo` `antes_de`. Orden de comprobaciones: formato, `id`, referencias (`objetivo`, `categoria`, `antes_de`) y ids repetidos.
+- **Categorías, en `revision.ts`:**
+  - `colgadoDe` da `undefined`; `cambiarPieza` y `entrarEnElAprobado` ganan el caso `categoria` (al aprobar conserva la `fuente`);
+  - aprobar un ítem cuya `categoria` es una categoría del borrador (pendiente) rechaza con `causa` `categoria_pendiente`, después de `objetivo_pendiente`; una categoría que no está en ninguna parte no bloquea (solo se rechaza al corregir);
+  - corregir un ítem con `categoria` presente que no está ni en `borrador.categorias` ni en `aprobado.categorias` rechaza con `campo` `categoria`, tras el de `objetivo`.
+- **Hueco que hay que contar al dueño ([DECISIÓN PENDIENTE]):** al descartar una categoría, los ítems pendientes que la nombran se quedan con un `categoria` colgando y ya no se pueden corregir sin cambiarla (la corrección la rechaza con `campo` `categoria`). Opciones: dejar los ítems tal cual (lo que haría el código si no se decide nada), quitarles `categoria` al descartar, o que la corrección solo rechace una categoría que cambia. La feature no lo cubre.
+- **Punto 5, sin cambiar:** propuesta para el dueño con [DECISIÓN PENDIENTE]. `falloDeLaPiezaSuelta` nombra la pieza «el ítem 1» cuando la corrección no es un objeto o no tiene `id` válido. Propongo que `corregirPieza` use el `id` de la pieza que corrige: pasar el nombre desde `revision.ts` (`falloDeLaPiezaSuelta(tipo, pieza, nombre?)`, que nombra con `nombrarPieza` y la posición solo si no viene) para que el motivo sea «falta o no es válido «id» en el ítem I7», con un test del motivo. Es una firma pública de `formato-contenido.ts` y el cambio roza a mate-formato.
+
+**Falta, en este orden (un encargo cada vez al `implementador`, con los ficheros que puede tocar):**
+1. Quitar `aprobar_sin_marca` del boceto de `docs/areas/MATE.md:58` (Claude).
+2. MATE-3.5, `un_solo_paso`: `citas.ts` (tipos), `revision.ts` (`piezaPendiente`), tests `revision.test.ts`, `revision-fabricas.ts`, `citas.test.ts` si hace falta. Steps: `tests/aceptacion/pasos/revision.ts` ya tiene la marca en `MARCAS`.
+3. Categorías como pieza (punto 4): `mesa.ts`, `revision.ts`, `formato-contenido.ts` (las dos líneas de arriba), tests `mesa.test.ts`, `revision*.test.ts`, `revision-fabricas.ts`. Hacerlo antes que `antes_de` porque ambos tocan `Pendiente`.
+4. `antes_de` (MATE-4.11): `mesa.ts` (`TareaDelBorrador`), `revision.ts`, tests `revision-aplicar.test.ts` y `revision-fabricas.ts`. Comprobar a mano el orden con las cadenas T3→T4→T1 aprobando en los dos órdenes, y T3→T4→T3.
+5. `make check` en verde; no tocar el test de `lugarDelFallo` de `revision-aplicar.test.ts` (se lo lleva mate-formato).
+6. Deuda de diseño en `docs/deuda-diseno.md` (fase impl, sin propuesta): `fuente` de la categoría y `antes_de` viven en `mesa.ts` y no en `contenido.ts` hasta que se integre mate-formato (mover entonces `CategoriaDelBorrador.fuente` a `CategoriaContenido`, y ojo: si `descripcion` pasa a ser obligatoria, el fixture de categoría de `revision-fabricas.ts` necesita ponerla).
+7. Al acabar: bloque `sh` para el dueño con `git add -A`, el commit (en inglés) y, desde el directorio principal, `make integrar N=mate-revision` y `make retirar N=mate-revision`; más el punto 5 y el hueco de «descartar una categoría» con [DECISIÓN PENDIENTE].
+
+**Leer primero:** este relevo; `src/aplicacion/revision.ts` y `mesa.ts` (bajo 360 y 120 líneas, enteros); plan §0, fila «Reglas de `MATE` que la feature no cubre» (con `git grep -n "Reglas de .MATE. que la feature" -- docs/plan.md`); `features/material.feature` (MATE-3.5, 4.11 y 5.5) y `tests/aceptacion/pasos/aprobacion.ts` y `revision.ts`.
