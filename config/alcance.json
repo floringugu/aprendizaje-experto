@@ -1,1 +1,1 @@
-{ "areas_cerradas": ["RECU"], "escenarios_en_rojo": { "DIAG": ["DIAG-2.4"] } }
+{ "areas_cerradas": ["RECU", "DIAG"] }
