@@ -34,13 +34,10 @@ interface GrupoRevision {
 /** La pantalla «Revisión del material»: las piezas pendientes, agrupadas por objetivo (MATE-4.1). */
 export interface Revision {
   readonly grupos: readonly GrupoRevision[];
-  /** Las piezas que aprobaría «Aprobar las N sin marca»; 0 si no hay ninguna (MATE-5.1, MATE-5.4). */
-  readonly aprobablesEnBloque: number;
 }
 
 export type Accion =
   | { readonly tipo: 'aprobar'; readonly pieza: string }
-  | { readonly tipo: 'aprobar_sin_marca' }
   | { readonly tipo: 'descartar'; readonly pieza: string }
   | { readonly tipo: 'corregir'; readonly pieza: string; readonly corregida: unknown };
 
@@ -54,8 +51,6 @@ export type Accion =
  * Los grupos salen en el orden en que aparece su primera pieza, y las piezas de cada grupo en el orden
  * del borrador: objetivos (cada uno seguido de sus ejemplos), ejemplos que van aparte, ítems y tareas.
  * Con un filtro de marca solo quedan las piezas que la llevan, y un grupo sin piezas no sale (@MATE-4.2).
- *
- * `aprobablesEnBloque` no depende del filtro: son las piezas que aprobaría `aprobar_sin_marca`.
  */
 export function revisar(mesa: Mesa, marcas: Marcador, filtro: FiltroRevision): Revision {
   const piezas = pendientesDelBorrador(mesa.borrador).map((pendiente) => ({
@@ -63,7 +58,7 @@ export function revisar(mesa: Mesa, marcas: Marcador, filtro: FiltroRevision): R
     pieza: piezaPendiente(pendiente, marcas),
   }));
   const visibles = piezas.filter(({ pieza }) => filtro === 'pendientes' || pieza.marcas.includes(filtro));
-  return { grupos: agruparPorObjetivo(visibles), aprobablesEnBloque: idsEnBloque(mesa, marcas).length };
+  return { grupos: agruparPorObjetivo(visibles) };
 }
 
 /**
@@ -77,10 +72,6 @@ export function revisar(mesa: Mesa, marcas: Marcador, filtro: FiltroRevision): R
  *   su objetivo, ya sin `objetivo`. Una pieza que cuelga de un objetivo que no está en el aprobado no
  *   se aprueba: el aprobado quedaría con un objetivo que no existe. Rechaza con `causa`
  *   `objetivo_pendiente` (regla que la feature no cubre, aprobada en el Mecanismo de MATE).
- * - `aprobar_sin_marca` aprueba, en el orden del borrador, las piezas a las que `marcas` no pone
- *   ninguna marca (@MATE-5.2). Primero los objetivos, para que después puedan entrar las piezas que
- *   cuelgan de ellos; una pieza sin marca que cuelga de un objetivo pendiente con marca no entra, y
- *   tampoco cuenta en `aprobablesEnBloque`. Sin ninguna, devuelve la misma mesa.
  * - `descartar` saca la pieza del borrador y no toca el aprobado (@MATE-4.5). Un objetivo se va con
  *   todo lo que cuelga de él en el borrador: sus ejemplos y sus ítems (regla que la feature no cubre).
  * - `corregir` sustituye la pieza por `corregida`, en el mismo sitio del borrador, y sigue pendiente
@@ -93,15 +84,13 @@ export function revisar(mesa: Mesa, marcas: Marcador, filtro: FiltroRevision): R
  *   este orden: el formato, el `id`, el `objetivo` y los ids repetidos. Un ejemplo que va aparte
  *   conserva su `objetivo`, venga o no en `corregida`.
  *
- * Una pieza que no está en el borrador rechaza con `causa` `pieza_no_encontrada`. Las marcas no se
- * guardan: se vuelven a calcular cada vez que se abre la revisión (@MATE-4.7).
+ * Una pieza que no está en el borrador rechaza con `causa` `pieza_no_encontrada`. No hay acción sobre
+ * varias piezas a la vez: cada una se aprueba al leerla, también las que no tienen marca (@MATE-5.5).
  */
-export function aplicar(mesa: Mesa, accion: Accion, marcas: Marcador): Resultado<Mesa> {
+export function aplicar(mesa: Mesa, accion: Accion): Resultado<Mesa> {
   switch (accion.tipo) {
     case 'aprobar':
       return sobrePieza(mesa, accion.pieza, aprobarPieza);
-    case 'aprobar_sin_marca':
-      return aprobarEnBloque(mesa, marcas);
     case 'descartar':
       return sobrePieza(mesa, accion.pieza, (actual, pendiente) => aceptar(descartarPieza(actual, pendiente)));
     case 'corregir':
@@ -141,37 +130,6 @@ function agruparPorObjetivo(
   return [...porObjetivo].map(([objetivo, grupo]) =>
     objetivo === undefined ? { piezas: grupo } : { objetivo, piezas: grupo },
   );
-}
-
-// --- Aprobar en bloque ---
-
-/**
- * Los ids que entran con «Aprobar las N sin marca», en el orden en que se aprueban. Es la única fuente
- * de `aprobablesEnBloque` y de `aprobar_sin_marca`: el número del botón no puede diferir de lo que se
- * aprueba. Primero van los objetivos sin marca; después, las demás sin marca cuyo objetivo ya está
- * aprobado o entra en este mismo bloque (@MATE-5.2).
- */
-function idsEnBloque(mesa: Mesa, marcas: Marcador): readonly string[] {
-  const sinMarca = pendientesDelBorrador(mesa.borrador).filter(({ pieza }) => marcas(pieza.fuente) === undefined);
-  const objetivos = sinMarca.filter(({ tipo }) => tipo === 'objetivo');
-  const disponibles = new Set([...mesa.aprobado.objetivos, ...objetivos.map(({ pieza }) => pieza)].map(({ id }) => id));
-  const colgantes = sinMarca.filter((pendiente) => {
-    const objetivo = colgadoDe(pendiente);
-    return pendiente.tipo !== 'objetivo' && (objetivo === undefined || disponibles.has(objetivo));
-  });
-  return [...objetivos, ...colgantes].map(({ pieza }) => pieza.id);
-}
-
-function aprobarEnBloque(mesa: Mesa, marcas: Marcador): Resultado<Mesa> {
-  let actual = mesa;
-  for (const id of idsEnBloque(mesa, marcas)) {
-    const resultado = sobrePieza(actual, id, aprobarPieza);
-    if (!resultado.ok) {
-      return resultado;
-    }
-    actual = resultado.valor;
-  }
-  return aceptar(actual);
 }
 
 // --- Rechazos ---

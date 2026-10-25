@@ -96,12 +96,6 @@ describe('abrirRevision', () => {
     expect(abrir(casos)).toStrictEqual(abrir(casos, 'pendientes'));
   });
 
-  it('@MATE-5.1 cuenta las piezas que aprobaría «Aprobar las N sin marca»', () => {
-    const { ficheros, casos } = preparar();
-    guardarApuntes(ficheros);
-    expect(abrir(casos).aprobablesEnBloque).toBe(2);
-  });
-
   it('abrir la revisión no escribe nada (regla que la feature no cubre)', () => {
     const { ficheros, contenidos, casos } = preparar();
     guardarApuntes(ficheros);
@@ -124,14 +118,13 @@ describe('abrirRevision', () => {
   it('sin borrador, la revisión está vacía (regla que la feature no cubre)', () => {
     const { contenidos, casos } = preparar();
     contenidos.delete(BORRADOR);
-    expect(abrir(casos)).toStrictEqual({ grupos: [], aprobablesEnBloque: 0 });
+    expect(abrir(casos)).toStrictEqual({ grupos: [] });
   });
 });
 
 const LLAMADAS_QUE_LEEN_LA_MESA: readonly (readonly [string, (casos: CasosDeRevision) => Resultado<unknown>])[] = [
   ['abrirRevision', (casos) => casos.abrirRevision({ dominio: DOMINIO })],
   ['aprobarPieza', (casos) => casos.aprobarPieza({ dominio: DOMINIO, pieza: 'I7' })],
-  ['aprobarSinMarca', (casos) => casos.aprobarSinMarca({ dominio: DOMINIO })],
   ['descartarPieza', (casos) => casos.descartarPieza({ dominio: DOMINIO, pieza: 'I7' })],
   ['corregirPieza', (casos) => casos.corregirPieza({ dominio: DOMINIO, pieza: 'I7', corregida: item('I7') })],
 ];
@@ -192,17 +185,6 @@ describe('las acciones sobre una pieza', () => {
     casos.aprobarPieza({ dominio: DOMINIO, pieza: 'I7' });
     const texto = new TextDecoder().decode(contenidos.get(APROBADO));
     expect(texto).toBe(JSON.stringify({ ...MESA.aprobado, items: [item('I7', FUENTE_BUENA)] }, null, '  '));
-  });
-
-  it('@MATE-5.2 aprobarSinMarca aprueba las piezas sin marca y deja las marcadas pendientes', () => {
-    const { ficheros, contenidos, casos } = preparar();
-    guardarApuntes(ficheros);
-    expect(casos.aprobarSinMarca({ dominio: DOMINIO })).toStrictEqual(OK);
-    expect(jsonDe(contenidos, APROBADO)).toStrictEqual({
-      ...MESA.aprobado,
-      items: [item('I7', FUENTE_BUENA), item('I10', FUENTE_BUENA)],
-    });
-    expect(jsonDe(contenidos, BORRADOR)).toStrictEqual({ ...MESA.borrador, items: [ITEMS[1], ITEMS[2]] });
   });
 
   it('@MATE-4.5 descartarPieza saca la pieza del borrador y el aprobado queda igual', () => {

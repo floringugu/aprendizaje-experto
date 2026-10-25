@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import { revisar } from '../../src/aplicacion/revision.ts';
 import {
   FUENTE_BUENA,
-  FUENTE_MALA,
   ITEMS,
   MESA,
   agrupadas,
@@ -49,7 +48,7 @@ describe('revisar: agrupación y orden', () => {
   });
 });
 
-describe('revisar: filtros y botón en bloque', () => {
+describe('revisar: filtros', () => {
   it.each([
     ['pendientes', ['I7', 'I8', 'I9', 'I10']],
     ['sin_fuente', ['I8']],
@@ -61,22 +60,5 @@ describe('revisar: filtros y botón en bloque', () => {
   it('@MATE-4.2 un grupo sin piezas no sale con el filtro', () => {
     const mesa = mesaDe({ items: [item('I7', FUENTE_BUENA), item('I8', undefined, 'O2')] });
     expect(agrupadas(mesa, 'sin_fuente')).toStrictEqual([['O2', ['I8']]]);
-  });
-
-  it.each(['pendientes', 'sin_fuente', 'cita_no_encontrada'] as const)(
-    '@MATE-5.1 el botón cuenta las piezas sin marca (2) con el filtro «%s»',
-    (filtro) => {
-      expect(revisar(MESA, marcador, filtro).aprobablesEnBloque).toBe(2);
-    },
-  );
-
-  it('@MATE-5.4 si todas las pendientes tienen marca, no hay nada que aprobar en bloque', () => {
-    const mesa = mesaDe({ items: [item('I8'), item('I9', FUENTE_MALA)] });
-    expect(revisar(mesa, marcador, 'pendientes').aprobablesEnBloque).toBe(0);
-  });
-
-  it('@MATE-5.1 las piezas sin marca de un objetivo pendiente con marca no cuentan (regla que la feature no cubre)', () => {
-    const mesa = mesaDe({ objetivos: [objetivo('O2')], items: [item('I7', FUENTE_BUENA, 'O2')] });
-    expect(revisar(mesa, marcador, 'pendientes').aprobablesEnBloque).toBe(0);
   });
 });

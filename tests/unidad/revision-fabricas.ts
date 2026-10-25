@@ -89,9 +89,9 @@ function exito(resultado: Resultado<Mesa>): Mesa {
   if (!resultado.ok) throw new Error(`Se esperaba éxito y fue un rechazo: ${resultado.motivo}`);
   return resultado.valor;
 }
-export const aplicado = (mesa: Mesa, accion: Accion): Mesa => exito(aplicar(mesa, accion, marcador));
+export const aplicado = (mesa: Mesa, accion: Accion): Mesa => exito(aplicar(mesa, accion));
 export function rechazado(mesa: Mesa, accion: Accion): Extract<Resultado<Mesa>, { ok: false }> {
-  const resultado = aplicar(mesa, accion, marcador);
+  const resultado = aplicar(mesa, accion);
   if (resultado.ok) throw new Error('Se esperaba un rechazo');
   if (resultado.motivo.trim() === '') throw new Error('El rechazo no explica el motivo');
   return resultado;

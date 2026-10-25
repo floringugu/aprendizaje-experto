@@ -1,10 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { lugarDelFallo } from '../../src/aplicacion/formato-contenido.ts';
 import type { Mesa } from '../../src/aplicacion/mesa.ts';
-import { revisar, type Accion } from '../../src/aplicacion/revision.ts';
+import type { Accion } from '../../src/aplicacion/revision.ts';
 import {
   FUENTE_BUENA,
-  FUENTE_MALA,
   ITEMS,
   MESA,
   agrupadas,
@@ -12,7 +11,6 @@ import {
   ejemplo,
   ids,
   item,
-  marcador,
   mesaDe,
   objetivo,
   rechazado,
@@ -127,49 +125,6 @@ describe('aplicar: aprobar', () => {
       expect(rechazado(mesa, { tipo: 'aprobar', pieza: id })).toMatchObject({ ok: false, causa: 'objetivo_pendiente' });
     },
   );
-});
-
-describe('aplicar: aprobar_sin_marca', () => {
-  it('@MATE-5.2 aprueba las piezas sin marca, en orden, y deja las marcadas pendientes', () => {
-    const nueva = aplicado(MESA, { tipo: 'aprobar_sin_marca' });
-    expect(ids(nueva.aprobado.items)).toStrictEqual(['I7', 'I10']);
-    expect(ids(nueva.borrador.items)).toStrictEqual(['I8', 'I9']);
-  });
-
-  it('@MATE-5.2 aprueba también la tarea sin marca: no cuelga de ningún objetivo, y el botón la cuenta', () => {
-    const mesa = mesaDe({ tareas: [tarea('T1', FUENTE_BUENA), tarea('T2')] });
-    expect(revisar(mesa, marcador, 'pendientes').aprobablesEnBloque).toBe(1);
-    const nueva = aplicado(mesa, { tipo: 'aprobar_sin_marca' });
-    expect(ids(nueva.aprobado.tareas)).toStrictEqual(['T1']);
-    // T2 no tiene fuente: lleva la marca «sin_fuente» y se queda pendiente.
-    expect(ids(nueva.borrador.tareas)).toStrictEqual(['T2']);
-  });
-
-  it('@MATE-5.4 sin piezas sin marca devuelve la misma mesa', () => {
-    const mesa = mesaDe({ items: [item('I8'), item('I9', FUENTE_MALA)] });
-    expect(aplicado(mesa, { tipo: 'aprobar_sin_marca' })).toBe(mesa);
-  });
-
-  it('@MATE-5.2 aprueba primero los objetivos, y con ellos entran sus ejemplos e ítems sin marca', () => {
-    const mesa = mesaDe({
-      objetivos: [objetivo('O2', [ejemplo('E1', FUENTE_BUENA)], FUENTE_BUENA)],
-      items: [item('I7', FUENTE_BUENA, 'O2'), item('I8', undefined, 'O2')],
-      tareas: [tarea('T1')],
-    });
-    const aprobables = revisar(mesa, marcador, 'pendientes').aprobablesEnBloque;
-    const nueva = aplicado(mesa, { tipo: 'aprobar_sin_marca' });
-    expect(nueva.aprobado.objetivos).toStrictEqual([objetivo('O2', [ejemplo('E1', FUENTE_BUENA)], FUENTE_BUENA)]);
-    expect(ids(nueva.aprobado.items)).toStrictEqual(['I7']);
-    expect(ids(nueva.aprobado.tareas)).toStrictEqual([]);
-    // El número del botón es lo que se aprueba: el objetivo, su ejemplo y I7. T1 y I8 llevan marca.
-    expect(aprobables).toBe(3);
-    expect(ids(nueva.borrador.items)).toStrictEqual(['I8']);
-  });
-
-  it('@MATE-5.2 una pieza sin marca de un objetivo pendiente con marca no entra (regla que la feature no cubre)', () => {
-    const mesa = mesaDe({ objetivos: [objetivo('O2')], items: [item('I7', FUENTE_BUENA, 'O2')] });
-    expect(aplicado(mesa, { tipo: 'aprobar_sin_marca' })).toBe(mesa);
-  });
 });
 
 describe('aplicar: descartar', () => {

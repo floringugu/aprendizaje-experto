@@ -32,8 +32,6 @@ export interface CasosDeRevision {
   abrirRevision(peticion: { readonly dominio: string; readonly filtro?: FiltroRevision }): Resultado<Revision>;
   /** Pasa la pieza del borrador al contenido aprobado, con su fuente (MATE-4.4). */
   aprobarPieza(peticion: PeticionPieza): Resultado<null>;
-  /** «Aprobar las N sin marca»: las marcadas siguen pendientes (MATE-5.2). */
-  aprobarSinMarca(peticion: PeticionDominio): Resultado<null>;
   descartarPieza(peticion: PeticionPieza): Resultado<null>;
   /**
    * Sustituye la pieza por la corregida, que sigue pendiente (MATE-4.6). Si no cumple el formato del
@@ -61,12 +59,11 @@ export interface CasosDeRevision {
  * **Los casos.**
  * - `abrirRevision` da `revisar`, con el filtro `pendientes` si no viene, y no escribe nada. Las marcas
  *   salen de `marcadorDelMaterial(textosDelMaterial(…))` cada vez que se abre (@MATE-4.7).
- * - `aprobarPieza`, `aprobarSinMarca`, `descartarPieza` y `corregirPieza` llaman a `aplicar` con su
- *   acción. Si la acepta, escriben los dos ficheros enteros, en JSON sangrado con dos espacios, y el hueco
- *   del dominio pasa a guardar lo que había en ellos y lo que se acaba de escribir. Si `aplicar` rechaza,
- *   no escriben nada, no tocan el hueco y devuelven el rechazo tal cual (`pieza_no_encontrada`,
- *   `objetivo_pendiente`, el `campo` de una corrección). Si devuelve la misma mesa (aprobar en bloque sin
- *   ninguna pieza que aprobar), tampoco escriben ni tocan el hueco.
+ * - `aprobarPieza`, `descartarPieza` y `corregirPieza` llaman a `aplicar` con su acción. Si la acepta,
+ *   escriben los dos ficheros enteros, en JSON sangrado con dos espacios, y el hueco del dominio pasa a
+ *   guardar lo que había en ellos y lo que se acaba de escribir. Si `aplicar` rechaza, no escriben nada,
+ *   no tocan el hueco y devuelven el rechazo tal cual (`pieza_no_encontrada`, `objetivo_pendiente`, el
+ *   `campo` de una corrección).
  * - `deshacer` vuelve a dejar los dos ficheros como estaban antes de la última acción del dominio y vacía
  *   el hueco: solo se deshace la última (@MATE-4.9, @MATE-4.10). Rechaza con `causa` `nada_que_deshacer`
  *   si el hueco está vacío, o si alguno de los dos ficheros ya no es lo que escribió esa acción (lo ha
@@ -79,7 +76,6 @@ export function crearRevisionDelMaterial(ficheros: Ficheros): CasosDeRevision {
   return {
     abrirRevision: ({ dominio, filtro }) => abrir(ficheros, dominio, filtro ?? 'pendientes'),
     aprobarPieza: ({ dominio, pieza }) => ejecutar(almacen, dominio, { tipo: 'aprobar', pieza }),
-    aprobarSinMarca: ({ dominio }) => ejecutar(almacen, dominio, { tipo: 'aprobar_sin_marca' }),
     descartarPieza: ({ dominio, pieza }) => ejecutar(almacen, dominio, { tipo: 'descartar', pieza }),
     corregirPieza: ({ dominio, pieza, corregida }) =>
       ejecutar(almacen, dominio, { tipo: 'corregir', pieza, corregida }),
@@ -318,8 +314,8 @@ function abrir(ficheros: Ficheros, dominio: string, filtro: FiltroRevision): Res
 }
 
 /**
- * Aplica la acción a la mesa del dominio. Solo si `aplicar` la acepta y la mesa cambia se escriben los dos
- * ficheros y se renueva el hueco; un rechazo, o la misma mesa (aprobar en bloque sin piezas), no tocan nada.
+ * Aplica la acción a la mesa del dominio. Solo si `aplicar` la acepta se escriben los dos ficheros y se
+ * renueva el hueco; un rechazo no toca nada.
  */
 function ejecutar(almacen: Almacen, dominio: string, accion: Accion): Resultado<null> {
   const lectura = leerMesa(almacen.ficheros, dominio);
@@ -327,19 +323,16 @@ function ejecutar(almacen: Almacen, dominio: string, accion: Accion): Resultado<
     return lectura;
   }
   const { mesa, bytes } = lectura.valor;
-  const nueva = aplicar(mesa, accion, marcasDelMaterial(almacen.ficheros, dominio));
+  const nueva = aplicar(mesa, accion);
   if (!nueva.ok) {
     return nueva;
   }
-  // `aplicar` devuelve la misma referencia cuando no hay nada que cambiar.
-  if (nueva.valor !== mesa) {
-    const escritos: ParDeBytes = {
-      borrador: codificarJson(nueva.valor.borrador),
-      aprobado: codificarJson(nueva.valor.aprobado),
-    };
-    escribirPar(almacen.ficheros, dominio, escritos);
-    almacen.huecos.set(dominio, { antes: bytes, despues: escritos });
-  }
+  const escritos: ParDeBytes = {
+    borrador: codificarJson(nueva.valor.borrador),
+    aprobado: codificarJson(nueva.valor.aprobado),
+  };
+  escribirPar(almacen.ficheros, dominio, escritos);
+  almacen.huecos.set(dominio, { antes: bytes, despues: escritos });
   return aceptar(null);
 }
 

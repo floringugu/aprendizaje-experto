@@ -182,22 +182,6 @@ describe('lo que no cambia la mesa no toca el hueco (reglas que la feature no cu
     expect(deshacer(casos)).toStrictEqual(OK);
     expect(ficherosDe(contenidos, 'ficticio')).toStrictEqual(antes);
   });
-
-  it('aprobar en bloque sin nada que aprobar no escribe ni toca el hueco', () => {
-    const { contenidos, casos } = montar('ficticio');
-    const antes = ficherosDe(contenidos, 'ficticio');
-    descartarI8(casos);
-    const trasDescartar = ficherosDe(contenidos, 'ficticio');
-    // Sin material guardado todas las piezas llevan marca: no hay ninguna sin marca que aprobar.
-    expect(casos.aprobarSinMarca({ dominio: 'ficticio' })).toStrictEqual(OK);
-    // `toBe` compara la referencia: si la aplicación hubiera reescrito un fichero, aunque con los mismos bytes,
-    // sería otro objeto.
-    const ahora = ficherosDe(contenidos, 'ficticio');
-    expect(ahora.borrador).toBe(trasDescartar.borrador);
-    expect(ahora.aprobado).toBe(trasDescartar.aprobado);
-    expect(deshacer(casos)).toStrictEqual(OK);
-    expect(ficherosDe(contenidos, 'ficticio')).toStrictEqual(antes);
-  });
 });
 
 describe('los huecos de deshacer (reglas que la feature no cubre)', () => {

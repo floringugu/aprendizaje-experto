@@ -23,7 +23,7 @@ Todo lo que se guarda pasa por el puerto `Ficheros`, con rutas relativas a la ca
    - `sin_fuente`: la pieza no trae `fuente`;
    - `cita_no_encontrada`: el documento no está en el material, o el fragmento no aparece en su texto. Para compararlos, cada tramo de espacios, tabuladores y saltos de línea cuenta como un solo espacio, en el fragmento y en el texto, y nada más se normaliza;
    - las páginas se unen con un salto de línea, así que una cita que cruza de una página a otra se encuentra.
-6. **Revisión** (el módulo central, `src/aplicacion/revision.ts`). Lee el borrador y el contenido aprobado, agrupa las piezas pendientes por objetivo y aplica aprobar, aprobar en bloque, descartar y corregir. Escribe los dos ficheros enteros. Hay una regla que la feature no cubre: una pieza que cuelga de un objetivo aún pendiente (un ítem de O4) no se aprueba antes que su objetivo, porque el contenido aprobado quedaría con un objetivo que no existe. Rechaza con `objetivo_pendiente`. Las dos interfaces posibles están más abajo.
+6. **Revisión** (el módulo central, `src/aplicacion/revision.ts`). Lee el borrador y el contenido aprobado, agrupa las piezas pendientes por objetivo y aplica aprobar, descartar y corregir (la aprobación en bloque, `aprobar_sin_marca` y `aprobablesEnBloque`, se quitó el 25-10-2026: MATE-5.5 pide aprobar cada pieza al leerla). Escribe los dos ficheros enteros. Hay una regla que la feature no cubre: una pieza que cuelga de un objetivo aún pendiente (un ítem de O4) no se aprueba antes que su objetivo, porque el contenido aprobado quedaría con un objetivo que no existe. Rechaza con `objetivo_pendiente`. Las dos interfaces posibles están más abajo.
    - **Ids únicos y corregir (24-10-2026).** Ningún id se repite dentro del borrador ni entre el borrador y el aprobado, sea cual sea el tipo de pieza; el aprobado escrito a mano no se comprueba. `idRepetido(mesa)` da el primero que se repite, y los casos de uso lo comprueban al leer la mesa. Una corrección que deja un id repetido rechaza con `campo` `id`. Decidido por el dueño en la misma fecha: un ítem corregido que pasa a colgar de un objetivo que no está ni en el borrador ni en el aprobado rechaza con `campo` `objetivo`, porque nunca se podría aprobar.
 7. **Ver fuente.** Busca la primera página que contiene el fragmento, con la misma normalización, y la hoja trae el texto entero de esa página; si la cita cruza de una página a otra, trae todas las que abarca, para que una pieza sin marca siempre se pueda abrir. Si no aparece en ninguna, usa la página que dice `lugar` («página 12», «diapositiva 3»), si es un número válido. Si tampoco, rechaza con `cita_no_encontrada`. Se busca por el fragmento antes que por `lugar` porque la IA puede contar las páginas impresas, y en un libro no coinciden con las del PDF. Lo mismo vale para lo aprobado, y en una sesión solo después de responder (MATE-7.1).
 8. **Deshacer.** Antes de cada acción de la revisión se guarda en memoria, por dominio, lo que había en los dos ficheros; deshacer los vuelve a escribir. Es un único hueco, así que solo se deshace la última acción (MATE-4.10). No sobrevive a reiniciar el servidor, y no hace falta.
@@ -172,58 +172,3 @@ Salida de `make bloqueos A=<ÁREA>` al cerrar el área, y una frase sobre el blo
 ```text
 …
 ```
-
-
-## Relevo
-
-**Hecho:**
-- MATE-12, en 017131c: `lugarDelFallo` compartida, `esRegistro` en un solo sitio, `escribirMesa` y `codificar` en `revision-fabricas.ts`, `rechazado` exige motivo, tests para los huecos de mutación de `revision.ts` y `revision-del-material.ts`.
-- MATE-13 y MATE-14, ya commiteados: `verFuente` busca la pieza con `piezaDeVerFuente` (lee primero el aprobado); `inicio-sesion.ts` ya no es una clase, sino `Inicios` y funciones de módulo. Los `proceso?.enviar` y `proceso?.cortar()` son supervivientes equivalentes: `proceso` solo falta dentro de `iniciarSesion`.
-- `make check-implementador` en verde, con 811 tests.
-- e20d15e y 39748d9 (fase specs) decidieron el hueco 1: `redactarBorrador` ya no espera a la especificación, espera a la aceptación. Añadieron la categoría como pieza, `diagnostico` a `false`, opciones repetidas como error de formato, la marca «Un solo paso», `diagrama` (SVG como texto) y `antes_de` en las tareas, y quitaron «Aprobar las N sin marca».
-- **Punto 1, fase `aceptacion`, hecho (los 11 escenarios @MATE tienen steps):** `tsc` y `eslint tests/aceptacion` limpios; `npx cucumber-js --tags @MATE --dry-run` sin pasos sin definir (84 escenarios, 566 pasos).
-  - Commit 512a014: 2.1, 2.3 (categoría), 2.5, 2.6, 2.7 y 3.5 (`redaccion-rechazos.ts` nuevo, `redaccion.ts`, `revision.ts`, `escenario-material.ts`, `tipos-de-parametro.ts`).
-  - Sin commitear, en `tests/aceptacion/pasos/aprobacion.ts`: steps de MATE-4.11 (`Given` de las tareas aprobadas y de la tarea pendiente con y sin «antes de», con `Object.assign({}, tarea, { antes_de })`; `Then` de las tareas en orden); `Then` de MATE-5.5 rehecho (la revisión no tiene `aprobablesEnBloque` y `aplicacion()` no tiene `aprobarSinMarca`); quitados los steps de 5.1, 5.2 y 5.4.
-  - `make check-aceptacion`: todo en verde salvo `estado-aceptacion`, que falla porque 69 escenarios de DIAG, MAST, MATE y RECU ya implementados pasan en verde (la etapa 3 espera todo en rojo). No es de estos cambios: los 11 nuevos o rehechos y los demás de MATE-2, 3.5, 4.11 y 5.5 fallan en rojo, como toca. Hay que decidir cómo se reconcilia (ver «Para el dueño»).
-  - **Decisión de interfaz que documentar en la fase `impl`:** `apartadas[].falta` nombra la propiedad que falla (`descripcion`, `opciones`, `diagrama`), como `FalloDeFormato.falta`; `un_solo_paso` es el identificador de la marca; y MATE-5.5 exige que desaparezcan `aprobablesEnBloque` y `aprobarSinMarca`.
-- Los stashes `stash@{0}` y `stash@{1}` ya no hacen falta: que los borre el dueño. Los cambios por Bash en `tests/aceptacion/` no son fiables: usa Edit y Write.
-
-**Falta, en este orden:**
-1. **Cierre del punto 1:** el dueño commitea `tests/aceptacion/pasos/aprobacion.ts` y este relevo (bloque abajo).
-2. **Tú, en fase `impl`:**
-   - renombrar `presentados`/`marcarPresentado` (estado.ts) a `itemsEnCurso`/`marcarEnCurso`;
-   - arreglar los `@MATE-3.3` de `texto-pdf.test.ts` y `texto-html.test.ts:130` y los `@MATE-1.1` de `texto-html.test.ts` y `material.test.ts:245` (ver `reports/revisor-codigo-MATE.md`);
-   - quitar las listas copiadas en el comentario de `textoDelHtml`;
-   - pasar el test de `lugarDelFallo` a su sitio: está en `revision-aplicar.test.ts` porque `formato-contenido.test.ts` está en 299 de 300 líneas, así que hay que partirlo o abrir un fichero nuevo;
-   - decidir si el motivo de una corrección que no es un objeto debe nombrar la pieza corregida y no «el ítem 1», como hace `falloDeLaPiezaSuelta`;
-   - `material-guardado.ts` no pasa `prettier --check`, ya en HEAD.
-3. **`Tarea: MATE-11` y los cambios de e20d15e y 39748d9:**
-   - `redactarBorrador` siguiendo `config/peticion-ia.md`;
-   - las categorías como pieza del borrador (`descripcion`, `fuente`, `categoria_pendiente`, `campo` `categoria`);
-   - la marca «Un solo paso» (`un_solo_paso`);
-   - `diagnostico` a `false`;
-   - las opciones repetidas como error de formato;
-   - quitar `aprobar_sin_marca` y `aprobablesEnBloque`.
-   Con eso también se decide la validación de `leerBorrador`.
-   Y los de 39748d9, cada uno en su encargo antes de `redactarBorrador`:
-   - `diagrama` en el formato: opcional en objetivos y ejemplos, empieza por `<svg` y acaba en `</svg>`; si no, error de formato (MATE-2.7);
-   - `antes_de` en `revision.ts`: al aprobar, la tarea entra delante de la primera aprobada siguiendo la cadena, o al final si se corta o da la vuelta (MATE-4.11); al descartar, las que apuntaban a ella heredan su `antes_de`; una corrección con un `antes_de` desconocido o propio se rechaza con `campo` `antes_de`; el campo no pasa al contenido;
-   - en `redactarBorrador`, además: la petición lleva las tareas aprobadas en orden, un `antes_de` desconocido se quita y el renombrado de ids alcanza a los `antes_de`.
-4. **Para el dueño, con [DECISIÓN PENDIENTE]:**
-   - `make check-aceptacion` no puede ponerse en verde mientras DIAG, MAST, MATE y RECU sigan en `config/alcance.json` con escenarios ya implementados (69 en verde): decidir si se pasan a `areas_fuera_de_alcance` las que ya tienen código o si la etapa 3 acepta el verde en las implementadas;
-   - el aprobado se lee por dos caminos;
-   - `dominio` va sin validar dentro de las rutas;
-   - las partidas de `docs/deuda-diseno.md` (todo en `reports/revisor-codigo-MATE.md`).
-   - Además, MATE-6.3.
-5. **Cierre:**
-   - `make mutacion` y Stryker de aplicación otra vez;
-   - en «Supervivientes aceptados», los dos `proceso?.` de `inicio-sesion.ts`;
-   - completar «Mutación», «Deuda pagada» y «Bloqueos»;
-   - citar MATE-6.2, 6.4 y 6.5.
-
-**Paso siguiente:** el dueño commitea y cambia a la fase `impl`; en una conversación nueva, el punto 2 (arreglos y renombrados) y el 3 (`Tarea: MATE-11` y los cambios de e20d15e y 39748d9).
-
-**Leer primero:**
-- este relevo y `git status`;
-- `reports/revisor-codigo-MATE.md` y `config/peticion-ia.md`;
-- `features/material.feature` (MATE-2.x, 3.5, 4.11 y 5.5) y los steps de `tests/aceptacion/pasos/redaccion-rechazos.ts`, `revision.ts` y `aprobacion.ts`, que fijan lo que la fase `impl` tiene que producir.
