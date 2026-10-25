@@ -257,15 +257,25 @@ Then('su fase es {texto}', (fase: string) => {
   assert.equal(resultadoDelDiagnostico().fase, fase);
 });
 
+Then('su fase es {texto}, porque todos sus objetivos están dominados \\(MAST-6.1)', (fase: string) => {
+  const resultado = resultadoDelDiagnostico();
+  assert.equal(resultado.fase, fase);
+  const objetivos = mundo()
+    .contenido()
+    .objetivos.map((objetivo) => objetivo.id);
+  assert.deepEqual(
+    objetivos.filter((objetivo) => !resultado.objetivosDominados.includes(objetivo)),
+    [],
+    'Hay objetivos sin dominar',
+  );
+});
+
 Then(
-  'su fase es {texto}, porque su acierto en problemas sin pista del tipo es del {fraccion}',
+  'su fase es {texto}, aunque su acierto en problemas sin pista del tipo es del {fraccion}',
   (fase: string, acierto: number) => {
-    assert.equal(resultadoDelDiagnostico().fase, fase);
-    esperarCasiIgual(
-      resultadoDelDiagnostico().aciertoProblemasSinPista,
-      acierto,
-      'Acierto en problemas sin pista del tipo',
-    );
+    const resultado = resultadoDelDiagnostico();
+    esperarCasiIgual(resultado.aciertoProblemasSinPista, acierto, 'Acierto en problemas sin pista del tipo');
+    assert.equal(resultado.fase, fase);
   },
 );
 
