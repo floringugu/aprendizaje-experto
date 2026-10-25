@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { areasEnAlcance, leerAlcance, problemaDeFaseYArea } from '../../scripts/arnes/comun/alcance.ts';
+import {
+  areasEnAlcance,
+  escenariosEnRojo,
+  leerAlcance,
+  problemaDeFaseYArea,
+} from '../../scripts/arnes/comun/alcance.ts';
 import { directorioTemporal, escribirFicheros } from './temporal.ts';
 
 const FEATURE = (area: string): string =>
@@ -37,6 +42,34 @@ describe('leerAlcance', () => {
     escribirFicheros(raiz, { 'config/alcance.json': JSON.stringify({ areas_cerradas: ['mate'] }) });
     expect(() => leerAlcance(raiz, {})).toThrow(/«areas_cerradas»/);
     expect(() => leerAlcance(raizConAreas([], []), { ARNES_AREA: 'mate' })).toThrow(/ARNES_AREA=mate/);
+  });
+});
+
+describe('escenariosEnRojo', () => {
+  function raizConAlcance(contenido: unknown): string {
+    const raiz = directorioTemporal();
+    escribirFicheros(raiz, { 'config/alcance.json': JSON.stringify(contenido) });
+    return raiz;
+  }
+
+  it('lista los escenarios del área reabierta', () => {
+    const raiz = raizConAlcance({ areas_cerradas: [], escenarios_en_rojo: { DIAG: ['DIAG-2.4'] } });
+    expect(escenariosEnRojo(raiz, 'DIAG')).toEqual(['DIAG-2.4']);
+  });
+
+  it('sin entrada para el área, o sin fichero, no hay lista y fallan todos', () => {
+    expect(escenariosEnRojo(raizConAlcance({ areas_cerradas: [] }), 'DIAG')).toBeUndefined();
+    expect(escenariosEnRojo(raizConAlcance({ escenarios_en_rojo: { MAST: ['MAST-1.1'] } }), 'DIAG')).toBeUndefined();
+    expect(escenariosEnRojo(directorioTemporal(), 'DIAG')).toBeUndefined();
+  });
+
+  it('rechaza una lista que no es de IDs del área', () => {
+    expect(() => escenariosEnRojo(raizConAlcance({ escenarios_en_rojo: { DIAG: 'DIAG-2.4' } }), 'DIAG')).toThrow(
+      /«escenarios_en_rojo.DIAG»/,
+    );
+    expect(() => escenariosEnRojo(raizConAlcance({ escenarios_en_rojo: { DIAG: ['MAST-1.1'] } }), 'DIAG')).toThrow(
+      /«escenarios_en_rojo.DIAG»/,
+    );
   });
 });
 

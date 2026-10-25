@@ -573,6 +573,7 @@ Las normas:
 
 - `areas_cerradas` lista los prefijos de las áreas ya implementadas y cerradas, por ejemplo `["DIAG", "RECU"]`. Cambia una vez por área, al cerrarla.
 - El área en curso no está en el fichero: es la de cada conversación (`ARNES_AREA`, §6).
+- `escenarios_en_rojo` (opcional) va por área: `{"DIAG": ["DIAG-2.4"]}`. Al reabrir un área ya implementada para cambiar unos pocos escenarios, el resto sigue pasando y no puede fallar en la etapa 3. `estado-aceptacion` exige rojo solo a los listados y mantiene en verde a los demás. Sin entrada, falla toda el área en curso, que es lo normal. Al cerrar el área se borra la entrada.
 - En alcance están las cerradas más el área en curso. Cucumber (perfil por defecto, el de `make check`) ejecuta solo las cerradas, por etiqueta; el perfil `area` (`make cerrar-area`, `estado-aceptacion`) suma el área en curso. `--con-area-en-curso` hace lo mismo en la tabla; el resto de las áreas se marca como `FUERA_DE_ALCANCE`.
 - Así `make check` puede estar en verde mientras se avanza área por área en la etapa 4, y varias conversaciones pueden trabajar en áreas distintas a la vez.
 - Solo lo cambias tú.

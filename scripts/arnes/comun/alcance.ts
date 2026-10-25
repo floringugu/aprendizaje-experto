@@ -24,15 +24,34 @@ export function leerAlcance(raiz: string, entorno: NodeJS.ProcessEnv): Alcance {
   return { cerradas: leerAreasCerradas(raiz), enCurso: areaEnCursoDeEntorno(entorno) };
 }
 
-function leerAreasCerradas(raiz: string): string[] {
+function leerDatos(raiz: string): Record<string, unknown> {
   const ruta = path.join(raiz, RUTA_ALCANCE);
-  if (!existsSync(ruta)) return [];
-  const datos: unknown = JSON.parse(readFileSync(ruta, 'utf8'));
-  const areas = (datos as { areas_cerradas?: unknown }).areas_cerradas;
+  return existsSync(ruta) ? (JSON.parse(readFileSync(ruta, 'utf8')) as Record<string, unknown>) : {};
+}
+
+function leerAreasCerradas(raiz: string): string[] {
+  if (!existsSync(path.join(raiz, RUTA_ALCANCE))) return [];
+  const areas = leerDatos(raiz)['areas_cerradas'];
   if (!Array.isArray(areas) || !areas.every((area) => typeof area === 'string' && esArea(area))) {
     throw new Error(`${RUTA_ALCANCE}: «areas_cerradas» debe ser una lista de prefijos, p. ej. ["MAST"].`);
   }
   return areas as string[];
+}
+
+/**
+ * Los escenarios de `area` que deben fallar en la etapa 3 (`escenarios_en_rojo` en config/alcance.json),
+ * o undefined si el área no está reabierta y fallan todos. Reabrir un área ya implementada para cambiar
+ * unos pocos escenarios deja el resto pasando, y eso no es un Then vacío: esos siguen en verde.
+ */
+export function escenariosEnRojo(raiz: string, area: string): readonly string[] | undefined {
+  const lista = (leerDatos(raiz)['escenarios_en_rojo'] as Record<string, unknown> | undefined)?.[area];
+  if (lista === undefined) return undefined;
+  if (!Array.isArray(lista) || !lista.every((id) => typeof id === 'string' && areaDe(id) === area)) {
+    throw new Error(
+      `${RUTA_ALCANCE}: «escenarios_en_rojo.${area}» debe ser una lista de IDs de ${area}, p. ej. ["${area}-1.1"].`,
+    );
+  }
+  return lista as string[];
 }
 
 function areaEnCursoDeEntorno(entorno: NodeJS.ProcessEnv): string | undefined {
