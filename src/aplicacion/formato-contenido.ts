@@ -1,5 +1,7 @@
 // Validación del formato del contenido (plan §0, «Formato del contenido»): lo que se lee de
-// `contenido/<dominio>.json` no llega a los casos de uso hasta cumplirlo (D16). Sin dependencias.
+// `contenido/<dominio>.json` no llega a los casos de uso hasta cumplirlo (D16). Solo depende de la
+// normalización de la corrección, para decidir cuándo dos opciones son la misma (MATE-2.5).
+import { normalizar } from '../dominio/correccion.ts';
 import type { ContenidoValidado } from './contenido.ts';
 
 /** Qué propiedad del formato falta o no es válida, y en qué pieza. */
@@ -11,8 +13,10 @@ export interface FalloDeFormato {
    */
   readonly pieza?: string;
   /**
-   * El nombre de la propiedad, sin ruta: `respuesta`, `feedback`, `pasos`, `rubrica`, `descriptor`,
-   * `instruccion`… Son los que la aplicación usa para decir qué le falta a una pieza (MATE-2.3, MATE-4.8).
+   * El nombre de la propiedad que falla, sin ruta: `respuesta`, `feedback`, `pasos`, `rubrica`,
+   * `descriptor`, `instruccion`, `opciones`, `diagrama`, `descripcion`… Son los que la aplicación usa para
+   * decir qué le falta o qué no vale en una pieza (MATE-2.3, 2.5, 2.7, MATE-4.8), y los que leen los steps
+   * de aceptación como `apartadas[].falta`.
    */
   readonly falta: string;
 }
@@ -39,10 +43,13 @@ export function lugarDelFallo(fallo: FalloDeFormato): string {
  *   vacíos. Si `leido` no es un objeto, el fallo es `dominio`, la primera propiedad del formato.
  * - `pasos`, `rubrica`, `niveles`, `opciones` y `aceptadas` no pueden estar vacías: un ítem de respuesta
  *   escrita sin ninguna aceptada no tendría qué enseñar en el feedback (@RECU-2.1). `correcta` tiene que
- *   ser una de las `opciones`, y `nivel` es un número.
+ *   ser una de las `opciones`, y `nivel` es un número. Dos `opciones` que solo cambian en espacios o
+ *   mayúsculas son la misma opción (MATE-2.5) y el fallo es `opciones`.
  * - `tipo` es `hecho` o `problema`, y `diagnostico` es un booleano.
- * - `categoria`, `grupo_parecidas` y `fuente` son opcionales; una propiedad opcional que vale
- *   `undefined` cuenta como ausente. Una `fuente` que viene tiene `documento`, `lugar` y `fragmento`.
+ * - `categoria`, `grupo_parecidas`, `fuente` y, en objetivos y ejemplos resueltos, `diagrama` son
+ *   opcionales; una propiedad opcional que vale `undefined` cuenta como ausente. Una `fuente` que viene
+ *   tiene `documento`, `lugar` y `fragmento`; un `diagrama` que viene empieza por `<svg` y acaba en
+ *   `</svg>` (MATE-2.7), y si no, el fallo es `diagrama`.
  * - `objetivos`, `categorias`, `items`, `tareas` y los `ejemplos_resueltos` de un objetivo pueden
  *   estar vacíos.
  * - Las propiedades de más se ignoran: el borrador lleva más que el contenido aprobado.
@@ -160,6 +167,17 @@ function esTipoDeItem(valor: unknown): boolean {
   return valor === 'hecho' || valor === 'problema';
 }
 
+/**
+ * Si `valor` es el diagrama de un objetivo o de un ejemplo resuelto (MATE-2.7): un texto que empieza por
+ * `<svg` y acaba en `</svg>`, tal cual, sin recortar espacios ni saltos de línea. Solo mira los extremos:
+ * no comprueba que el SVG esté bien formado ni que dibuje algo, porque se enseña como imagen y un SVG
+ * roto no ejecuta nada. Un texto vacío o que no es un texto no vale.
+ */
+function esDiagramaSvg(valor: unknown): boolean {
+  // `startsWith` y `endsWith` distinguen mayúsculas y no recortan nada: un espacio delante ya invalida.
+  return typeof valor === 'string' && valor.startsWith('<svg') && valor.endsWith('</svg>');
+}
+
 /** Hace opcional una comprobación: una propiedad ausente, o que vale `undefined`, la cumple. */
 function opcional(cumple: (valor: unknown) => boolean): (valor: unknown) => boolean {
   return (valor) => valor === undefined || cumple(valor);
@@ -205,7 +223,27 @@ const REGLA_DE_LA_CORRECTA: Regla = (respuesta) => {
   return esLista(opciones) && opciones.includes(respuesta['correcta']) ? undefined : 'correcta';
 };
 
-const REGLAS_DE_LAS_OPCIONES: readonly Regla[] = [exigir('opciones', esListaDeTextos), REGLA_DE_LA_CORRECTA];
+/**
+ * Las opciones son distintas entre sí una vez normalizadas como lo hace la corrección (MATE-2.5): dos que
+ * solo cambian en los espacios o las mayúsculas cuentan como repetidas, porque elegir una u otra sería lo
+ * mismo para `esCorrecta`. Falla en `opciones`. Se mira después de `opciones` y antes de `correcta`, así
+ * que aquí `opciones` ya es una lista de textos no vacíos.
+ */
+const REGLA_DE_LAS_OPCIONES_DISTINTAS: Regla = (respuesta) => {
+  const opciones = respuesta['opciones'];
+  // `opciones` llega como `unknown`: el `filter` deja solo los textos (todos, si la regla anterior pasó).
+  const normalizadas = (esLista(opciones) ? opciones : [])
+    .filter((opcion) => typeof opcion === 'string')
+    .map(normalizar);
+  // Un `Set` descarta los duplicados: si queda con menos elementos, había dos opciones iguales.
+  return new Set(normalizadas).size === normalizadas.length ? undefined : 'opciones';
+};
+
+const REGLAS_DE_LAS_OPCIONES: readonly Regla[] = [
+  exigir('opciones', esListaDeTextos),
+  REGLA_DE_LAS_OPCIONES_DISTINTAS,
+  REGLA_DE_LA_CORRECTA,
+];
 const REGLAS_DE_LAS_ACEPTADAS: readonly Regla[] = [exigir('aceptadas', esListaDeTextos)];
 
 /**
@@ -296,12 +334,12 @@ function falloDelInteriorDelObjetivo(objetivo: PiezaConId, nombre: string): Fall
 }
 
 const MOLDE_DEL_OBJETIVO: Molde = {
-  reglas: [exigir('instruccion', esTextoNoVacio)],
+  reglas: [exigir('instruccion', esTextoNoVacio), exigir('diagrama', opcional(esDiagramaSvg))],
   interior: falloDelInteriorDelObjetivo,
 };
 
 const MOLDE_DEL_EJEMPLO: Molde = {
-  reglas: [exigir('pasos', esListaDeTextos)],
+  reglas: [exigir('pasos', esListaDeTextos), exigir('diagrama', opcional(esDiagramaSvg))],
   interior: falloDeLaFuenteOpcional,
 };
 

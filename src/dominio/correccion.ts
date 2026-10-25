@@ -22,9 +22,11 @@ export function respuestaMostrada(esperada: RespuestaEsperada): string {
 /**
  * Deja la respuesta en una forma comparable: sin espacios en los extremos, con los espacios repetidos
  * reducidos a uno y en minúsculas (@RECU-3.1, @RECU-3.2). Los acentos se conservan: ninguna regla pide
- * ignorarlos, así que «proporcion» no cuenta como «proporción».
+ * ignorarlos, así que «proporcion» no cuenta como «proporción». También decide cuándo dos opciones de un
+ * ítem son la misma (MATE-2.5): `formato-contenido.ts` usa esta misma función para que elegir una opción
+ * repetida no pueda contar como acierto.
  */
-function normalizar(texto: string): string {
+export function normalizar(texto: string): string {
   return texto.trim().replace(/\s+/g, ' ').toLowerCase();
 }
 

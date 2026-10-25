@@ -1,88 +1,37 @@
 import { describe, expect, it } from 'vitest';
-import { falloDeLaPiezaSuelta, validarContenido, type TipoDePieza } from '../../src/aplicacion/formato-contenido.ts';
+import { validarContenido } from '../../src/aplicacion/formato-contenido.ts';
 import { BorradorContenido, criterioPorDefecto } from '../aceptacion/soporte/contenido.ts';
-
-// Las piezas se construyen como las leería `leerContenido` de un fichero JSON: objetos sin tipar.
-// Un cambio a `undefined` equivale a que la propiedad falte: la validación no distingue una cosa de la otra.
-type Pieza = Record<string, unknown>;
-
-const FUENTE: Pieza = { documento: 'apuntes.pdf', lugar: 'página 12', fragmento: 'texto citado' };
-
-// Cómo nombra la validación las piezas de los contenidos de prueba.
-const OBJETIVO = 'el objetivo O2';
-const EJEMPLO = 'el ejemplo resuelto E1 de O2';
-const CATEGORIA = 'la categoría C1';
-const ITEM = 'el ítem I9';
-const TAREA = 'la tarea T3';
-// Y las fuentes de esas piezas.
-const FUENTE_DEL_OBJETIVO = 'la fuente del objetivo O2';
-const FUENTE_DEL_EJEMPLO = 'la fuente del ejemplo resuelto E1 de O2';
-const FUENTE_DEL_ITEM = 'la fuente del ítem I9';
-const FUENTE_DE_LA_TAREA = 'la fuente de la tarea T3';
-
-function nivel(cambios: Pieza = {}): Pieza {
-  return { nivel: 0, descriptor: 'Descriptor', ...cambios };
-}
-function criterio(cambios: Pieza = {}): Pieza {
-  return { criterio: 'Planteamiento', niveles: [nivel()], ...cambios };
-}
-function tarea(cambios: Pieza = {}): Pieza {
-  return { id: 'T3', enunciado: 'Enunciado', rubrica: [criterio()], ...cambios };
-}
-function ejemplo(cambios: Pieza = {}): Pieza {
-  return { id: 'E1', pasos: ['P1', 'P2'], ...cambios };
-}
-function objetivo(cambios: Pieza = {}): Pieza {
-  return { id: 'O2', instruccion: 'Instrucción', ejemplos_resueltos: [ejemplo()], ...cambios };
-}
-function categoria(cambios: Pieza = {}): Pieza {
-  return { id: 'C1', ...cambios };
-}
-function item(cambios: Pieza = {}): Pieza {
-  return {
-    id: 'I9',
-    objetivo: 'O2',
-    tipo: 'hecho',
-    diagnostico: false,
-    enunciado: 'Enunciado',
-    respuesta: { opciones: ['a', 'b'], correcta: 'a' },
-    feedback: 'Feedback',
-    ...cambios,
-  };
-}
-function contenido(cambios: Pieza = {}): Pieza {
-  const piezas = { objetivos: [objetivo()], categorias: [categoria()], items: [item()], tareas: [tarea()] };
-  return { dominio: 'mate', ...piezas, ...cambios };
-}
-/** La pieza sin esa propiedad, como si el autor no la hubiera escrito. */
-function sin(pieza: Pieza, nombre: string): Pieza {
-  return Object.fromEntries(Object.entries(pieza).filter(([clave]) => clave !== nombre));
-}
-
-// Un contenido válido salvo la pieza que se indica, para ver qué falla en ella.
-const enObjetivo = (cambios: Pieza): Pieza => contenido({ objetivos: [objetivo(cambios)] });
-const enEjemplo = (cambios: Pieza): Pieza => enObjetivo({ ejemplos_resueltos: [ejemplo(cambios)] });
-const enCategoria = (cambios: Pieza): Pieza => contenido({ categorias: [categoria(cambios)] });
-const enItem = (cambios: Pieza): Pieza => contenido({ items: [item(cambios)] });
-const enRespuesta = (respuesta: unknown): Pieza => enItem({ respuesta });
-const enTarea = (cambios: Pieza): Pieza => contenido({ tareas: [tarea(cambios)] });
-const enRubrica = (rubrica: unknown): Pieza => enTarea({ rubrica });
-const enNiveles = (niveles: unknown): Pieza => enRubrica([criterio({ niveles })]);
-
-function falloDe(leido: unknown): unknown {
-  const resultado = validarContenido(leido);
-  return resultado.ok ? undefined : resultado.fallo;
-}
-
-/** Descripción, lo leído, y la pieza y la propiedad que se espera que fallen. */
-type Fila = [descripcion: string, leido: unknown, pieza: string, falta: string];
-
-function comprobarFallos(filas: readonly Fila[]): void {
-  it.each(filas)('D16 %s', (...fila) => {
-    const [, leido, pieza, falta] = fila;
-    expect(falloDe(leido)).toStrictEqual({ pieza, falta });
-  });
-}
+import {
+  categoria,
+  CATEGORIA,
+  comprobarFallos,
+  contenido,
+  criterio,
+  ejemplo,
+  EJEMPLO,
+  enCategoria,
+  enEjemplo,
+  enItem,
+  enNiveles,
+  enObjetivo,
+  enRubrica,
+  enTarea,
+  falloDe,
+  FUENTE,
+  FUENTE_DE_LA_TAREA,
+  FUENTE_DEL_EJEMPLO,
+  FUENTE_DEL_ITEM,
+  FUENTE_DEL_OBJETIVO,
+  item,
+  ITEM,
+  nivel,
+  objetivo,
+  OBJETIVO,
+  sin,
+  tarea,
+  TAREA,
+  type Pieza,
+} from './formato-contenido-piezas.ts';
 
 describe('validarContenido: contenido que cumple el formato', () => {
   it('D16 un contenido válido pasa y se devuelve el mismo objeto, sin copiarlo', () => {
@@ -192,6 +141,56 @@ describe('validarContenido: objetivos y ejemplos resueltos', () => {
   ]);
 });
 
+describe('validarContenido: diagrama de objetivos y ejemplos resueltos', () => {
+  const SVG = '<svg viewBox="0 0 10 10"><circle r="4"/></svg>';
+  const colocaciones: [string, (diagrama: unknown) => Pieza, string][] = [
+    ['objetivo', (diagrama) => enObjetivo({ diagrama }), OBJETIVO],
+    ['ejemplo', (diagrama) => enEjemplo({ diagrama }), EJEMPLO],
+  ];
+
+  it.each(colocaciones)('@MATE-2.7 un diagrama SVG con atributos y varias líneas vale en el %s', (_donde, en) => {
+    expect(falloDe(en(SVG))).toBeUndefined();
+    expect(falloDe(en('<svg>\n  <g/>\n</svg>'))).toBeUndefined();
+    expect(falloDe(en('<svg></svg>'))).toBeUndefined();
+  });
+
+  it.each(colocaciones)('@MATE-2.7 un diagrama ausente o undefined vale en el %s', (_donde, en) => {
+    expect(falloDe(en(undefined))).toBeUndefined();
+    const sinDiagrama = contenido({ objetivos: [objetivo()] });
+    expect(falloDe(sinDiagrama)).toBeUndefined();
+  });
+
+  const invalidos: [string, unknown][] = [
+    ['un texto vacío', ''],
+    ['código de Mermaid', 'graph TD; A-->B'],
+    ['un número', 7],
+    ['null', null],
+    ['un objeto', { svg: SVG }],
+    ['un texto con espacios delante', ` ${SVG}`],
+    ['un texto con un salto de línea al final', `${SVG}\n`],
+    ['un texto que empieza bien pero no acaba en </svg>', '<svg><g/>'],
+    ['un texto que acaba bien pero no empieza por <svg', '<g/></svg>'],
+    ['un SVG en mayúsculas', '<SVG></SVG>'],
+  ];
+
+  it.each(invalidos)('@MATE-2.7 %s no vale como diagrama, ni en el objetivo ni en el ejemplo', (_caso, diagrama) => {
+    for (const [, en, pieza] of colocaciones) {
+      expect(falloDe(en(diagrama))).toStrictEqual({ pieza, falta: 'diagrama' });
+    }
+  });
+
+  it('@MATE-2.7 el diagrama se mira después de la instrucción y de los pasos, y antes que la fuente', () => {
+    const malo = 'graph TD; A-->B';
+    expect(falloDe(enObjetivo({ instruccion: '', diagrama: malo }))).toStrictEqual({
+      pieza: OBJETIVO,
+      falta: 'instruccion',
+    });
+    expect(falloDe(enEjemplo({ pasos: [], diagrama: malo }))).toStrictEqual({ pieza: EJEMPLO, falta: 'pasos' });
+    expect(falloDe(enObjetivo({ diagrama: malo, fuente: 'x' }))).toStrictEqual({ pieza: OBJETIVO, falta: 'diagrama' });
+    expect(falloDe(enEjemplo({ diagrama: malo, fuente: 'x' }))).toStrictEqual({ pieza: EJEMPLO, falta: 'diagrama' });
+  });
+});
+
 describe('validarContenido: categorías', () => {
   comprobarFallos([
     ['una categoría que no es un objeto', contenido({ categorias: [categoria(), 'C2'] }), 'la categoría 2', 'id'],
@@ -214,30 +213,6 @@ describe('validarContenido: ítems', () => {
     ['el tipo se mira antes que el enunciado', enItem({ tipo: 'x', enunciado: '' }), ITEM, 'tipo'],
     ['la respuesta se mira antes que el feedback', enItem({ respuesta: {}, feedback: '' }), ITEM, 'respuesta'],
     ['el feedback se mira antes que la fuente', enItem({ feedback: '', fuente: 'x' }), ITEM, 'feedback'],
-  ]);
-});
-
-describe('validarContenido: respuesta de un ítem', () => {
-  comprobarFallos([
-    ['una respuesta que falta', enItem({ respuesta: undefined }), ITEM, 'respuesta'],
-    ['una respuesta que no es un objeto', enRespuesta('a'), ITEM, 'respuesta'],
-    ['una respuesta sin opciones ni aceptadas', enRespuesta({ correcta: 'a' }), ITEM, 'respuesta'],
-    ['unas opciones vacías', enRespuesta({ opciones: [], correcta: 'a' }), ITEM, 'opciones'],
-    ['unas opciones que no son una lista', enRespuesta({ opciones: 'a', correcta: 'a' }), ITEM, 'opciones'],
-    ['una opción que no es un texto', enRespuesta({ opciones: ['a', 1], correcta: 'a' }), ITEM, 'opciones'],
-    ['una opción vacía', enRespuesta({ opciones: ['a', ''], correcta: 'a' }), ITEM, 'opciones'],
-    ['una correcta que falta', enRespuesta({ opciones: ['a', 'b'] }), ITEM, 'correcta'],
-    ['una correcta que no es una opción', enRespuesta({ opciones: ['a'], correcta: 'c' }), ITEM, 'correcta'],
-    ['@RECU-2.1 unas aceptadas vacías', enRespuesta({ aceptadas: [] }), ITEM, 'aceptadas'],
-    ['@RECU-2.1 unas aceptadas que no son una lista', enRespuesta({ aceptadas: 'x' }), ITEM, 'aceptadas'],
-    ['@RECU-2.1 una aceptada que no es un texto', enRespuesta({ aceptadas: ['x', 3] }), ITEM, 'aceptadas'],
-    ['@RECU-2.1 una aceptada vacía', enRespuesta({ aceptadas: [''] }), ITEM, 'aceptadas'],
-    [
-      '@RECU-2.1 aceptadas vacías con opciones',
-      enRespuesta({ opciones: ['a'], correcta: 'a', aceptadas: [] }),
-      ITEM,
-      'aceptadas',
-    ],
   ]);
 });
 
@@ -281,57 +256,4 @@ describe('validarContenido: fuente', () => {
     ],
     ['documento se mira antes que lugar', enItem({ fuente: { lugar: '' } }), FUENTE_DEL_ITEM, 'documento'],
   ]);
-});
-
-describe('falloDeLaPiezaSuelta', () => {
-  /** Un ejemplo que va aparte lleva el `objetivo` del que cuelga. */
-  const ejemploAparte = (cambios: Pieza = {}): Pieza => ejemplo({ objetivo: 'O2', ...cambios });
-
-  it.each<[TipoDePieza, Pieza]>([
-    ['objetivo', objetivo({ fuente: FUENTE })],
-    ['ejemplo', ejemploAparte({ fuente: FUENTE })],
-    ['item', item({ fuente: FUENTE })],
-    ['tarea', tarea({ fuente: FUENTE })],
-  ])('@MATE-2.3 una pieza que cumple el formato (%s) no tiene fallo', (tipo, pieza) => {
-    expect(falloDeLaPiezaSuelta(tipo, pieza)).toBeUndefined();
-  });
-
-  it('@MATE-2.3 el objetivo de un ejemplo que va aparte no cuenta como propiedad de más', () => {
-    expect(falloDeLaPiezaSuelta('ejemplo', ejemploAparte())).toBeUndefined();
-    expect(falloDeLaPiezaSuelta('ejemplo', ejemplo())).toBeUndefined();
-  });
-
-  it.each<[string, TipoDePieza, unknown, string, string]>([
-    ['un ítem sin feedback', 'item', sin(item(), 'feedback'), ITEM, 'feedback'],
-    ['una tarea con la rúbrica vacía', 'tarea', tarea({ rubrica: [] }), TAREA, 'rubrica'],
-    ['un objetivo sin instrucción', 'objetivo', sin(objetivo(), 'instruccion'), OBJETIVO, 'instruccion'],
-    [
-      'un ejemplo de dentro de un objetivo',
-      'objetivo',
-      objetivo({ ejemplos_resueltos: [ejemplo({ pasos: [] })] }),
-      EJEMPLO,
-      'pasos',
-    ],
-    ['un ejemplo que va aparte, nombrado por su objetivo', 'ejemplo', ejemploAparte({ pasos: [] }), EJEMPLO, 'pasos'],
-    ['la fuente de un ítem', 'item', item({ fuente: sin(FUENTE, 'lugar') }), FUENTE_DEL_ITEM, 'lugar'],
-  ])('@MATE-4.8 devuelve el fallo de %s', (...fila) => {
-    const [, tipo, pieza, nombre, falta] = fila;
-    expect(falloDeLaPiezaSuelta(tipo, pieza)).toStrictEqual({ pieza: nombre, falta });
-  });
-
-  it('@MATE-4.8 un ejemplo sin objetivo se nombra como de «su objetivo»', () => {
-    expect(falloDeLaPiezaSuelta('ejemplo', ejemplo({ pasos: [] }))).toStrictEqual({
-      pieza: 'el ejemplo resuelto E1 de su objetivo',
-      falta: 'pasos',
-    });
-  });
-
-  it.each<[TipoDePieza, string]>([
-    ['objetivo', 'el objetivo 1'],
-    ['ejemplo', 'el ejemplo resuelto 1 de su objetivo'],
-    ['item', 'el ítem 1'],
-    ['tarea', 'la tarea 1'],
-  ])('@MATE-4.8 lo que no es un objeto (%s) falla en id, como la primera de su lista', (tipo, nombre) => {
-    expect(falloDeLaPiezaSuelta(tipo, 'texto')).toStrictEqual({ pieza: nombre, falta: 'id' });
-  });
 });

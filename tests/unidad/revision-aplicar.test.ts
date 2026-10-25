@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { lugarDelFallo } from '../../src/aplicacion/formato-contenido.ts';
 import type { Mesa } from '../../src/aplicacion/mesa.ts';
 import type { Accion } from '../../src/aplicacion/revision.ts';
 import {
@@ -256,18 +255,5 @@ describe('aplicar: pieza que no está en el borrador', () => {
     { tipo: 'corregir', pieza: 'I99', corregida: item('I99') },
   ])('@MATE-4.4 la acción «$tipo» se rechaza con pieza_no_encontrada', (accion) => {
     expect(rechazado(MESA, accion)).toMatchObject({ ok: false, causa: 'pieza_no_encontrada' });
-  });
-});
-
-// Va aquí y no en formato-contenido.test.ts, que ya está en el límite de 300 líneas de ESLint: `lugarDelFallo`
-// es la frase de dónde falla la pieza que usan los rechazos de `corregir`.
-describe('lugarDelFallo', () => {
-  it('@MATE-4.8 dice la propiedad y la pieza con «en», para no contraer el artículo de la pieza en «de el»', () => {
-    expect(lugarDelFallo({ pieza: 'el ítem I7', falta: 'feedback' })).toBe('«feedback» en el ítem I7');
-    expect(lugarDelFallo({ pieza: 'la tarea T3', falta: 'rubrica' })).toBe('«rubrica» en la tarea T3');
-  });
-
-  it('@MATE-4.8 un fallo en la raíz, sin pieza, solo dice la propiedad', () => {
-    expect(lugarDelFallo({ falta: 'dominio' })).toBe('«dominio»');
   });
 });
