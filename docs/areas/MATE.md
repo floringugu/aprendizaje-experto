@@ -220,7 +220,12 @@ Conversación `mate-limpieza` (fase impl, 25-10-2026). Tocó solo `estado.ts`, `
   - D21: los cinco ternarios están ahora en `inicio-sesion.ts:151`, `material.ts:121`, `material-guardado.ts:134` y `revision.ts:131,275`; además hay dos más, `revision.ts:206` y `presentacion.ts:17`.
   - D4: `FiltroRevision` y `FuenteAbierta` ya se exportan (`revision.ts:19`, `revision-del-material.ts:22`), pero los steps siguen sacándolos con `Parameters` y `ReturnType`.
 
-**Falta: decisiones del dueño [DECISIÓN PENDIENTE]**, para la conversación que toque los ficheros de mate-revision. Cuando decida, esta conversación anota aquí cuál elige.
+**Decisiones del dueño (25-10-2026)**, para la conversación que toque los ficheros de mate-revision:
+1. **B:** `mesa-guardada.ts` con las rutas, `codificarJson`/`leerJson`, `leerMesa` y `escribirPar`, y `leerContenido` pasa a ser `contenidoDeFicheros(ficheros)`. A (un solo lector, sin `leerContenido`) queda para cuando PANT construya el servidor y las `Dependencias`.
+2. **A:** `dominioValido(dominio): Resultado<string>`, que rechaza con `campo` `dominio`; lo llaman los casos de uso que reciben un dominio. Hay que decidir qué caracteres se admiten (propuesta de la conversación que lo implemente). B (que `Ficheros` rechace las rutas fuera de la carpeta de datos) queda para el adaptador de PANT.
+3. **b:** MATE-6.3 pasa a `tareas.feature` en una conversación de fase specs (ruta protegida); MATE se cierra citando 6.1, 6.2, 6.4 y 6.5. No se implementa `pedirTarea` en MATE.
+
+Opciones que se compararon, para dejar constancia en «Interfaces descartadas» al cerrar el área: en el punto 1, A (coste: cambia `Dependencias` y `tests/aceptacion/soporte/mundo.ts:166`); en el punto 2, B (el puerto lanzaría un error en vez de rechazar con `campo`); en el punto 3, a (TARE-1.1, 1.4 y 1.5 pasarían en verde antes de su área).
 
 1. *El aprobado se lee por dos caminos* (`Dependencias.leerContenido`, para las sesiones, y `Ficheros` con `contenido/<d>.json`, para la revisión):
    - **A, un solo lector:** `mesa-guardada.ts` con las rutas, `codificarJson` y `leerJson`, `leerMesa` y `escribirPar`; `enDominio` lee el aprobado por ahí y se quita `leerContenido`. Coste: cambia `Dependencias`, y `tests/aceptacion/soporte/mundo.ts:166` (protegido, propuesta), que ya no podría tener `contenidoEscrito ?? contenidos.get` y escribiría el contenido por `Ficheros`; los tres tests que copian rutas y `codificar` se simplifican.
