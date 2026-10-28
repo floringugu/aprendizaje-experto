@@ -83,33 +83,11 @@ describe('fijarFase', () => {
     expect(leer(textoDe(raiz))).toMatchObject({ env: { ARNES_FASE: 'impl', ARNES_AREA: 'MATE' } });
   });
 
-  it('un worktree nuevo parte de los ajustes de la raíz de la que sale, con sus permisos', () => {
-    const principal = directorioTemporal();
-    const nuevo = directorioTemporal();
-    escribirFicheros(nuevo, { '.claude/.vacio': '' });
-    escribirFicheros(principal, {
-      [RUTA_AJUSTES_LOCALES]: JSON.stringify({
-        permissions: { allow: ['Bash(make check)'] },
-        env: { ARNES_AREA: 'X' },
-      }),
-    });
-    fijarFase(nuevo, { fase: 'specs', area: undefined }, principal);
-    expect(leer(textoDe(nuevo))).toMatchObject({
-      permissions: { allow: ['Bash(make check)'] },
-      env: { ARNES_FASE: 'specs' },
-    });
-    expect(textoDe(nuevo)).not.toContain('ARNES_AREA');
-    expect(textoDe(principal)).toContain('ARNES_AREA');
-  });
-
-  it('si la raíz ya tiene ajustes, no vuelve a copiar los del origen', () => {
-    const principal = directorioTemporal();
-    const nuevo = directorioTemporal();
-    escribirFicheros(nuevo, { [RUTA_AJUSTES_LOCALES]: JSON.stringify({ permissions: { allow: ['propio'] } }) });
-    escribirFicheros(principal, { [RUTA_AJUSTES_LOCALES]: JSON.stringify({ permissions: { allow: ['ajeno'] } }) });
-    fijarFase(nuevo, { fase: 'impl', area: undefined }, principal);
-    expect(textoDe(nuevo)).toContain('propio');
-    expect(textoDe(nuevo)).not.toContain('ajeno');
+  it('conserva lo demás que ya tienen los ajustes de la raíz', () => {
+    const raiz = directorioTemporal();
+    escribirFicheros(raiz, { [RUTA_AJUSTES_LOCALES]: JSON.stringify({ permissions: { allow: ['propio'] } }) });
+    fijarFase(raiz, { fase: 'specs', area: undefined });
+    expect(leer(textoDe(raiz))).toMatchObject({ permissions: { allow: ['propio'] }, env: { ARNES_FASE: 'specs' } });
   });
 });
 

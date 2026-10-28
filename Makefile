@@ -10,10 +10,11 @@
 # Cada paso es un script de package.json. La ejecución se para en el primer paso que falla.
 #
 # Objetivos solo para el dueño, desde su terminal o las tareas de VS Code (.vscode/tasks.json):
-#   make fase F=<fase> [A=<ÁREA>]  fija la fase y el área en curso de este checkout
-#   make abrir N=<nombre> F=<fase> [A=<ÁREA>]  crea un worktree y una rama para una conversación
-#   make integrar N=<nombre>   pone la rama sobre main, la comprueba y la fusiona en main
-#   make retirar N=<nombre>    borra el worktree y la rama, ya integrada
+#   make fase F=<fase> [A=<ÁREA>] [N=<carril>]  fija la fase y el área de la carpeta principal o del carril N
+#   make abrir N=<carril> F=<fase> A=<ÁREA>  crea un carril, con su primera rama desde origin/main
+#   make retirar N=<carril>    borra el carril y todas sus ramas, ya fusionadas en origin/main
+# Uno para la conversación de un carril, cuando GitHub ha fusionado el PR de su rama:
+#   make rama                  pasa el carril a su rama siguiente, desde origin/main
 # Y uno de consulta: make bloqueos A=<ÁREA> resume las paradas del hook Stop de un área.
 
 ESTATICOS := tipos lint duplicacion codigo-muerto capas unidad
@@ -27,7 +28,7 @@ define ejecutar_pasos
 	printf '\n✓ Todo en verde.\n'
 endef
 
-.PHONY: check check-specs check-aceptacion cerrar-area check-implementador mutacion fase abrir integrar retirar bloqueos instalar formatear
+.PHONY: check check-specs check-aceptacion cerrar-area check-implementador mutacion fase abrir retirar rama bloqueos instalar formatear
 
 check:
 	$(call ejecutar_pasos,$(ESTATICOS) aceptacion cobertura-ids integridad)
@@ -55,20 +56,22 @@ check-implementador:
 mutacion:
 	npm run --silent mutacion
 
-# Solo el dueño: guarda la fase y el área del checkout en .claude/settings.local.json (fuera de git).
-# Los hooks las leen de ahí en cada llamada; el modelo y el esfuerzo valen desde la próxima conversación.
+# Solo el dueño: guarda la fase y el área de la carpeta principal o, con N, del carril N en su
+# .claude/settings.local.json (fuera de git). Los hooks las leen de ahí en cada llamada; el modelo y
+# el esfuerzo valen desde la próxima conversación. Las comillas guardan el sitio de un A vacío.
 fase:
-	@node scripts/arnes/fijar-fase.ts $(F) $(A)
+	@node scripts/arnes/fijar-fase.ts '$(F)' '$(A)' '$(N)'
 
-# Solo el dueño, desde el directorio principal: un worktree por conversación (docs/plan.md §6).
+# Solo el dueño, desde cualquier checkout: los carriles van al lado de la carpeta principal (docs/plan.md §6).
 abrir:
-	@node scripts/arnes/worktrees.ts abrir $(N) $(F) $(A)
-
-integrar:
-	@node scripts/arnes/worktrees.ts integrar $(N)
+	@node scripts/arnes/worktrees.ts abrir '$(N)' '$(F)' '$(A)'
 
 retirar:
-	@node scripts/arnes/worktrees.ts retirar $(N)
+	@node scripts/arnes/worktrees.ts retirar '$(N)'
+
+# La conversación de un carril, en su carril, cuando GitHub ha fusionado el PR de su rama.
+rama:
+	@node scripts/arnes/worktrees.ts rama
 
 # Paradas del hook Stop (.claude/registro-stop.jsonl) mientras el área estaba en curso,
 # para el archivo del área (docs/areas/<ÁREA>.md).

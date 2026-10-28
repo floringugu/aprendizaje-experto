@@ -172,7 +172,7 @@ export const NOTA_TRAS_RELEVO =
 // ---------------------------------------------------------------------------
 
 /** Ruta absoluta del relevo del checkout. */
-function rutaDelRelevo(checkout: string): string {
+export function rutaDelRelevo(checkout: string): string {
   return path.join(checkout, RUTA_DEL_RELEVO);
 }
 

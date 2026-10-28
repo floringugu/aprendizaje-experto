@@ -76,12 +76,17 @@ export function faseYAreaDelCheckout(raiz: string): FaseYArea {
   return { fase, area };
 }
 
+/** El directorio principal del repositorio del checkout: el que tiene el directorio común de git. */
+export function carpetaPrincipal(raiz: string): string {
+  return path.dirname(directorioComun(raiz));
+}
+
 /**
- * Nombre del carril del checkout: undefined en el directorio principal, el que tiene el directorio
- * común de git; en un worktree, el nombre de su carpeta sin el prefijo «<principal>-» de «make abrir».
+ * Nombre del carril del checkout: undefined en el directorio principal (carpetaPrincipal); en un
+ * worktree, el nombre de su carpeta sin el prefijo «<principal>-» de «make abrir».
  */
 export function nombreDelCarril(raiz: string): string | undefined {
-  const principal = path.dirname(directorioComun(raiz));
+  const principal = carpetaPrincipal(raiz);
   const carpeta = realpathSync(raiz);
   if (carpeta === principal) return undefined;
   const prefijo = `${path.basename(principal)}-`;

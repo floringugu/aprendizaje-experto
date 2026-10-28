@@ -3,6 +3,7 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { RUTA_AJUSTES_LOCALES } from '../../scripts/arnes/comun/ajustes-locales.ts';
 import {
+  carpetaPrincipal,
   checkoutDeLaEntrada,
   checkoutDelRepositorio,
   esArea,
@@ -92,6 +93,14 @@ describe('faseYAreaDelCheckout', () => {
     expect(() => faseYAreaDelCheckout(conAjustes({ ARNES_AREA: 'mate' }))).toThrow(
       /ARNES_AREA="mate" no es un prefijo de área/,
     );
+  });
+});
+
+describe('carpetaPrincipal', () => {
+  it('da el directorio principal desde él mismo y desde un worktree', () => {
+    const { principal, worktree } = repositorioConWorktree(() => 'otro');
+    expect(carpetaPrincipal(principal)).toBe(principal);
+    expect(carpetaPrincipal(worktree)).toBe(principal);
   });
 });
 

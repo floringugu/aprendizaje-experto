@@ -1,4 +1,5 @@
-// Los objetivos de make que cambian la fase, el área o los worktrees los ejecuta el dueño.
+// Los objetivos de make que cambian la fase o el área, o abren o retiran un carril, los ejecuta el
+// dueño. make rama, no: lo ejecuta la conversación del carril.
 // Claude Code lanza los comandos sin terminal interactivo y con la variable CLAUDECODE.
 
 /** Por qué este proceso no puede ejecutar la acción, o undefined si el dueño la lanza desde su terminal. */

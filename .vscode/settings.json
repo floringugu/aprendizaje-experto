@@ -1,0 +1,4 @@
+{
+  // Muestra los carriles (los worktrees de make abrir) en la vista de control de código fuente.
+  "git.detectWorktrees": true
+}

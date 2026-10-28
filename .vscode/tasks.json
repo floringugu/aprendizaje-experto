@@ -1,36 +1,28 @@
 {
   // Tareas del arnés para el dueño (Ctrl+Shift+P → «Tasks: Run Task»).
   // Se ejecutan en un terminal de VS Code, fuera de Claude Code, como exigen «make fase» y «make abrir».
-  // Las de worktree se lanzan desde la ventana del directorio principal (docs/plan.md §6).
+  // Las de los carriles actúan sobre la carpeta principal, se lancen desde la ventana que sea (docs/plan.md §6).
   "version": "2.0.0",
   "tasks": [
     {
       "label": "Arnés: fase de la próxima conversación",
-      "detail": "Elige la fase y el área, y abre después una conversación nueva de Claude Code",
+      "detail": "Elige la fase y el área de la carpeta principal o de un carril, y abre después una conversación nueva de Claude Code",
       "type": "shell",
-      "command": "make fase F=${input:fase} A=${input:area}",
+      "command": "make fase F=${input:fase} A=${input:area} N=${input:carril}",
       "problemMatcher": [],
       "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
     },
     {
-      "label": "Arnés: abrir un worktree para una conversación",
-      "detail": "Crea la rama y el directorio hermano con su fase y su área, y abre una ventana de VS Code",
+      "label": "Arnés: abrir un carril",
+      "detail": "Crea el directorio hermano y su primera rama desde origin/main, con su fase y su área",
       "type": "shell",
       "command": "make abrir N=${input:nombre} F=${input:fase} A=${input:area}",
       "problemMatcher": [],
       "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
     },
     {
-      "label": "Arnés: integrar un worktree en main",
-      "detail": "Rebase sobre main, make check en el worktree y fusión sin commit de fusión",
-      "type": "shell",
-      "command": "make integrar N=${input:nombre}",
-      "problemMatcher": [],
-      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
-    },
-    {
-      "label": "Arnés: retirar un worktree integrado",
-      "detail": "Borra el worktree y la rama, solo si la rama ya está en main",
+      "label": "Arnés: retirar un carril",
+      "detail": "Borra el carril y todas sus ramas, solo si están fusionadas en origin/main y no queda relevo ni cambios",
       "type": "shell",
       "command": "make retirar N=${input:nombre}",
       "problemMatcher": [],
@@ -52,13 +44,19 @@
     {
       "id": "area",
       "type": "promptString",
-      "description": "Área en curso, por ejemplo MATE (vacío si ninguna; obligatoria en aceptacion)",
+      "description": "Área en curso, por ejemplo MATE (obligatoria en aceptacion y en los carriles; vacío si ninguna)",
       "default": ""
     },
     {
       "id": "nombre",
       "type": "promptString",
-      "description": "Nombre del worktree y de su rama (minúsculas y guiones), por ejemplo mate",
+      "description": "Nombre del carril (minúsculas, números y guiones; cada tramo empieza por una letra), por ejemplo pasos",
+      "default": ""
+    },
+    {
+      "id": "carril",
+      "type": "promptString",
+      "description": "Carril, por ejemplo pasos (vacío: la carpeta principal)",
       "default": ""
     }
   ]

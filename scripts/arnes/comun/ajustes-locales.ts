@@ -32,19 +32,14 @@ export function ajustesConFase(textoAnterior: string | undefined, fase: Fase, ar
   return `${JSON.stringify(nuevos, null, 2)}\n`;
 }
 
-/**
- * Guarda la fase y el área en los ajustes de `raiz`. Si `raiz` aún no tiene ajustes, parte de los
- * de `copiarDe`: un worktree nuevo hereda los permisos que el dueño ya aceptó.
- */
+/** Guarda la fase y el área en los ajustes de `raiz`. */
 export function fijarFase(
   raiz: string,
   { fase, area }: { readonly fase: Fase; readonly area: string | undefined },
-  copiarDe?: string,
 ): void {
   const ruta = path.join(raiz, RUTA_AJUSTES_LOCALES);
-  const origen = existsSync(ruta) || copiarDe === undefined ? ruta : path.join(copiarDe, RUTA_AJUSTES_LOCALES);
   mkdirSync(path.dirname(ruta), { recursive: true });
-  writeFileSync(ruta, ajustesConFase(textoSiExiste(origen), fase, area));
+  writeFileSync(ruta, ajustesConFase(textoSiExiste(ruta), fase, area));
 }
 
 /** El objeto «env» de los ajustes de `raiz`: vacío si no hay fichero o no tiene «env». */
