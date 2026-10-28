@@ -17,7 +17,7 @@ import { idDe, leerFeatures } from './comun/gherkin.ts';
 import { RAIZ } from './comun/raiz.ts';
 
 function principal(): number {
-  const alcance = leerAlcance(RAIZ, process.env);
+  const alcance = leerAlcance(RAIZ);
   if (alcance.enCurso === undefined) {
     console.error('La fase aceptacion necesita un área en curso: make fase F=aceptacion A=<ÁREA>.');
     return 1;

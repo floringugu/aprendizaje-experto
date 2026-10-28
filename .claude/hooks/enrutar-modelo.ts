@@ -2,13 +2,15 @@
 // El implementador y los revisores usan el modelo de su cabecera (.claude/agents/), el implementador
 // solo en la fase impl, y a los demás subagentes que no lleven modelo los manda a Haiku o Sonnet.
 // La regla está en scripts/arnes/comun/enrutador.ts.
+import { checkoutDeLaEntrada, faseYAreaDelCheckout } from '../../scripts/arnes/comun/checkout.ts';
 import { campo, ejecutarHook, leerEntradaHook, responder } from '../../scripts/arnes/comun/entrada-hook.ts';
 import { enrutar } from '../../scripts/arnes/comun/enrutador.ts';
-import { faseDeEntorno } from '../../scripts/arnes/comun/protegidas.ts';
+import { RAIZ } from '../../scripts/arnes/comun/raiz.ts';
 
 ejecutarHook('enrutar-modelo', async () => {
   const entrada = await leerEntradaHook();
-  const enrutado = enrutar(campo(entrada, 'tool_input'), { fase: faseDeEntorno(process.env) });
+  const { fase } = faseYAreaDelCheckout(checkoutDeLaEntrada(RAIZ, entrada));
+  const enrutado = enrutar(campo(entrada, 'tool_input'), { fase });
   if (enrutado.tipo === 'sin-cambios') return;
   if (enrutado.tipo === 'bloquear') {
     responder({

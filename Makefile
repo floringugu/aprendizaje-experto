@@ -6,11 +6,11 @@
 # Y el hook SubagentStop (.claude/hooks/exigir-check-implementador.ts), la del implementador:
 #   make check-implementador  los pasos estáticos y los tests unitarios, sin código muerto
 # Al cerrar un área, para que la aplicación y la aceptación del área en curso estén en verde:
-#   make cerrar-area A=<ÁREA>
+#   make cerrar-area A=<ÁREA>  (A, el área en curso del checkout)
 # Cada paso es un script de package.json. La ejecución se para en el primer paso que falla.
 #
 # Objetivos solo para el dueño, desde su terminal o las tareas de VS Code (.vscode/tasks.json):
-#   make fase F=<fase> [A=<ÁREA>]  fija la fase y el área en curso de la próxima conversación de Claude Code
+#   make fase F=<fase> [A=<ÁREA>]  fija la fase y el área en curso de este checkout
 #   make abrir N=<nombre> F=<fase> [A=<ÁREA>]  crea un worktree y una rama para una conversación
 #   make integrar N=<nombre>   pone la rama sobre main, la comprueba y la fusiona en main
 #   make retirar N=<nombre>    borra el worktree y la rama, ya integrada
@@ -38,11 +38,11 @@ check-specs:
 check-aceptacion:
 	$(call ejecutar_pasos,$(ESTATICOS) specs estado-aceptacion integridad)
 
-# El área A en curso, completa: la aceptación y la cobertura incluyen sus escenarios. ARNES_AREA lo
-# lee scripts/arnes/comun/alcance.ts. Es lo último antes de proponer que A pase a areas_cerradas.
-cerrar-area: export ARNES_AREA = $(A)
+# El área A en curso, completa: la aceptación y la cobertura incluyen sus escenarios. A tiene que ser
+# el área en curso del checkout, la que lee scripts/arnes/comun/alcance.ts (comprobar-area.ts).
+# Es lo último antes de proponer que A pase a areas_cerradas.
 cerrar-area:
-	@test -n "$(A)" || { echo 'Uso: make cerrar-area A=<ÁREA>'; exit 1; }
+	@node scripts/arnes/comprobar-area.ts $(A)
 	$(call ejecutar_pasos,$(ESTATICOS) aceptacion-area cobertura-ids-area integridad)
 
 # Sin codigo-muerto: cuando el implementador devuelve su encargo, la aplicación aún no usa las
@@ -55,8 +55,8 @@ check-implementador:
 mutacion:
 	npm run --silent mutacion
 
-# Solo el dueño: guarda la fase y el área en .claude/settings.local.json (fuera de git). Vale para
-# la próxima conversación; las que están abiertas siguen en su fase.
+# Solo el dueño: guarda la fase y el área del checkout en .claude/settings.local.json (fuera de git).
+# Los hooks las leen de ahí en cada llamada; el modelo y el esfuerzo valen desde la próxima conversación.
 fase:
 	@node scripts/arnes/fijar-fase.ts $(F) $(A)
 

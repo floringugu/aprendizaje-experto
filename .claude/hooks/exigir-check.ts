@@ -23,7 +23,11 @@
 // (la conversación ha sido una consulta, o el dueño ya ha commiteado lo que había), y Claude
 // para sin ejecutar make. Exigirle la comprobación lo empujaría a trabajar en una etapa que
 // nadie le ha pedido. Ni las esperas ni estas paradas se anotan en el registro.
+//
+// Checkout: la fase, el área en curso, los cambios y la comprobación son los del checkout del cwd de
+// la conversación (comun/checkout.ts). El registro es siempre el de RAIZ, con el carril de cada parada.
 import { leerAlcance } from '../../scripts/arnes/comun/alcance.ts';
+import { checkoutDeLaEntrada, faseYAreaDelCheckout, nombreDelCarril } from '../../scripts/arnes/comun/checkout.ts';
 import {
   campo,
   campoTexto,
@@ -41,7 +45,6 @@ import {
 } from '../../scripts/arnes/comun/freno-stop.ts';
 import { hayCambiosSinCommitear } from '../../scripts/arnes/comun/git.ts';
 import { ejecutarObjetivo } from '../../scripts/arnes/comun/make.ts';
-import { faseDeEntorno } from '../../scripts/arnes/comun/protegidas.ts';
 import { RAIZ } from '../../scripts/arnes/comun/raiz.ts';
 import { anotarParada, bloqueosSeguidos, leerRegistro, relevoPasado } from '../../scripts/arnes/comun/registro-stop.ts';
 import type { ParadaStop } from '../../scripts/arnes/comun/registro-stop.ts';
@@ -55,11 +58,12 @@ import {
 } from '../../scripts/arnes/comun/relevo.ts';
 
 /** Lo que se anota en todas las paradas, pase o no la comprobación. */
-type DatosDeParada = Pick<ParadaStop, 'fecha' | 'sesion' | 'fase' | 'areasCerradas' | 'areaEnCurso'>;
+type DatosDeParada = Pick<ParadaStop, 'fecha' | 'sesion' | 'fase' | 'areasCerradas' | 'areaEnCurso' | 'carril'>;
 
 ejecutarHook('exigir-check', async () => {
   const entrada = await leerEntradaHook();
-  const datos = datosDeParada(entrada);
+  const checkout = checkoutDeLaEntrada(RAIZ, entrada);
+  const datos = datosDeParada(entrada, checkout);
   const ultimoMensaje = campoTexto(entrada, 'last_assistant_message') ?? '';
   if (ultimoMensaje.includes(MARCA_DECISION_PENDIENTE)) {
     anotarParada(RAIZ, { ...datos, resultado: 'decision' });
@@ -80,11 +84,11 @@ ejecutarHook('exigir-check', async () => {
   const relevoYaPasado = relevoPasado(leerRegistro(RAIZ), datos.sesion);
   if (conRelevo && !relevoYaPasado && pasarRelevo(entrada, datos)) return;
   const objetivo = OBJETIVO_POR_FASE[datos.fase];
-  if (!hayCambiosSinCommitear(RAIZ)) {
+  if (!hayCambiosSinCommitear(checkout)) {
     responder({ systemMessage: `Sin cambios respecto al último commit: Claude para sin ejecutar make ${objetivo}.` });
     return;
   }
-  const make = ejecutarObjetivo(RAIZ, objetivo);
+  const make = ejecutarObjetivo(checkout, objetivo);
   if (make.verde) {
     anotarParada(RAIZ, { ...datos, resultado: 'verde' });
     return;
@@ -100,14 +104,16 @@ function notaDeRelevo(conRelevo: boolean, relevoYaPasado: boolean): string | und
   return conRelevo ? NOTA_DE_RELEVO_ANTES_DE_TIEMPO : undefined;
 }
 
-function datosDeParada(entrada: unknown): DatosDeParada {
-  const { cerradas, enCurso } = leerAlcance(RAIZ, process.env);
+function datosDeParada(entrada: unknown, checkout: string): DatosDeParada {
+  const { cerradas, enCurso } = leerAlcance(checkout);
+  const carril = nombreDelCarril(checkout);
   return {
     fecha: new Date().toISOString(),
     sesion: campoTexto(entrada, 'session_id') ?? 'desconocida',
-    fase: faseDeEntorno(process.env),
+    fase: faseYAreaDelCheckout(checkout).fase,
     areasCerradas: cerradas,
     ...(enCurso === undefined ? {} : { areaEnCurso: enCurso }),
+    ...(carril === undefined ? {} : { carril }),
   };
 }
 

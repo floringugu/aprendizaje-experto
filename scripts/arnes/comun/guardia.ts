@@ -5,7 +5,8 @@
 import { lstatSync, readlinkSync, realpathSync } from 'node:fs';
 import path from 'node:path';
 import { entradaQueBloquea, RUTA_PROTEGIDAS } from './protegidas.ts';
-import type { EntradaProtegida, Fase } from './protegidas.ts';
+import type { Fase } from './fases.ts';
+import type { EntradaProtegida } from './protegidas.ts';
 
 export interface ContextoGuardia {
   readonly raiz: string;

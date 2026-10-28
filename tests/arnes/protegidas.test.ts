@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest';
 import {
   cubre,
   entradaQueBloquea,
-  faseDeEntorno,
   ficherosVigilados,
   parsearProtegidas,
 } from '../../scripts/arnes/comun/protegidas.ts';
@@ -75,18 +74,6 @@ describe('entradaQueBloquea', () => {
 
   it('no bloquea lo que no está en la lista', () => {
     expect(entradaQueBloquea('src/dominio/dominio.ts', entradas, 'impl')).toBeUndefined();
-  });
-});
-
-describe('faseDeEntorno', () => {
-  it('es impl si no se indica', () => {
-    expect(faseDeEntorno({})).toBe('impl');
-  });
-
-  it('acepta las tres fases y rechaza cualquier otra', () => {
-    expect(faseDeEntorno({ ARNES_FASE: 'specs' })).toBe('specs');
-    expect(faseDeEntorno({ ARNES_FASE: 'aceptacion' })).toBe('aceptacion');
-    expect(() => faseDeEntorno({ ARNES_FASE: 'libre' })).toThrow(/no es válida/);
   });
 });
 

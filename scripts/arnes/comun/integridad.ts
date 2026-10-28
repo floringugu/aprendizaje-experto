@@ -1,7 +1,8 @@
 // Qué rutas protegidas difieren del último commit (scripts/arnes/integridad.ts).
 import { estadoConHead, ficherosDeHead } from './git.ts';
 import { entradaQueBloquea, ficherosVigilados } from './protegidas.ts';
-import type { EntradaProtegida, Fase } from './protegidas.ts';
+import type { Fase } from './fases.ts';
+import type { EntradaProtegida } from './protegidas.ts';
 
 const QUE_PASA = {
   cambiado: 'ha cambiado respecto al último commit',

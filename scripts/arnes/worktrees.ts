@@ -2,7 +2,7 @@
 // Solo los ejecuta el dueño, desde el directorio principal (docs/plan.md §6). La lógica está en
 // comun/worktrees.ts.
 import { spawnSync } from 'node:child_process';
-import { esFase, FASES } from './comun/protegidas.ts';
+import { esFase, FASES } from './comun/fases.ts';
 import { RAIZ } from './comun/raiz.ts';
 import { motivoSiNoEsElDueno } from './comun/solo-dueno.ts';
 import { abrirWorktree, integrarWorktree, retirarWorktree } from './comun/worktrees.ts';

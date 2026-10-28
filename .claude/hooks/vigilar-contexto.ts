@@ -5,6 +5,7 @@
 // El tamaño sale del transcript de Claude Code. El último tramo avisado de cada conversación se
 // anota en .claude/registro-contexto.jsonl, para no repetir el aviso en cada herramienta. También
 // se anota la bajada (al compactar, por ejemplo), para volver a avisar si el contexto sube otra vez.
+import { checkoutDeLaEntrada, nombreDelCarril } from '../../scripts/arnes/comun/checkout.ts';
 import { campo, campoTexto, ejecutarHook, leerEntradaHook, responder } from '../../scripts/arnes/comun/entrada-hook.ts';
 import { RAIZ } from '../../scripts/arnes/comun/raiz.ts';
 import {
@@ -27,10 +28,18 @@ ejecutarHook('vigilar-contexto', async () => {
   const tramo = tramoDeContexto(tokens);
   const anterior = ultimoTramo(leerRegistroContexto(RAIZ), sesion);
   if (tramo === anterior) return;
-  anotarTramo(RAIZ, { fecha: new Date().toISOString(), sesion, tokens, tramo });
+  const checkout = checkoutDeLaEntrada(RAIZ, entrada);
+  const carril = nombreDelCarril(checkout);
+  anotarTramo(RAIZ, {
+    fecha: new Date().toISOString(),
+    sesion,
+    ...(carril === undefined ? {} : { carril }),
+    tokens,
+    tramo,
+  });
   if (tramo < anterior) return;
   responder({
     systemMessage: avisoParaElDueno(tokens),
-    hookSpecificOutput: { hookEventName: 'PostToolUse', additionalContext: avisoParaClaude(tokens) },
+    hookSpecificOutput: { hookEventName: 'PostToolUse', additionalContext: avisoParaClaude(tokens, checkout) },
   });
 });

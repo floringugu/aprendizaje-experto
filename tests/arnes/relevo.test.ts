@@ -1,8 +1,10 @@
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   anotarTramo,
-  areasConRelevo,
+  avisoDeRelevoPendiente,
   avisoParaClaude,
+  carrilesConRelevo,
   leerRegistroContexto,
   MARCA_RELEVO,
   MOTIVO_EDICION_TRAS_RELEVO,
@@ -82,42 +84,64 @@ describe('registro de tramos', () => {
     expect(ultimoTramo(registro, 'b')).toBe(3);
     expect(ultimoTramo(registro, 'c')).toBe(0);
   });
+
+  it('guarda el carril del tramo si lo tiene', () => {
+    const raiz = directorioTemporal();
+    escribirFicheros(raiz, { '.claude/.vacio': '' });
+    anotarTramo(raiz, { ...tramo('a', 1), carril: 'mate-pasos' });
+    anotarTramo(raiz, tramo('b', 1));
+    expect(leerRegistroContexto(raiz).map(({ carril }) => carril)).toEqual(['mate-pasos', undefined]);
+  });
 });
 
-describe('areasConRelevo', () => {
-  it('encuentra las áreas con una sección «## Relevo», sin contar la plantilla', () => {
-    const raiz = directorioTemporal();
-    escribirFicheros(raiz, {
-      'docs/areas/RECU.md': '# RECU\n\n## Relevo\n\nFalta el paso 3.\n',
-      'docs/areas/MAST.md': '# MAST\n\n## Relevo   \n',
-      'docs/areas/DIAG.md': '# DIAG\n\nEl relevo se apunta al final.\n### Relevo\n',
-      'docs/areas/plantilla.md': '# Plantilla\n\n## Relevo\n',
-    });
-    expect(areasConRelevo(raiz)).toEqual(['MAST', 'RECU']);
+describe('carrilesConRelevo', () => {
+  it('encuentra los checkouts con un reports/relevo.md, en el orden dado', () => {
+    const [principal, pasos, revision] = [directorioTemporal(), directorioTemporal(), directorioTemporal()];
+    escribirFicheros(revision, { 'reports/relevo.md': '# Relevo\n\nFalta el paso 3.\n' });
+    escribirFicheros(principal, { 'reports/relevo.md': '' });
+    escribirFicheros(pasos, { 'reports/otro.md': '' });
+    expect(carrilesConRelevo([principal, pasos, revision])).toEqual([principal, revision]);
   });
 
-  it('no encuentra ninguna si no existe la carpeta de áreas', () => {
-    expect(areasConRelevo(directorioTemporal())).toEqual([]);
+  it('no encuentra ninguno sin relevos', () => {
+    expect(carrilesConRelevo([directorioTemporal()])).toEqual([]);
+    expect(carrilesConRelevo([])).toEqual([]);
+  });
+});
+
+describe('avisoDeRelevoPendiente', () => {
+  it('da la ruta absoluta del relevo de cada checkout y pide borrarlo al leerlo', () => {
+    const aviso = avisoDeRelevoPendiente(['/repo', '/repo-mate-pasos']);
+    expect(aviso).toContain(
+      `${path.join('/repo', 'reports/relevo.md')}, ${path.join('/repo-mate-pasos', 'reports/relevo.md')}.`,
+    );
+    expect(aviso).toMatch(/lee primero el relevo y bórralo/);
   });
 });
 
 describe('avisoParaClaude', () => {
   it('da el tamaño en miles y pide terminar con la marca', () => {
-    const aviso = avisoParaClaude(151_400);
+    const aviso = avisoParaClaude(151_400, '/repo');
     expect(aviso).toContain('151 k tokens (umbral: 145 k)');
     expect(aviso).toContain(MARCA_RELEVO);
   });
 
   it('pide rangos de líneas y las búsquedas hechas, no ficheros enteros', () => {
-    const aviso = avisoParaClaude(151_400);
+    const aviso = avisoParaClaude(151_400, '/repo');
     expect(aviso).toContain('rangos fichero:líneas');
     expect(aviso).toMatch(/búsquedas que ya has hecho y lo que dieron/);
+  });
+
+  it('pide escribir el relevo en la ruta absoluta del checkout de la conversación', () => {
+    expect(avisoParaClaude(151_400, '/repo-mate-pasos')).toContain(
+      `en ${path.join('/repo-mate-pasos', 'reports/relevo.md')}:`,
+    );
   });
 });
 
 describe('después del relevo', () => {
   it('el aviso a Claude dice que no podrá editar más', () => {
-    expect(avisoParaClaude(151_400)).toMatch(/ya no podrá editar/);
+    expect(avisoParaClaude(151_400, '/repo')).toMatch(/ya no podrá editar/);
   });
 
   it('al editar, Claude ve que el relevo está pasado y cómo acabar', () => {

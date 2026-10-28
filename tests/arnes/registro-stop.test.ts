@@ -120,6 +120,7 @@ describe('resumirArea', () => {
       area: 'DIAG',
       desde: '2026-10-20T09:00:00.000Z',
       sesiones: 2,
+      carriles: ['principal'],
       paradas: 7,
       bloqueosPorPaso: [
         ['unidad', 3],
@@ -175,6 +176,17 @@ describe('resumirArea con el área en curso de cada parada', () => {
     ];
     expect(resumirArea(registro, 'MATE')).toMatchObject({ paradas: 2, desde: '2026-10-23T10:00:00.000Z' });
   });
+
+  it('lista los carriles de las paradas, sin repetir; el directorio principal es «principal»', () => {
+    const registro = [
+      nueva({ carril: 'mate-pasos' }),
+      nueva({ carril: 'mate-limpieza' }),
+      nueva(),
+      nueva({ carril: 'mate-pasos' }),
+      nueva({ carril: 'pant', areaEnCurso: 'PANT' }),
+    ];
+    expect(resumirArea(registro, 'MATE').carriles).toEqual(['mate-limpieza', 'mate-pasos', 'principal']);
+  });
 });
 
 describe('formatearResumen', () => {
@@ -183,7 +195,7 @@ describe('formatearResumen', () => {
       resumirArea(
         [
           bloqueo('unidad', { seguidos: 3, entorno: 'EACCES' }),
-          parada({ resultado: 'decision' }),
+          parada({ resultado: 'decision', carril: 'diag' }),
           parada({ resultado: 'relevo' }),
         ],
         'DIAG',
@@ -192,6 +204,7 @@ describe('formatearResumen', () => {
     expect(texto).toBe(
       [
         'DIAG: 3 paradas del hook Stop en 1 conversaciones, desde 2026-10-23T10:00:00.000Z.',
+        '  - Carriles: diag, principal.',
         '  - Bloqueos: 1 (unidad 1).',
         '  - Por el entorno: 1 (EACCES).',
         '  - Con el freno (3.º bloqueo seguido o más): 1.',

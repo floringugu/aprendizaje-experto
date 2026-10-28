@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
+import { RUTA_AJUSTES_LOCALES } from '../../scripts/arnes/comun/ajustes-locales.ts';
 import {
   areasEnAlcance,
   escenariosEnRojo,
   leerAlcance,
   problemaDeFaseYArea,
+  problemaDelAreaACerrar,
 } from '../../scripts/arnes/comun/alcance.ts';
 import { directorioTemporal, escribirFicheros } from './temporal.ts';
 
@@ -19,29 +21,34 @@ function raizConAreas(cerradas: readonly string[], areasDeFeatures: readonly str
   return raiz;
 }
 
+/** Fija el área en curso del checkout `raiz` en sus ajustes locales, como «make fase». */
+function conAreaEnCurso(raiz: string, area: string): string {
+  escribirFicheros(raiz, { [RUTA_AJUSTES_LOCALES]: JSON.stringify({ env: { ARNES_AREA: area } }) });
+  return raiz;
+}
+
 describe('leerAlcance', () => {
-  it('lee las áreas cerradas del fichero y el área en curso de ARNES_AREA', () => {
-    const raiz = raizConAreas(['DIAG', 'MAST'], []);
-    expect(leerAlcance(raiz, { ARNES_AREA: 'MATE' })).toEqual({ cerradas: ['DIAG', 'MAST'], enCurso: 'MATE' });
+  it('lee las áreas cerradas del fichero y el área en curso de los ajustes locales del checkout', () => {
+    const raiz = conAreaEnCurso(raizConAreas(['DIAG', 'MAST'], []), 'MATE');
+    expect(leerAlcance(raiz)).toEqual({ cerradas: ['DIAG', 'MAST'], enCurso: 'MATE' });
   });
 
-  it('sin variable, o con la variable vacía, no hay área en curso', () => {
-    const raiz = raizConAreas(['DIAG'], []);
-    expect(leerAlcance(raiz, {}).enCurso).toBeUndefined();
-    expect(leerAlcance(raiz, { ARNES_AREA: '' }).enCurso).toBeUndefined();
+  it('sin ajustes, o con el área vacía, no hay área en curso', () => {
+    expect(leerAlcance(raizConAreas(['DIAG'], [])).enCurso).toBeUndefined();
+    expect(leerAlcance(conAreaEnCurso(raizConAreas(['DIAG'], []), '')).enCurso).toBeUndefined();
   });
 
   it('sin fichero no hay áreas cerradas', () => {
-    expect(leerAlcance(directorioTemporal(), {}).cerradas).toEqual([]);
+    expect(leerAlcance(directorioTemporal()).cerradas).toEqual([]);
   });
 
-  it('se niega a un fichero o a una variable mal formados', () => {
+  it('se niega a un fichero o a un área mal formados', () => {
     const raiz = directorioTemporal();
     escribirFicheros(raiz, { 'config/alcance.json': JSON.stringify({ areas_fuera_de_alcance: ['PLAN'] }) });
-    expect(() => leerAlcance(raiz, {})).toThrow(/«areas_cerradas» debe ser una lista de prefijos/);
+    expect(() => leerAlcance(raiz)).toThrow(/«areas_cerradas» debe ser una lista de prefijos/);
     escribirFicheros(raiz, { 'config/alcance.json': JSON.stringify({ areas_cerradas: ['mate'] }) });
-    expect(() => leerAlcance(raiz, {})).toThrow(/«areas_cerradas»/);
-    expect(() => leerAlcance(raizConAreas([], []), { ARNES_AREA: 'mate' })).toThrow(/ARNES_AREA=mate/);
+    expect(() => leerAlcance(raiz)).toThrow(/«areas_cerradas»/);
+    expect(() => leerAlcance(conAreaEnCurso(raizConAreas([], []), 'mate'))).toThrow(/ARNES_AREA="mate"/);
   });
 });
 
@@ -104,5 +111,25 @@ describe('problemaDeFaseYArea', () => {
     expect(problemaDeFaseYArea(raiz, 'impl', 'XXXX')).toMatch(/no existe en features\/. Hay: DIAG, MATE, PANT/);
     expect(problemaDeFaseYArea(raiz, 'impl', 'DIAG')).toMatch(/ya está cerrada/);
     expect(problemaDeFaseYArea(raiz, 'impl', 'mate')).toMatch(/no es un prefijo de área/);
+  });
+});
+
+describe('problemaDelAreaACerrar', () => {
+  it('sin A, da el uso', () => {
+    expect(problemaDelAreaACerrar(directorioTemporal(), '')).toBe('Uso: make cerrar-area A=<ÁREA>');
+  });
+
+  it('sin área en curso, dice cómo fijarla', () => {
+    expect(problemaDelAreaACerrar(directorioTemporal(), 'MATE')).toMatch(/no tiene área en curso.*F=impl A=MATE/);
+  });
+
+  it('con otra área en curso, dice cuál es', () => {
+    expect(problemaDelAreaACerrar(conAreaEnCurso(directorioTemporal(), 'PANT'), 'MATE')).toBe(
+      'El área en curso de este checkout es PANT, no MATE.',
+    );
+  });
+
+  it('se puede cerrar el área en curso del checkout', () => {
+    expect(problemaDelAreaACerrar(conAreaEnCurso(directorioTemporal(), 'MATE'), 'MATE')).toBeUndefined();
   });
 });

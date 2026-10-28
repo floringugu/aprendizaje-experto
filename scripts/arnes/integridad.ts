@@ -4,9 +4,10 @@
 // .claude/protegidas.txt. Esas rutas las cambia el dueño con un commit, así que lo que no está
 // en HEAD no vale, lo haya escrito quien lo haya escrito.
 // En las fases specs y aceptacion no se vigilan las rutas que esa fase desbloquea.
+import { faseYAreaDelCheckout } from './comun/checkout.ts';
 import { hayCommits } from './comun/git.ts';
 import { problemasDeIntegridad } from './comun/integridad.ts';
-import { faseDeEntorno, leerProtegidas } from './comun/protegidas.ts';
+import { leerProtegidas } from './comun/protegidas.ts';
 import { RAIZ } from './comun/raiz.ts';
 
 const COMO_SE_ARREGLA =
@@ -18,7 +19,7 @@ function principal(): number {
     console.warn('Aviso: aún no hay commits; los ficheros protegidos no se pueden comparar con HEAD.');
     return 0;
   }
-  const problemas = problemasDeIntegridad(RAIZ, leerProtegidas(RAIZ), faseDeEntorno(process.env));
+  const problemas = problemasDeIntegridad(RAIZ, leerProtegidas(RAIZ), faseYAreaDelCheckout(RAIZ).fase);
   if (problemas.length === 0) {
     console.log('Integridad: los ficheros protegidos coinciden con el último commit.');
     return 0;

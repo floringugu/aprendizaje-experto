@@ -1,37 +1,17 @@
 // Lectura de .claude/protegidas.txt y decisión de si una ruta está bloqueada.
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import { esFase } from './fases.ts';
+import type { Fase } from './fases.ts';
 import { ficherosVisiblesParaGit } from './git.ts';
 
 export const RUTA_PROTEGIDAS = '.claude/protegidas.txt';
-
-/**
- * Fase de trabajo de la conversación, en la variable ARNES_FASE. El dueño la fija antes de
- * abrirla con «make fase» (scripts/arnes/fijar-fase.ts), que la guarda en .claude/settings.local.json.
- * - specs: etapa 2, se pueden escribir features/ y config/parametros.json.
- * - aceptacion: etapa 3, se pueden escribir los steps de tests/aceptacion/.
- * - impl: resto del tiempo; lo protegido está bloqueado salvo lo anotado con @impl (docs/deuda-diseno.md).
- */
-export const FASES = ['specs', 'aceptacion', 'impl'] as const;
-export type Fase = (typeof FASES)[number];
 
 export interface EntradaProtegida {
   /** Ruta relativa a la raíz. Termina en «/» si protege un directorio entero. */
   readonly ruta: string;
   /** Fase en la que la ruta se puede editar (anotación «@fase»), si la tiene. */
   readonly desbloqueadaEn: Fase | undefined;
-}
-
-export function esFase(valor: string): valor is Fase {
-  return (FASES as readonly string[]).includes(valor);
-}
-
-export function faseDeEntorno(entorno: NodeJS.ProcessEnv): Fase {
-  const valor = entorno['ARNES_FASE'] ?? 'impl';
-  if (!esFase(valor)) {
-    throw new Error(`ARNES_FASE=${valor} no es válida. Usa specs, aceptacion o impl.`);
-  }
-  return valor;
 }
 
 export function parsearProtegidas(texto: string): EntradaProtegida[] {

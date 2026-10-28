@@ -7,7 +7,8 @@
 //   - si ya está continuando por un bloqueo de este hook (stop_hook_active), lo devuelve en rojo,
 //     y la conversación principal lo arregla ella o lo reencarga. Un solo bloqueo por encargo: no
 //     hace falta un registro de bloqueos, porque Claude Code ya dice si es la segunda vez.
-// El mensaje está en freno-stop.ts.
+// El mensaje está en freno-stop.ts. Comprueba el checkout del cwd del subagente (comun/checkout.ts).
+import { checkoutDeLaEntrada } from '../../scripts/arnes/comun/checkout.ts';
 import { campo, campoTexto, ejecutarHook, leerEntradaHook, responder } from '../../scripts/arnes/comun/entrada-hook.ts';
 import { OBJETIVO_DEL_IMPLEMENTADOR } from '../../scripts/arnes/comun/fases.ts';
 import {
@@ -22,7 +23,7 @@ import { RAIZ } from '../../scripts/arnes/comun/raiz.ts';
 ejecutarHook('exigir-check-implementador', async () => {
   const entrada = await leerEntradaHook();
   if ((campoTexto(entrada, 'last_assistant_message') ?? '').includes(MARCA_DECISION_PENDIENTE)) return;
-  const make = ejecutarObjetivo(RAIZ, OBJETIVO_DEL_IMPLEMENTADOR);
+  const make = ejecutarObjetivo(checkoutDeLaEntrada(RAIZ, entrada), OBJETIVO_DEL_IMPLEMENTADOR);
   if (make.verde) return;
   if (campo(entrada, 'stop_hook_active') === true) {
     responder({

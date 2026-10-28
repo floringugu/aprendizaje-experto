@@ -1,6 +1,20 @@
 // Qué significa cada fase para Claude: qué comprobación exige el hook Stop y para qué sirve la fase.
 // La fase la elige el dueño antes de abrir la conversación (make fase o la tarea de VS Code).
-import type { Fase } from './protegidas.ts';
+
+/**
+ * Fase de trabajo de la conversación. El dueño la fija antes de abrirla con «make fase»
+ * (scripts/arnes/fijar-fase.ts), que la guarda en el .claude/settings.local.json de su checkout
+ * (faseYAreaDelCheckout en checkout.ts).
+ * - specs: etapa 2, se pueden escribir features/ y config/parametros.json.
+ * - aceptacion: etapa 3, se pueden escribir los steps de tests/aceptacion/.
+ * - impl: resto del tiempo; lo protegido está bloqueado salvo lo anotado con @impl (docs/deuda-diseno.md).
+ */
+export const FASES = ['specs', 'aceptacion', 'impl'] as const;
+export type Fase = (typeof FASES)[number];
+
+export function esFase(valor: string): valor is Fase {
+  return (FASES as readonly string[]).includes(valor);
+}
 
 /** Objetivo de make que el hook Stop exige en cada fase. */
 export const OBJETIVO_POR_FASE: Readonly<Record<Fase, string>> = {

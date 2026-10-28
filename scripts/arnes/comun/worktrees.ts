@@ -10,7 +10,7 @@ import path from 'node:path';
 import { fijarFase } from './ajustes-locales.ts';
 import { problemaDeFaseYArea } from './alcance.ts';
 import { git } from './git.ts';
-import type { Fase } from './protegidas.ts';
+import type { Fase } from './fases.ts';
 
 const RAMA_PRINCIPAL = 'main';
 

@@ -8,8 +8,8 @@
 //   - el código o los tests citan un ID que no existe en features/.
 //
 // Con --solo-specs solo valida features/ y los parámetros (etapas 2 y 3: aún no hay código).
-// «En alcance» son las áreas cerradas; con --con-area-en-curso, también el área en curso
-// (ARNES_AREA), que es lo que exige make cerrar-area.
+// «En alcance» son las áreas cerradas; con --con-area-en-curso, también el área en curso del
+// checkout, que es lo que exige make cerrar-area.
 // Lee el resultado de Cucumber de reports/cucumber.ndjson: ejecútalo después de «npm run aceptacion»
 // (o de «npm run aceptacion-area», con --con-area-en-curso).
 import { existsSync, readFileSync } from 'node:fs';
@@ -56,7 +56,7 @@ function informarCobertura(lectura: LecturaFeatures, conAreaEnCurso: boolean): n
   const idsDeEscenario = new Set(
     lectura.elementos.flatMap((elemento) => (elemento.tipo === 'Scenario' ? (idDe(elemento) ?? []) : [])),
   );
-  const alcance = leerAlcance(RAIZ, process.env);
+  const alcance = leerAlcance(RAIZ);
   const sinArea = conAreaEnCurso ? problemaDelAreaEnCurso(alcance.enCurso, idsDeEscenario) : undefined;
   if (sinArea !== undefined) {
     console.error(sinArea);
@@ -78,7 +78,7 @@ function informarCobertura(lectura: LecturaFeatures, conAreaEnCurso: boolean): n
 
 /** make cerrar-area exige un área en curso con escenarios: sin ellos, el verde no comprobaría nada. */
 function problemaDelAreaEnCurso(area: string | undefined, idsDeEscenario: ReadonlySet<string>): string | undefined {
-  if (area === undefined) return 'No hay un área en curso (ARNES_AREA): usa make cerrar-area A=<ÁREA>.';
+  if (area === undefined) return 'Este checkout no tiene área en curso: usa make cerrar-area A=<ÁREA>.';
   if (![...idsDeEscenario].some((id) => areaDe(id) === area))
     return `El área ${area} no tiene escenarios en features/.`;
   return undefined;

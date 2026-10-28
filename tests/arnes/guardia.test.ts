@@ -4,7 +4,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { motivoBloqueoBash, motivoBloqueoFichero } from '../../scripts/arnes/comun/guardia.ts';
 import type { ContextoGuardia } from '../../scripts/arnes/comun/guardia.ts';
 import { parsearProtegidas } from '../../scripts/arnes/comun/protegidas.ts';
-import type { Fase } from '../../scripts/arnes/comun/protegidas.ts';
+import type { Fase } from '../../scripts/arnes/comun/fases.ts';
 import { directorioTemporal, escribirFicheros } from './temporal.ts';
 
 const PROTEGIDAS = `

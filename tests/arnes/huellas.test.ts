@@ -11,7 +11,7 @@ import {
 } from '../../scripts/arnes/comun/huellas.ts';
 import type { Vigilancia } from '../../scripts/arnes/comun/huellas.ts';
 import { parsearProtegidas } from '../../scripts/arnes/comun/protegidas.ts';
-import type { Fase } from '../../scripts/arnes/comun/protegidas.ts';
+import type { Fase } from '../../scripts/arnes/comun/fases.ts';
 import { directorioTemporal, escribirFicheros, gitEn } from './temporal.ts';
 
 const ENTRADAS = parsearProtegidas('docs/informe.md\nfeatures/ @specs\n.claude/\n');

@@ -1,7 +1,12 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { ajustesConFase, fijarFase, RUTA_AJUSTES_LOCALES } from '../../scripts/arnes/comun/ajustes-locales.ts';
+import {
+  ajustesConFase,
+  entornoDeAjustesLocales,
+  fijarFase,
+  RUTA_AJUSTES_LOCALES,
+} from '../../scripts/arnes/comun/ajustes-locales.ts';
 import { directorioTemporal, escribirFicheros } from './temporal.ts';
 
 function leer(texto: string): unknown {
@@ -105,5 +110,29 @@ describe('fijarFase', () => {
     fijarFase(nuevo, { fase: 'impl', area: undefined }, principal);
     expect(textoDe(nuevo)).toContain('propio');
     expect(textoDe(nuevo)).not.toContain('ajeno');
+  });
+});
+
+describe('entornoDeAjustesLocales', () => {
+  function raizCon(texto: string): string {
+    const raiz = directorioTemporal();
+    escribirFicheros(raiz, { [RUTA_AJUSTES_LOCALES]: texto });
+    return raiz;
+  }
+
+  it('da el objeto «env» de los ajustes de la raíz', () => {
+    const raiz = raizCon(JSON.stringify({ model: 'opus', env: { ARNES_AREA: 'MATE', OTRA: '1' } }));
+    expect(entornoDeAjustesLocales(raiz)).toEqual({ ARNES_AREA: 'MATE', OTRA: '1' });
+  });
+
+  it('está vacío sin fichero, con el fichero vacío o sin «env»', () => {
+    expect(entornoDeAjustesLocales(directorioTemporal())).toEqual({});
+    expect(entornoDeAjustesLocales(raizCon(' \n'))).toEqual({});
+    expect(entornoDeAjustesLocales(raizCon(JSON.stringify({ model: 'opus' })))).toEqual({});
+  });
+
+  it('se niega a unos ajustes que no entiende', () => {
+    expect(() => entornoDeAjustesLocales(raizCon('{ roto'))).toThrow(/JSON/);
+    expect(() => entornoDeAjustesLocales(raizCon('{"env": []}'))).toThrow(/«env» debe ser un objeto JSON/);
   });
 });

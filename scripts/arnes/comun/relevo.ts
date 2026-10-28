@@ -2,8 +2,8 @@
 //
 // En cada llamada, el modelo vuelve a leer el contexto entero de la conversación: cuanto más largo
 // es, más cuesta cada paso. En vez de compactar, al pasar de UMBRAL_DE_RELEVO tokens Claude acaba el
-// paso en curso, apunta el estado en una sección «## Relevo» de docs/areas/<ÁREA>.md y para con
-// [RELEVO]. El dueño sigue en una conversación nueva, que lee la sección y la borra. El relevo es
+// paso en curso, apunta el estado en el reports/relevo.md de su checkout (fuera de git) y para con
+// [RELEVO]. El dueño sigue en una conversación nueva, que lee el fichero y lo borra. El relevo es
 // obligatorio: la conversación que lo ha pasado ya no edita (MOTIVO_EDICION_TRAS_RELEVO) y no puede
 // pasar otro (NOTA_TRAS_RELEVO); solo le queda explicar y parar con la comprobación o con una decisión.
 //
@@ -13,8 +13,8 @@
 //     y la conversación no ha pasado ya el relevo;
 //   - bloquear-tras-relevo (PreToolUse): niega Edit, Write, MultiEdit y NotebookEdit a la conversación
 //     que ya ha pasado el relevo;
-//   - anunciar-fase (SessionStart): señala las áreas que tienen un relevo pendiente.
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+//   - anunciar-fase (SessionStart): señala los carriles que tienen un relevo pendiente.
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { campo } from './entrada-hook.ts';
 import { MARCA_DECISION_PENDIENTE } from './freno-stop.ts';
@@ -28,7 +28,8 @@ const PASO_DE_AVISO = 20_000;
 
 // Fuera de git (.gitignore), como el registro del hook Stop.
 const RUTA_REGISTRO_CONTEXTO = '.claude/registro-contexto.jsonl';
-const CARPETA_DE_AREAS = 'docs/areas';
+// En cada checkout, dentro de reports/, que está fuera de git (.gitignore).
+const RUTA_DEL_RELEVO = 'reports/relevo.md';
 
 // ---------------------------------------------------------------------------
 // Tamaño del contexto
@@ -92,6 +93,8 @@ export interface TramoAnotado {
   readonly fecha: string;
   /** session_id de Claude Code: identifica la conversación. */
   readonly sesion: string;
+  /** Carril del checkout de la conversación (nombreDelCarril en checkout.ts); no está en el directorio principal. */
+  readonly carril?: string;
   readonly tokens: number;
   readonly tramo: number;
 }
@@ -121,16 +124,16 @@ function miles(tokens: number): string {
   return `${String(Math.round(tokens / 1000))} k`;
 }
 
-export function avisoParaClaude(tokens: number): string {
+/** El aviso del umbral, con la ruta absoluta del relevo del checkout de la conversación. */
+export function avisoParaClaude(tokens: number, checkout: string): string {
   return (
     `Relevo: el contexto de esta conversación va por ${miles(tokens)} tokens (umbral: ${miles(UMBRAL_DE_RELEVO)}), ` +
     'y cada llamada lo vuelve a leer entero. Acaba el paso en curso sin empezar otro. Después apunta el estado ' +
-    `al final de ${CARPETA_DE_AREAS}/<ÁREA>.md (si no existe, cópialo de la plantilla), en una sección «## Relevo»: ` +
-    'qué está hecho, qué falta, el paso siguiente y qué hay que leer primero, en rangos fichero:líneas y no en ' +
-    'ficheros enteros. Apunta también las búsquedas que ya has hecho y lo que dieron: así la conversación nueva no ' +
-    'repite tu lectura. Si la conversación no trabaja en un área, escribe el relevo en tu mensaje final. Termina el ' +
-    `mensaje con ${MARCA_RELEVO}: el hook Stop te deja parar así sin la comprobación, y el dueño seguirá en una ` +
-    'conversación nueva. Después de ese relevo esta conversación ya no podrá editar ficheros.'
+    `en ${rutaDelRelevo(checkout)}: qué está hecho, qué falta, el paso siguiente y qué hay que leer primero, ` +
+    'en rangos fichero:líneas y no en ficheros enteros. Apunta también las búsquedas que ya has hecho y lo que ' +
+    `dieron: así la conversación nueva no repite tu lectura. Termina el mensaje con ${MARCA_RELEVO}: el hook ` +
+    'Stop te deja parar así sin la comprobación, y el dueño seguirá en una conversación nueva. Después de ese ' +
+    'relevo esta conversación ya no podrá editar ficheros.'
   );
 }
 
@@ -144,7 +147,7 @@ export function avisoParaElDueno(tokens: number): string {
 export function avisoDeRelevoPasado(tokens: number): string {
   return (
     `Claude ha parado con ${MARCA_RELEVO} (contexto: ${miles(tokens)} tokens). Sigue en una conversación nueva: ` +
-    'el aviso de inicio te dirá qué área tiene el relevo. La comprobación no se ha ejecutado.'
+    'el aviso de inicio te dirá qué carril tiene el relevo. La comprobación no se ha ejecutado.'
   );
 }
 
@@ -155,7 +158,7 @@ export const NOTA_DE_RELEVO_ANTES_DE_TIEMPO =
 /** Lo que ve Claude si intenta editar después de pasar el relevo (hook bloquear-tras-relevo). */
 export const MOTIVO_EDICION_TRAS_RELEVO =
   `Esta conversación ya ha pasado el relevo (${MARCA_RELEVO}) y no edita más ficheros: el dueño sigue en una ` +
-  'conversación nueva, que lee la sección «## Relevo». Si falta algo, dilo en tu mensaje y para; si necesitas ' +
+  `conversación nueva, que lee el relevo (${RUTA_DEL_RELEVO}). Si falta algo, dilo en tu mensaje y para; si necesitas ` +
   `una decisión, termina con ${MARCA_DECISION_PENDIENTE}.`;
 
 /** Lo que ve Claude si el Stop falla en una conversación que ya ha pasado el relevo: no puede arreglarlo. */
@@ -168,21 +171,21 @@ export const NOTA_TRAS_RELEVO =
 // Relevos pendientes
 // ---------------------------------------------------------------------------
 
-/** Áreas con un relevo pendiente: los docs/areas/<ÁREA>.md que tienen una sección «## Relevo». */
-export function areasConRelevo(raiz: string): string[] {
-  const carpeta = path.join(raiz, CARPETA_DE_AREAS);
-  if (!existsSync(carpeta)) return [];
-  return readdirSync(carpeta)
-    .filter((nombre) => nombre.endsWith('.md') && nombre !== 'plantilla.md')
-    .filter((nombre) => /^## Relevo\s*$/m.test(readFileSync(path.join(carpeta, nombre), 'utf8')))
-    .map((nombre) => nombre.replace(/\.md$/, ''))
-    .toSorted((a, b) => a.localeCompare(b));
+/** Ruta absoluta del relevo del checkout. */
+function rutaDelRelevo(checkout: string): string {
+  return path.join(checkout, RUTA_DEL_RELEVO);
 }
 
-export function avisoDeRelevoPendiente(areas: readonly string[]): string {
-  const ficheros = areas.map((area) => `${CARPETA_DE_AREAS}/${area}.md`).join(', ');
+/** Los checkouts de `checkouts` con un relevo pendiente: los que tienen un reports/relevo.md. */
+export function carrilesConRelevo(checkouts: readonly string[]): string[] {
+  return checkouts.filter((checkout) => existsSync(rutaDelRelevo(checkout)));
+}
+
+/** Aviso de inicio para los checkouts de carrilesConRelevo, con la ruta absoluta de cada relevo. */
+export function avisoDeRelevoPendiente(checkouts: readonly string[]): string {
+  const ficheros = checkouts.map(rutaDelRelevo).join(', ');
   return (
-    `Relevo pendiente en ${ficheros}. Si sigues con esa área, lee primero su sección «## Relevo» y bórrala: ` +
-    'el próximo relevo escribirá una nueva.'
+    `Relevo pendiente en ${ficheros}. Si sigues en ese carril, lee primero el relevo y bórralo: ` +
+    'el próximo relevo escribirá otro.'
   );
 }

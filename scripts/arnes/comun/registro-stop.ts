@@ -10,7 +10,7 @@
 import path from 'node:path';
 import { BLOQUEOS_PARA_FRENAR } from './freno-stop.ts';
 import { anotarLinea, leerLineas, parsearLineas } from './jsonl.ts';
-import type { Fase } from './protegidas.ts';
+import type { Fase } from './fases.ts';
 
 // Fuera de git (.gitignore): cada copia del repositorio lleva su propio registro.
 const RUTA_REGISTRO_STOP = '.claude/registro-stop.jsonl';
@@ -37,8 +37,13 @@ export interface ParadaStop {
   readonly entorno?: string;
   /** Áreas cerradas (config/alcance.json) en ese momento. */
   readonly areasCerradas?: readonly string[];
-  /** El área en curso de la conversación (ARNES_AREA), si tenía una. */
+  /** El área en curso del checkout de la conversación, si tenía una. */
   readonly areaEnCurso?: string;
+  /**
+   * Carril del checkout de la conversación (nombreDelCarril en checkout.ts). No está en el directorio
+   * principal.
+   */
+  readonly carril?: string;
   /**
    * Solo en las paradas anteriores a las áreas en curso por worktree: copia de la lista de áreas
    * fuera de alcance, de la que se deducía qué área estaba en curso.
@@ -96,6 +101,8 @@ export interface ResumenDeArea {
   /** Fecha de la primera parada con el área en curso, si la hay. */
   readonly desde: string | undefined;
   readonly sesiones: number;
+  /** Carriles de esas paradas, ordenados; «principal» es el directorio principal. */
+  readonly carriles: readonly string[];
   readonly paradas: number;
   /** Bloqueos por paso de make, de más a menos. */
   readonly bloqueosPorPaso: readonly (readonly [string, number])[];
@@ -114,6 +121,9 @@ export function resumirArea(registro: readonly ParadaStop[], area: string): Resu
     area,
     desde: paradas[0]?.fecha,
     sesiones: new Set(paradas.map((parada) => parada.sesion)).size,
+    carriles: [...new Set(paradas.map((parada) => parada.carril ?? 'principal'))].toSorted((a, b) =>
+      a.localeCompare(b),
+    ),
     paradas: paradas.length,
     bloqueosPorPaso: contarPorPaso(bloqueos),
     erroresDeEntorno: bloqueos.flatMap((parada) => parada.entorno ?? []),
@@ -168,6 +178,7 @@ export function formatearResumen(resumen: ResumenDeArea): string {
   return [
     `${resumen.area}: ${String(resumen.paradas)} paradas del hook Stop en ${String(resumen.sesiones)} conversaciones, ` +
       `desde ${resumen.desde ?? '?'}.`,
+    `  - Carriles: ${resumen.carriles.join(', ')}.`,
     `  - Bloqueos: ${String(bloqueos)}${bloqueos === 0 ? '' : ` (${porPaso})`}.`,
     `  - Por el entorno: ${String(entorno.length)}${entorno.length === 0 ? '' : ` (${entorno.join(', ')})`}.`,
     `  - Con el freno (${String(BLOQUEOS_PARA_FRENAR)}.º bloqueo seguido o más): ${String(resumen.frenos)}.`,

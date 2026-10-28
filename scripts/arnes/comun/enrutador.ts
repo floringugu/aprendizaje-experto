@@ -11,7 +11,7 @@
 // consulta, y a Sonnet el resto. Un fork no se toca: Claude Code le da siempre el modelo de la
 // conversación y no admite otro.
 import { campoTexto } from './entrada-hook.ts';
-import type { Fase } from './protegidas.ts';
+import type { Fase } from './fases.ts';
 
 const IMPLEMENTADOR = 'implementador';
 const AGENTES_CON_MODELO_FIJO: readonly string[] = [IMPLEMENTADOR, 'revisor-codigo', 'revisor-evidencia'];

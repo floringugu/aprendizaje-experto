@@ -4,10 +4,11 @@
 // La lógica está en scripts/arnes/comun/guardia.ts.
 import os from 'node:os';
 import path from 'node:path';
+import { faseYAreaDelCheckout } from '../../scripts/arnes/comun/checkout.ts';
 import { campo, campoTexto, ejecutarHook, leerEntradaHook, responder } from '../../scripts/arnes/comun/entrada-hook.ts';
 import { motivoBloqueoBash, motivoBloqueoFichero } from '../../scripts/arnes/comun/guardia.ts';
 import type { ContextoGuardia } from '../../scripts/arnes/comun/guardia.ts';
-import { faseDeEntorno, leerProtegidas } from '../../scripts/arnes/comun/protegidas.ts';
+import { leerProtegidas } from '../../scripts/arnes/comun/protegidas.ts';
 import { RAIZ } from '../../scripts/arnes/comun/raiz.ts';
 
 function motivoBloqueo(
@@ -28,7 +29,7 @@ ejecutarHook('proteger-rutas', async () => {
     raiz: RAIZ,
     home: os.homedir(),
     entradas: leerProtegidas(RAIZ),
-    fase: faseDeEntorno(process.env),
+    fase: faseYAreaDelCheckout(RAIZ).fase,
   };
   const motivo = motivoBloqueo(campoTexto(entrada, 'tool_name') ?? '', campo(entrada, 'tool_input'), contexto);
   if (motivo === undefined) return;

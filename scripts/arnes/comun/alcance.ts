@@ -1,27 +1,24 @@
-// Qué áreas se comprueban: las cerradas (config/alcance.json) y el área en curso de esta
-// conversación (variable ARNES_AREA, que «make fase» guarda en .claude/settings.local.json).
-// El resto de las áreas está fuera de alcance. Cada worktree tiene su propia área en curso.
+// Qué áreas se comprueban: las cerradas (config/alcance.json) y el área en curso del checkout
+// (faseYAreaDelCheckout en checkout.ts). El resto de las áreas está fuera de alcance. Cada worktree
+// tiene su propia área en curso.
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
+import { esArea, faseYAreaDelCheckout } from './checkout.ts';
+import type { Fase } from './fases.ts';
 import { idDe, leerFeatures } from './gherkin.ts';
-import type { Fase } from './protegidas.ts';
 
 const RUTA_ALCANCE = 'config/alcance.json';
 
 export interface Alcance {
   /** Áreas implementadas y aceptadas: sus escenarios deben seguir en verde. */
   readonly cerradas: readonly string[];
-  /** Área que se implementa en esta conversación, si el dueño la fijó. */
+  /** Área que se implementa en el checkout, si el dueño la fijó. */
   readonly enCurso: string | undefined;
 }
 
-function esArea(valor: string): boolean {
-  return /^[A-Z]{2,6}$/.test(valor);
-}
-
-/** Las áreas cerradas del fichero (ninguna si no existe) y el área en curso de `entorno`. */
-export function leerAlcance(raiz: string, entorno: NodeJS.ProcessEnv): Alcance {
-  return { cerradas: leerAreasCerradas(raiz), enCurso: areaEnCursoDeEntorno(entorno) };
+/** Las áreas cerradas del fichero (ninguna si no existe) y el área en curso del checkout `raiz`. */
+export function leerAlcance(raiz: string): Alcance {
+  return { cerradas: leerAreasCerradas(raiz), enCurso: faseYAreaDelCheckout(raiz).area };
 }
 
 function leerDatos(raiz: string): Record<string, unknown> {
@@ -52,13 +49,6 @@ export function escenariosEnRojo(raiz: string, area: string): readonly string[] 
     );
   }
   return lista as string[];
-}
-
-function areaEnCursoDeEntorno(entorno: NodeJS.ProcessEnv): string | undefined {
-  const valor = entorno['ARNES_AREA'];
-  if (valor === undefined || valor === '') return undefined;
-  if (!esArea(valor)) throw new Error(`ARNES_AREA=${valor} no es un prefijo de área. Usa, por ejemplo, MATE.`);
-  return valor;
 }
 
 /** Áreas cerradas más la del área en curso, sin repetir. Con `conEnCurso` false, solo las cerradas (regresión). */
@@ -102,4 +92,17 @@ export function problemaDeFaseYArea(raiz: string, fase: Fase, area: string | und
   if (!existentes.includes(area)) return `El área ${area} no existe en features/. Hay: ${existentes.join(', ')}.`;
   if (leerAreasCerradas(raiz).includes(area)) return `El área ${area} ya está cerrada (config/alcance.json).`;
   return undefined;
+}
+
+/**
+ * Por qué no se puede cerrar el área `pedida` (make cerrar-area A=<ÁREA>) en el checkout, o undefined
+ * si se puede: tiene que ser su área en curso, que es la que comprueban la aceptación y la cobertura.
+ */
+export function problemaDelAreaACerrar(raiz: string, pedida: string): string | undefined {
+  if (pedida === '') return 'Uso: make cerrar-area A=<ÁREA>';
+  const { area } = faseYAreaDelCheckout(raiz);
+  if (area === pedida) return undefined;
+  return area === undefined
+    ? `Este checkout no tiene área en curso. Fíjala con make fase F=impl A=${pedida}.`
+    : `El área en curso de este checkout es ${area}, no ${pedida}.`;
 }

@@ -1,6 +1,7 @@
 // Hook PreToolUse, PostToolUse y PostToolUseFailure (Bash): toma las huellas de los ficheros
 // protegidos antes de cada comando y, después, devuelve a como estaba lo que el comando haya
 // cambiado en ellos. La lógica está en scripts/arnes/comun/huellas.ts.
+import { faseYAreaDelCheckout } from '../../scripts/arnes/comun/checkout.ts';
 import { campoTexto, ejecutarHook, leerEntradaHook, responder } from '../../scripts/arnes/comun/entrada-hook.ts';
 import { COMO_SE_CAMBIA } from '../../scripts/arnes/comun/guardia.ts';
 import {
@@ -10,7 +11,7 @@ import {
   restaurarCambios,
   tomarHuellas,
 } from '../../scripts/arnes/comun/huellas.ts';
-import { faseDeEntorno, leerProtegidas } from '../../scripts/arnes/comun/protegidas.ts';
+import { leerProtegidas } from '../../scripts/arnes/comun/protegidas.ts';
 import { RAIZ } from '../../scripts/arnes/comun/raiz.ts';
 
 const SIN_HUELLAS =
@@ -24,7 +25,7 @@ ejecutarHook('vigilar-huellas', async () => {
   // Sin tool_use_id no se pueden unir las huellas de antes con las de después.
   if (idComando === undefined) throw new Error('La entrada del hook no trae tool_use_id.');
   const vigilancia = { raiz: RAIZ, almacen: almacenDeHuellas(RAIZ), idComando };
-  const rutas = ficherosConHuella(RAIZ, leerProtegidas(RAIZ), faseDeEntorno(process.env));
+  const rutas = ficherosConHuella(RAIZ, leerProtegidas(RAIZ), faseYAreaDelCheckout(RAIZ).fase);
   if (evento === 'PreToolUse') {
     tomarHuellas(vigilancia, rutas, new Date());
     return;

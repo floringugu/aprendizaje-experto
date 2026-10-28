@@ -22,7 +22,8 @@ import path from 'node:path';
 import { RUTA_AJUSTES_LOCALES } from './ajustes-locales.ts';
 import { estadoConHead, git } from './git.ts';
 import { ficherosVigilados } from './protegidas.ts';
-import type { EntradaProtegida, Fase } from './protegidas.ts';
+import type { Fase } from './fases.ts';
+import type { EntradaProtegida } from './protegidas.ts';
 
 const DIRECTORIO_APARTADOS = 'reports/huellas';
 
