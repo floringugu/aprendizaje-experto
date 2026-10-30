@@ -2,7 +2,7 @@
 
 Archivo del área: qué se decidió al implementarla y cómo fue. Se crea en la primera conversación del área copiando esta plantilla a `docs/areas/<ÁREA>.md`, y se completa al cerrarla (docs/plan.md §16, etapa 4).
 
-Si una conversación del área llega al umbral de contexto (docs/plan.md §5, «Relevo»), añade al final de este fichero una sección «## Relevo» con lo que está hecho, lo que falta, el paso siguiente y lo que hay que leer primero, en rangos `fichero:líneas` y no en ficheros enteros, más las búsquedas ya hechas y lo que dieron. La conversación siguiente la lee y la borra.
+El relevo de una conversación del área no va en este fichero: va en `reports/relevo.md` de su checkout, fuera de git (docs/plan.md §5, «Relevo»).
 
 ## Mecanismo
 

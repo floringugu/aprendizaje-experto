@@ -7,7 +7,7 @@ Este documento es el plan de ingeniería. No es una fuente pedagógica:
 - **Pedagogía.** Todo lo pedagógico sale de `docs/investigacion.md` (en adelante, «el informe»), y solo de ahí.
 - **Ingeniería.** `docs/arnes.md` y `docs/arnes-verificacion.md` orientan cómo se construye el proyecto, pero nunca respaldan una decisión pedagógica.
 
-**Está protegido.** Solo lo cambia el dueño, para que el plan siga siendo el contrato y no se reescriba para encajar con el código. Cuando el dueño aprueba algo nuevo, Claude le prepara una propuesta (un parche en `reports/propuestas/`, §6) y le da los comandos para aplicarla, revisarla y commitearla.
+**Tiene dueño.** Está en `.github/CODEOWNERS` con dueño, así que cambia solo en un PR al que el dueño da el visto bueno (§6), para que el plan siga siendo el contrato y no se reescriba para encajar con el código.
 
 ---
 
@@ -28,7 +28,7 @@ El dueño aprobó el 18-10-2026 todas las decisiones del §14 y todas las propue
 | Nivel de evidencia nuevo (§14.10) | «Extrapolación del autor», junto a los tres del informe. | `config/parametros.json` |
 | FSRS (§14.13) | <ul><li>`ts-fsrs` en `src/infraestructura`, detrás de una interfaz del dominio.</li><li>Su instalación necesita otra aprobación: en la etapa 2 se presentan su licencia, su mantenimiento y su tamaño.</li></ul> | Etapa 2 (evaluación) y etapa 4 |
 | Etapa 3 (§14.14) | Casos de uso vacíos en `src/aplicacion/` que lanzan «Sin implementar», en un commit de código aparte del de los steps. | Etapa 3 |
-| Plan protegido (§14.15) | `docs/plan.md` entra en `.claude/protegidas.txt`, sin fase que lo desbloquee. | Ya aplicado |
+| Plan con dueño (§14.15) | `docs/plan.md` tiene dueño en `.github/CODEOWNERS`: cambia solo con el visto bueno del dueño. | Ya aplicado |
 | `npm audit` (§14.18) | Se ignoran por ahora los 2 avisos de `qs` (solo afectan al desarrollo); se revisan cuando salga una versión nueva de Stryker. | — |
 | Formato del contenido (etapa 2) | <ul><li>JSON, un fichero por dominio en `contenido/<dominio>.json`, validado por la aplicación y sin dependencias.</li><li>Campos: `dominio`, `objetivos` (en orden de avance, con `instruccion` y `ejemplos_resueltos` con sus `pasos`), `categorias` (con `descripcion`, obligatoria desde el 24-10-2026, y `grupo_parecidas`), `items` (`objetivo`, `categoria`, `tipo` «hecho» o «problema», `diagnostico`, `reservado` (opcional; 24-10-2026, ver «Transferencia»), `enunciado`, `respuesta` con `opciones` + `correcta` o con `aceptadas`, y `feedback`) y `tareas` (con `rubrica`: criterios con sus niveles, y cada nivel con su descriptor).</li><li>Las `opciones` de un ítem son distintas después de normalizarlas como la corrección (espacios y mayúsculas); si no, elegir la repetida contaría como acierto (24-10-2026).</li><li>Un objetivo y cada ejemplo resuelto pueden llevar `diagrama` (24-10-2026): un SVG escrito como texto, que empieza por `<svg` y acaba en `</svg>`. La aplicación lo enseña siempre como imagen (`<img>`), así que no ejecuta sus scripts ni carga nada de fuera; un `diagrama` que no es SVG es un error de formato. Viene de la codificación dual (§3: «Diagramas integrados con el texto (no "por estilo")»), prometedora y sin metaanálisis verificado, y el campo es extrapolación. SVG y no Mermaid u otro lenguaje de diagramas porque no añade dependencias.</li><li>La corrección siempre es automática; nunca hay autoevaluación.</li><li>Las tareas no llevan `diagnostico`: las «tareas simples» del diagnóstico son ítems de tipo «problema».</li></ul> | Etapas 3 y 4 |
 | Una persona por instalación (etapa 2) | Sin cuentas ni perfiles; varios dominios por instalación. | Toda la aplicación |
@@ -52,7 +52,7 @@ El dueño aprobó el 18-10-2026 todas las decisiones del §14 y todas las propue
 | Campo `fuente` (20-10-2026; objetivos y categorías, 24-10-2026) | <ul><li>Opcional en objetivos, categorías, ítems, ejemplos resueltos y tareas. En un objetivo, cita de dónde sale su instrucción; en una categoría, dónde describe el material ese tipo de problema. Se conserva al aprobar, para que «Ver fuente» siga disponible.</li><li>Forma: `{documento, lugar, fragmento}`. `lugar` es la página, la diapositiva o el apartado, y `fragmento`, el texto citado tal cual.</li><li>El contenido escrito a mano no lo lleva.</li></ul> | Formato del contenido, `MATE` |
 | Interfaz (20-10-2026) | Solo móvil; tema claro, oscuro o automático; Selawik; movimiento con muelles; vibración con interruptor; emparejamiento por QR (§17). | `src/interfaz/` |
 | Inicio de sesión de Claude Code (20-10-2026) | Botón en Ajustes. Corta a los 5 minutos y tiene «Cancelar». La aplicación nunca guarda, registra ni muestra credenciales (§17.6). | `MATE` |
-| Diseño de módulos (20-10-2026) | <ul><li>Antes del código de cada fichero nuevo de `src/`: el comentario de su interfaz y sus firmas, y al menos otra interfaz radicalmente distinta (*A Philosophy of Software Design*; `docs/arnes.md`, §6).</li><li>`revisor-codigo` busca además las 14 señales de alarma de Ousterhout y anota la deuda de diseño del código de áreas anteriores.</li><li>Esa deuda vive en `docs/deuda-diseno.md` (protegido, salvo en la fase `impl`, donde la conversación principal lo edita). Al abrir cada área, el dueño elige qué partidas se pagan: al menos una o una línea con el porqué. Se pagan antes que el área, en un cambio que solo refactoriza.</li><li>ESLint prohíbe en `src/` una lista de nombres vagos (`id-denylist`).</li></ul> | Etapa 4, §7 y ESLint |
+| Diseño de módulos (20-10-2026) | <ul><li>Antes del código de cada fichero nuevo de `src/`: el comentario de su interfaz y sus firmas, y al menos otra interfaz radicalmente distinta (*A Philosophy of Software Design*; `docs/arnes.md`, §6).</li><li>`revisor-codigo` busca además las 14 señales de alarma de Ousterhout y anota la deuda de diseño del código de áreas anteriores.</li><li>Esa deuda vive en `docs/deuda-diseno.md`, que está en la lista blanca de CODEOWNERS: lo edita la conversación principal de la fase `impl`. Al abrir cada área, el dueño elige qué partidas se pagan: al menos una o una línea con el porqué. Se pagan antes que el área, en un cambio que solo refactoriza.</li><li>ESLint prohíbe en `src/` una lista de nombres vagos (`id-denylist`).</li></ul> | Etapa 4, §7 y ESLint |
 | Enrutador de modelos (24-10-2026, simplificado el 25-10-2026) | <ul><li>En la etapa 4, la conversación principal escribe los comentarios de interfaz y las firmas, y encarga los cuerpos y los tests unitarios al subagente `implementador`.</li><li>El implementador usa siempre Sonnet (`model: sonnet` en su cabecera); un hook le quita el modelo que pase Claude. Sin etiquetas `Tarea:` y `Ficheros:`, sin escalera de modelos y sin registro de encargos: ninguno de esos mecanismos tenía un dato que los justificara.</li><li>Los revisores usan siempre el modelo de su cabecera.</li></ul> | Etapa 4, §5 y §7 |
 | Relevo obligatorio (25-10-2026) | <ul><li>El umbral sigue en 120 k tokens (desde el 30-10-2026, 145 k; §5); no se compacta.</li><li>Tras el primer `[RELEVO]` aceptado, la conversación ya no edita ficheros y `[RELEVO]` no deja parar otra vez: vuelven las reglas normales del hook Stop.</li><li>Dato del 22 al 24-10: 23 de 43 conversaciones acabaron en relevo, algunas hasta 7 veces, y pasado el umbral la marca salía sin comprobación siempre.</li></ul> | §5 |
 | Ningún mecanismo sin un dato (25-10-2026) | No se añade un mecanismo al arnés sin un dato de los registros (`.claude/registro-*.jsonl`, `reports/`, transcripts) que muestre el problema que resuelve. | §1 (principio 7) y CLAUDE.md |
@@ -63,7 +63,7 @@ El dueño aprobó el 18-10-2026 todas las decisiones del §14 y todas las propue
 | Material guardado (24-10-2026, §17.8) | <ul><li>En `material/<dominio>/`, en la carpeta de datos, junto a `contenido/`: `indice.json` (el material en el orden en que se añadió, con las rutas de sus ficheros), los originales, los PDF convertidos, las copias de las URL (`web-<n>.html`) y los textos (`<nombre>.texto.json`, una cadena por página).</li><li>Fuera de git: son documentos con derechos de autor y apuntes personales. Dónde está la carpeta de datos se decide con el servidor.</li><li>Un fichero con el mismo nombre que otro ya añadido lo sustituye: las citas apuntan al documento por su nombre.</li></ul> | `MATE` |
 | Adaptadores de `MATE` (24-10-2026, §17.8) | <ul><li>Los hace `PANT`, el área que monta el servidor: `Ficheros` en disco, `soffice --headless --convert-to pdf`, `fetch`, `claude -p`, `claude auth login` y `claude auth status --json`, y `setTimeout`.</li><li>Hasta entonces serían código muerto: la única entrada de `knip` en `src/` es `src/interfaz/servidor.ts`, que aún no existe. `MATE` hace `src/dominio` y `src/aplicacion`, que es lo que comprueban los escenarios.</li></ul> | `MATE` y el área del servidor |
 | Reglas de `MATE` que la feature no cubre (24-10-2026) | <ul><li>Una pieza que cuelga de un objetivo aún pendiente no se aprueba antes que él, porque el contenido aprobado quedaría con un objetivo que no existe: se rechaza con `objetivo_pendiente`. Igual con un ítem cuya categoría está pendiente: `categoria_pendiente`.</li><li>La petición a la IA lleva los objetivos aprobados, con su id y su instrucción, las categorías aprobadas, con su id, su descripción y su grupo, para que pueda colgar piezas de ellos, y las tareas aprobadas, con su id y su enunciado y en su orden, para que pueda decir dónde va cada tarea nueva.</li><li>Si la IA entrega un id que ya está en el contenido aprobado o en el borrador, la aplicación le da el siguiente libre con el mismo prefijo. Las piezas de la misma entrega que lo citan, como los ítems de un objetivo o de una categoría nuevos o una tarea cuyo `antes_de` es una tarea nueva, cambian con él: si no, dos redacciones que crean «O4» dejarían los ítems de la segunda colgando del O4 de la primera.</li><li>Una corrección que deja un id repetido, como un ejemplo de dentro de un objetivo con el id de otra pieza, se rechaza con `campo` `id`.</li><li>Una corrección que hace colgar un ítem de un objetivo que no está ni en el borrador ni en el aprobado se rechaza con `campo` `objetivo`: el ítem nunca se podría aprobar. Igual con una categoría que no está en ninguno de los dos: `campo` `categoria`.</li><li>Una tarea del borrador puede llevar `antes_de`, con el id de la tarea que va justo detrás, aprobada o del borrador (T4, §17.6); sin él, va al final, como antes. El campo es solo del borrador y no pasa al contenido. Al aprobarla, entra delante de la primera tarea aprobada que se encuentra siguiendo los `antes_de`: si el suyo apunta a una tarea pendiente, se sigue el de esa. Si la cadena se corta antes de llegar a una aprobada, o vuelve a una tarea por la que ya ha pasado, va al final. Así da igual en qué orden se aprueben, y no hace falta rechazar nada.</li><li>Al descartar una tarea, las que llevaban `antes_de` hacia ella pasan a llevar el suyo, o ninguno si ella no lo llevaba: siguen en el mismo sitio de la cadena. Un `antes_de` de la IA que no está ni en el aprobado ni en la entrega se quita. Una corrección con un `antes_de` así, o que apunta a la propia tarea, se rechaza con `campo` `antes_de`.</li><li>«Ver fuente» enseña la página donde está el fragmento y, solo si no aparece, la que dice `lugar`: la IA puede contar las páginas impresas, que en un libro no coinciden con las del PDF.</li></ul> | `MATE` |
-| Petición a la IA de `MATE` (24-10-2026) | <ul><li>El texto vive en `config/peticion-ia.md`, protegido con `@specs`: solo cambia en una conversación de especificación, y `revisor-evidencia` lo revisa.</li><li>La aplicación lo lee por `Dependencias` en cada redacción y lo manda tal cual, con el documento, los objetivos aprobados, las categorías aprobadas y las tareas aprobadas. Si falta, la redacción falla con un error claro.</li><li>Cada exigencia empieza por su id. Su origen está en el §17.6, no en el fichero.</li><li>Un test comprueba que el doble de `RedactorIa` recibe el texto sin cambios. Si la IA lo cumple lo juzga el dueño al revisar cada pieza.</li><li>Descartados: una constante en `src/`, que cambiaría en cualquier conversación de la etapa 4, y el adaptador, porque cada proveedor tendría su copia.</li></ul> | `MATE` |
+| Petición a la IA de `MATE` (24-10-2026) | <ul><li>El texto vive en `config/peticion-ia.md`, con dueño (`.github/CODEOWNERS`): cambia en una conversación de especificación, en un PR con el visto bueno del dueño, y `revisor-evidencia` lo revisa.</li><li>La aplicación lo lee por `Dependencias` en cada redacción y lo manda tal cual, con el documento, los objetivos aprobados, las categorías aprobadas y las tareas aprobadas. Si falta, la redacción falla con un error claro.</li><li>Cada exigencia empieza por su id. Su origen está en el §17.6, no en el fichero.</li><li>Un test comprueba que el doble de `RedactorIa` recibe el texto sin cambios. Si la IA lo cumple lo juzga el dueño al revisar cada pieza.</li><li>Descartados: una constante en `src/`, que cambiaría en cualquier conversación de la etapa 4, y el adaptador, porque cada proveedor tendría su copia.</li></ul> | `MATE` |
 | Categorías en el borrador (24-10-2026) | <ul><li>La IA redacta categorías como una pieza más del borrador: `{id, descripcion, grupo_parecidas?, fuente?}`, con sus marcas. En la revisión van en el grupo sin objetivo, con las tareas.</li><li>Sin ellas la IA no podría poner `categoria` con sentido, y un dominio hecho solo con borradores no llegaría al intercalado ni al paso a avanzado (MAST-6.2), que usan problemas de categorías intercalables.</li><li>El informe respalda el intercalado solo para discriminar categorías o problemas parecidos (§3); que juntar categorías que no se confunden reste es lectura del autor. Por eso la `descripcion` dice cómo reconocer la categoría y `grupo_parecidas` solo junta las que se confunden (C1 y C2, §17.6).</li></ul> | Formato del contenido, `MATE` |
 | Comprobación y aprobación de los borradores (24-10-2026) | <ul><li>**Con reglas, sin IA:** las opciones repetidas son un error de formato (fila «Formato del contenido»); un ejemplo resuelto con menos de 2 pasos lleva la marca «Un solo paso»; `diagnostico` se pone a `false` en todo lo que entrega la IA.</li><li>La IA nunca marca `diagnostico`; lo marca el dueño al corregir. Con un solo documento la IA no sabe cuál es el núcleo conceptual del dominio, y un ítem trivial marcado haría que un novato diera el objetivo por dominado y empezara sin ejemplos resueltos.</li><li>**Solo el dueño, al leer cada pieza:** las demás exigencias del §17.6.</li><li>Se propusieron y no se adoptaron otras reglas: listas de palabras (elogios, autoexplicación), feedback igual a la respuesta, descriptores repetidos y grupos de una sola categoría.</li><li>Se quita «Aprobar las N sin marca». Que una pieza no tenga marca solo dice que su cita está en el documento, no que la pieza sea buena. Cada pieza se aprueba una a una; las marcas avisan, pero no impiden aprobar.</li></ul> | `MATE` |
 | Cobertura del informe (24-10-2026) | <ul><li>`docs/cobertura-investigacion.md` tiene una fila por cada técnica del §3 del informe y por cada técnica, métrica e instrumento del §4. Cada fila dice qué regla de `features/` la cubre o por qué no.</li><li>Ninguna fila se queda sin decisión: está cubierta o por escribir, no se cubre por una decisión de este plan (deliberado o excluido), o espera a una decisión pendiente (la transferencia a casos nuevos y el feedback de la fase avanzada entre evaluaciones externas).</li><li>Quien cambia una feature o el informe actualiza sus filas en la misma conversación, y `revisor-evidencia` comprueba la tabla (§7).</li><li>El fichero no está protegido. Las razones de «deliberado» y «excluido» viven en este plan, y el revisor comprueba que estén.</li></ul> | `features/` (fase specs) y `revisor-evidencia` |
@@ -77,12 +77,12 @@ El dueño aprobó el 18-10-2026 todas las decisiones del §14 y todas las propue
 | Principio | Mecanismo que lo vigila |
 |---|---|
 | 1. Nada que no esté en el informe; si falta algo, se para y se pregunta. | <ul><li>Cada Feature, Rule y Scenario lleva una etiqueta de procedencia, `@evidencia-<sección>` o `@extrapolacion`, y `cobertura-ids` comprueba que la sección existe en el informe.</li><li>El subagente `revisor-evidencia` revisa el contenido.</li><li>Para preguntar, Claude termina su mensaje con la marca `[DECISIÓN PENDIENTE]` (§5).</li></ul> |
-| 2. Las extrapolaciones viven en `config/parametros.json`, cada una con su valor, su sección, su nivel de evidencia y la marca `extrapolacion`. | <ul><li>`cobertura-ids` valida el fichero.</li><li>ESLint prohíbe los números sueltos en `src/` (salvo 0 y 1) y obliga a leer los umbrales del fichero de parámetros.</li><li>El fichero está protegido: solo se edita en la fase `specs`.</li></ul> |
+| 2. Las extrapolaciones viven en `config/parametros.json`, cada una con su valor, su sección, su nivel de evidencia y la marca `extrapolacion`. | <ul><li>`cobertura-ids` valida el fichero.</li><li>ESLint prohíbe los números sueltos en `src/` (salvo 0 y 1) y obliga a leer los umbrales del fichero de parámetros.</li><li>El fichero tiene dueño: se edita en la fase `specs` y cambia con su visto bueno.</li></ul> |
 | 3. No se implementa nada de la sección «Mitos» (§5 del informe). | `revisor-evidencia` tiene la lista de los 11 mitos, incluidas sus versiones disfrazadas, como las metas de horas o adaptar la enseñanza al «tipo de aprendiz». |
 | 4. El progreso se mide solo por el rendimiento observado; la confianza declarada sirve solo para calibrar. | <ul><li>`revisor-evidencia`.</li><li>Escenarios negativos en la etapa 2: declarar mucha confianza no hace avanzar.</li></ul> |
 | 5. La aplicación no inventa contenido del dominio. Lo aporta la persona: lo escribe ella o lo extrae una IA de su propio material, siempre citando de dónde sale, y nada entra en la práctica sin que la persona lo apruebe. | <ul><li>`revisor-evidencia` y `revisor-codigo`.</li><li>El dominio de prueba es ficticio y se carga como datos.</li><li>Los borradores viven en un fichero aparte y el motor solo lee el contenido aprobado.</li><li>La aplicación comprueba que cada cita aparece tal cual en su documento; si no, marca la pieza y no deja aprobarla en bloque.</li><li>Un escenario negativo de `MATE` comprueba que un borrador nunca aparece en una sesión.</li></ul> |
-| 6. Las reglas se hacen cumplir con hooks, tests e integración continua. | <ul><li>Este documento.</li><li>No hay repositorio remoto, así que la integración continua es local por ahora (§14, decisión 16).</li></ul> |
-| 7. No se añade un mecanismo al arnés sin un dato de los registros que muestre el problema. | <ul><li>CLAUDE.md.</li><li>Una propuesta de arnés cita el dato (`.claude/registro-stop.jsonl`, `reports/`, transcripts) que la motiva; sin dato, para con `[DECISIÓN PENDIENTE]`.</li><li>Los registros son pocos a propósito: `registro-stop.jsonl` y `registro-contexto.jsonl`. El del enrutador se quitó el 25-10-2026 por falta de uso.</li></ul> |
+| 6. Las reglas se hacen cumplir con hooks, tests e integración continua. | <ul><li>Este documento.</li><li>La integración continua de GitHub (`.github/workflows/puerta.yml`) es obligatoria para fusionar en main (§14, decisión 16).</li></ul> |
+| 7. No se añade un mecanismo al arnés sin un dato de los registros que muestre el problema. | <ul><li>CLAUDE.md.</li><li>Un cambio de arnés cita el dato (`.claude/registro-stop.jsonl`, `reports/`, transcripts) que la motiva; sin dato, para con `[DECISIÓN PENDIENTE]`.</li><li>Los registros son pocos a propósito: `registro-stop.jsonl` y `registro-contexto.jsonl`. El del enrutador se quitó el 25-10-2026 por falta de uso.</li></ul> |
 
 ---
 
@@ -109,40 +109,45 @@ Todas son dependencias de desarrollo. La aplicación todavía no tiene dependenc
 
 ```
 config/
-  parametros.json        extrapolaciones y umbrales, con su sección del informe (protegido, fase specs)
-  alcance.json           áreas cerradas, que la regresión de make check vigila (protegido, solo el dueño)
+  parametros.json        extrapolaciones y umbrales, con su sección del informe (con dueño, fase specs)
+  alcance.json           áreas cerradas, que la regresión de make check vigila (con dueño)
 contenido/
   <dominio>.json         contenido aprobado: lo único que lee el motor
   borradores/            borradores de MATE pendientes de revisar, un fichero por dominio
 docs/
-  investigacion.md       la única fuente pedagógica (protegido)
-  arnes.md, arnes-verificacion.md   guía de ingeniería (protegidos)
-  plan.md                este documento (protegido)
-  deuda-diseno.md        deuda de diseño pendiente, que se paga al abrir cada área (protegido; se edita en la fase impl)
+  investigacion.md       la única fuente pedagógica (con dueño)
+  arnes.md, arnes-verificacion.md   guía de ingeniería (con dueño)
+  plan.md                este documento (con dueño)
+  deuda-diseno.md        deuda de diseño pendiente, que se paga al abrir cada área (lista blanca; se edita en la fase impl)
   areas/                 archivo de cada área de la etapa 4: mecanismo, interfaces descartadas,
-                         deuda pagada, mutación y bloqueos (plantilla.md)
-features/                Gherkin en español (etapa 2; protegido, fase specs)
+                         deuda pagada, mutación y bloqueos (plantilla.md; lista blanca)
+features/                Gherkin en español (etapa 2; con dueño, fase specs)
 src/
   dominio/               lógica pura: planificador, criterio de dominio, fases, ayuda, calibración
   aplicacion/            casos de uso; los steps de Cucumber solo hablan con esta capa
   infraestructura/       SQLite, reloj, ficheros; implementa las interfaces del dominio
   interfaz/              interfaz web local (punto de entrada: servidor.ts)
 tests/
-  aceptacion/            steps de Cucumber (etapa 3; protegido, fase aceptacion)
-  unidad/                tests del dominio; cada uno cita el @ID que cubre
-  arnes/                 tests del propio arnés (226 tests; protegido)
-scripts/arnes/           scripts de make check y del pre-commit (protegido)
+  aceptacion/            steps de Cucumber (etapa 3; con dueño, fase aceptacion)
+  unidad/                tests del dominio; cada uno cita el @ID que cubre (lista blanca)
+  arnes/                 tests del propio arnés (con dueño)
+scripts/arnes/           scripts de make check y de la CI (con dueño)
 .claude/
   settings.json          hooks de Claude Code
-  settings.local.json    fase de la próxima conversación, con su modelo y esfuerzo (make fase; fuera de git)
+  settings.local.json    fase y área del checkout, con su modelo y esfuerzo (make fase, make abrir; fuera de git)
   hooks/                 código de los hooks
   agents/                subagentes revisor-evidencia, revisor-codigo e implementador
-  protegidas.txt         rutas protegidas
-  registro-stop.jsonl    una línea por parada del hook Stop; también dice si una conversación ya pasó el relevo (fuera de git)
-  registro-contexto.jsonl   una línea por cada tramo de contexto avisado (relevo; fuera de git)
-.githooks/pre-commit     reglas de los commits
-.vscode/tasks.json       tarea del dueño: fase de la próxima conversación (protegido)
-CLAUDE.md                reglas de trabajo de Claude, entre ellas las propuestas (protegido)
+  registro-stop.jsonl    una línea por parada del hook Stop, con su carril; también dice si una conversación
+                         ya pasó el relevo (solo en la carpeta principal; fuera de git)
+  registro-contexto.jsonl   una línea por cada tramo de contexto avisado, con su carril (relevo; fuera de git)
+.github/
+  CODEOWNERS             qué rutas esperan al visto bueno del dueño y cuáles son la lista blanca (§6)
+  workflows/puerta.yml   la CI: los checks rama, mezcla y check (§14, decisión 16)
+.vscode/
+  tasks.json             tareas del dueño: fase, abrir y retirar un carril
+  settings.json          muestra los carriles en el control de código fuente
+reports/relevo.md        relevo pendiente del checkout (§5; fuera de git)
+CLAUDE.md                reglas de trabajo de Claude (con dueño)
 ```
 
 Las carpetas `src/`, `features/`, `tests/aceptacion/` y `tests/unidad/` aún no existen. Se crean en las etapas 2 a 4.
@@ -157,13 +162,13 @@ Los pasos se ejecutan en este orden. La ejecución se para en el primero que fal
 |---|---|---|---|---|
 | 1 | `tipos` | `tsc --noEmit` | hay cualquier error de tipos | `strict` y las opciones del §2 |
 | 2 | `lint` | ESLint, a través de `scripts/arnes/lint.ts`, que añade a cada error una pista de cómo arreglarlo | hay cualquier error | Ver la tabla de abajo |
-| 3 | `duplicacion` | jscpd | más del 1 % del código está duplicado | Bloques de al menos 50 tokens y 5 líneas |
+| 3 | `duplicacion` | jscpd | hay cualquier bloque duplicado | Umbral 0; bloques de al menos 50 tokens y 5 líneas |
 | 4 | `codigo-muerto` | knip | hay ficheros, exports o dependencias sin usar | — |
 | 5 | `capas` | dependency-cruiser | se rompe una regla de capas (ver abajo) | — |
-| 6 | `unidad` | Vitest (`tests/unidad/` y `tests/arnes/`) | falla un test | — |
-| 7 | `aceptacion` | Cucumber, en modo `strict` | un escenario falla, está pendiente o tiene pasos sin definir | Solo las áreas cerradas de `config/alcance.json` (regresión), no el área en curso de la conversación (§6) |
-| 8 | `cobertura-ids` | `scripts/arnes/cobertura-ids.ts` | Ver el §8 | — |
-| 9 | `integridad` | `scripts/arnes/integridad.ts` | un fichero protegido difiere del último commit (cambiado, borrado o nuevo, también sin seguimiento) | — |
+| 6 | `unidad` | Vitest con cobertura v8 (`vitest run --coverage`; `tests/unidad/` y `tests/arnes/`) | falla un test o un fichero de `src/dominio/` no llega al 100 % de cobertura | 100 % por fichero en `src/dominio/`; el resto de `src/` se mide sin umbral (informe en `reports/cobertura/`) |
+| 7 | `specs` | `scripts/arnes/cobertura-ids.ts --solo-specs` | `features/`, sus frases vagas o los parámetros no son válidos (§8) | — |
+| 8 | `aceptacion` | Cucumber, en modo `strict` | un escenario falla, está pendiente o tiene pasos sin definir | Solo las áreas cerradas de `config/alcance.json` (regresión), no el área en curso de la conversación (§6) |
+| 9 | `cobertura-ids` | `scripts/arnes/cobertura-ids.ts` | Ver el §8 | — |
 
 **Reglas de ESLint**
 
@@ -203,20 +208,21 @@ En `tests/` no se aplica el límite de longitud por función, porque un `describ
 | Objetivo | Fase | Pasos |
 |---|---|---|
 | `make check` | impl (por defecto) | Los 9 de la tabla |
-| `make check-specs` | specs (etapa 2) | Del 1 al 6, `specs` (valida `features/`, sus frases vagas y los parámetros; §8) e `integridad` |
-| `make check-aceptacion` | aceptacion (etapa 3) | Del 1 al 6, `specs`, `estado-aceptacion` (los escenarios del área en curso deben fallar en rojo: ni pasar, ni quedar pendientes, ni tener pasos sin definir; los de las áreas cerradas deben seguir en verde) e `integridad` |
+| `make check-specs` | specs (etapa 2) | Del 1 al 7 |
+| `make check-aceptacion` | aceptacion (etapa 3) | Del 1 al 7 y `estado-aceptacion` (los escenarios del área en curso deben fallar en rojo: ni pasar, ni quedar pendientes, ni tener pasos sin definir; los de las áreas cerradas deben seguir en verde) |
 | `make check-implementador` | impl, la del subagente `implementador` (§7) | Del 1 al 6 salvo `codigo-muerto`: cuando devuelve su encargo, la aplicación aún no usa las funciones nuevas del dominio. El resto lo exige después el hook Stop a la conversación principal |
 
 Fuera de `make check` hay ocho objetivos más:
 
 - `make mutacion` (§9);
-- `make cerrar-area A=<ÁREA>` (§6): los pasos de `make check`, pero con la aceptación y la cobertura del área en curso incluidas, que es lo último antes de cerrar el área;
-- `make fase F=<fase> [A=<ÁREA>]` (§6), que es solo tuyo: fija la fase y el área de la próxima conversación;
-- `make abrir`, `make integrar` y `make retirar` (§6), también solo tuyos: un worktree por conversación;
+- `make cerrar-area A=<ÁREA>` (§6): los pasos del 1 al 6, y la aceptación y la cobertura de los IDs con el área en curso incluida, que es lo último antes de cerrar el área;
+- `make fase F=<fase> [A=<ÁREA>] [N=<carril>]` (§6), que es solo tuyo: fija la fase y el área de la carpeta principal o, con `N=`, del carril `N`;
+- `make abrir` y `make retirar` (§6), también solo tuyos: crean y borran un carril (un worktree con su rama);
+- `make rama` (§6), que lanza la conversación de un carril cuando GitHub ha fusionado el PR de su rama: pasa el carril a su rama siguiente;
 - `make bloqueos A=<ÁREA>` (§5), que resume las paradas del hook Stop de un área para su archivo;
 - `make formatear`.
 
-`make fase`, `make abrir`, `make integrar` y `make retirar` también se lanzan desde VS Code, con las tareas de `.vscode/tasks.json` (Ctrl+Shift+P → «Tasks: Run Task»).
+`make fase`, `make abrir` y `make retirar` también se lanzan desde VS Code, con las tareas de `.vscode/tasks.json` (Ctrl+Shift+P → «Tasks: Run Task»).
 
 ---
 
@@ -244,10 +250,6 @@ Están en `.claude/settings.json`:
         "hooks": [{ "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/bloquear-tras-relevo.ts\"", "timeout": 30 }]
       },
       {
-        "matcher": "Bash",
-        "hooks": [{ "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/vigilar-huellas.ts\"", "timeout": 30 }]
-      },
-      {
         "matcher": "Agent",
         "hooks": [{ "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/enrutar-modelo.ts\"", "timeout": 30 }]
       },
@@ -262,18 +264,12 @@ Están en `.claude/settings.json`:
         "hooks": [{ "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/formatear-y-lintear.ts\"", "timeout": 120 }]
       },
       {
-        "matcher": "Bash",
-        "hooks": [{ "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/vigilar-huellas.ts\"", "timeout": 30 }]
+        "matcher": "EnterWorktree",
+        "hooks": [{ "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/anunciar-carril.ts\"", "timeout": 30 }]
       },
       {
         "matcher": "*",
         "hooks": [{ "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/vigilar-contexto.ts\"", "timeout": 30 }]
-      }
-    ],
-    "PostToolUseFailure": [
-      {
-        "matcher": "Bash",
-        "hooks": [{ "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/vigilar-huellas.ts\"", "timeout": 30 }]
       }
     ],
     "Stop": [
@@ -301,50 +297,37 @@ Están en `.claude/settings.json`:
 
 ### SessionStart: `anunciar-fase.ts`
 
-Al empezar cada conversación (y al reanudarla, limpiarla o compactarla), dice en qué fase está:
+Al empezar cada conversación (y al reanudarla, limpiarla o compactarla), dice en qué fase está el checkout de su directorio de trabajo, que es la carpeta principal salvo que la conversación se abra dentro de un carril:
 
-- **A ti**, con un aviso de una línea: la fase con su modelo y su esfuerzo (§6), la comprobación que exigirá el hook Stop, el área en curso, las áreas cerradas y las que tienen un relevo pendiente. Así compruebas que la fase y el área que elegiste con `make fase` o `make abrir` han llegado a los hooks. Si la conversación usa otro modelo que el de la fase, el aviso lo dice y te recuerda `/model`; si Claude Code no envía el modelo, no hay aviso.
-- **A Claude**, como contexto: además, para qué sirve la fase y qué rutas protegidas desbloquea. Si hay un relevo pendiente, que lea la sección «## Relevo» del área antes de nada y la borre.
+- **A ti**, con un aviso de una línea: la fase con su modelo y su esfuerzo (§6), la comprobación que exigirá el hook Stop, el área en curso, las áreas cerradas y los checkouts (la carpeta principal y los carriles) que tienen un relevo pendiente. Así compruebas que la fase y el área que elegiste con `make fase` o `make abrir` han llegado a los hooks. Si la conversación usa otro modelo que el de la fase, el aviso lo dice y te recuerda `/model`; si Claude Code no envía el modelo, no hay aviso.
+- **A Claude**, como contexto: además, para qué sirve la fase y, si hay relevos pendientes, la ruta absoluta de cada `reports/relevo.md`: si sigue en ese carril, lo lee antes de nada y lo borra.
+
+### PostToolUse en EnterWorktree: `anunciar-carril.ts`
+
+Una conversación de carril empieza en la carpeta principal y entra en el carril con `EnterWorktree` (§6). Al entrar, este hook le dice lo mismo que el aviso de inicio, pero del carril: la fase, el área, el objetivo de make que exigirá el hook Stop, el modelo y el esfuerzo de la fase (con el `/model …` que los pone) y el relevo pendiente del carril, si lo hay. A Claude le añade:
+
+- la lista blanca: las rutas de `.github/CODEOWNERS` sin dueño, las líneas de un solo campo, que se fusionan sin tu visto bueno; lo demás lo espera (§6);
+- que los enlaces a ficheros van con la ruta absoluta del carril, porque VS Code los resuelve desde la carpeta principal;
+- que no toque los otros carriles.
 
 ### PreToolUse: `proteger-rutas.ts`
 
 **En Edit, Write, MultiEdit y NotebookEdit,** resuelve la ruta real del fichero (siguiendo los enlaces simbólicos, también a directorios, y los `..`) y la bloquea si cae en:
 
-- una ruta de `.claude/protegidas.txt`, salvo que la fase la desbloquee;
-- `.git/`;
+- el `.git/` de cualquier checkout del repositorio;
+- un carril que no es el checkout de la conversación (se compara con `path.relative`). La carpeta principal no se frena: `main` lo protege GitHub (§6), y lo que no pase por un PR no llega allí;
 - `~/.claude/`, salvo la memoria de un proyecto y los planes del modo plan (`~/.claude/plans/`).
 
-**En Bash,** no busca las rutas protegidas en el texto del comando: un comando puede nombrarlas para leerlas (`cat`, `grep`, `git diff`…). Lo que cambie en ellas lo deshace `vigilar-huellas.ts`. Solo bloquea el comando si:
+**En Bash,** no mira qué ficheros cambia el comando: lo que llegue a `main` pasa por la CI y, fuera de la lista blanca, por tu revisión del PR. Solo bloquea el comando si:
 
 - **Nombra `~/.claude/`** (como `~`, `$HOME`, `${HOME}` o la ruta absoluta), salvo `projects/` y `plans/`.
+- **Nombra otro carril,** con su ruta absoluta o relativa a la carpeta que contiene la principal o al checkout de la conversación.
 - **Intenta saltarse el arnés:**
-  - `git commit --no-verify` o `-n`;
-  - cambiar `core.hooksPath`;
   - tocar la variable `CLAUDECODE` (`env -u`, `env -i`, `CLAUDECODE=`);
-  - fijar `ARNES_FASE`;
-  - `disableAllHooks`;
-  - aplicar un parche (`git apply`, `git am`, `patch`): las propuestas las aplicas tú (§6);
-  - instalar o quitar dependencias (`npm|pnpm|yarn install/i/add/remove/update…`);
-  - nombrar `.git/`, donde están los hooks de git y las copias de las huellas.
+  - `disableAllHooks`.
+- **Instala o quita dependencias** (`npm|pnpm|yarn install/i/add/uninstall/update/link…`): los carriles comparten `node_modules`, así que lo que instale uno lo ven todos. Las dependencias cambian en un PR (`package-lock.json` tiene dueño) y, tras la fusión, haces tú `npm ci`.
 
-El mensaje de bloqueo de una ruta protegida le recuerda a Claude cómo se cambia: con una propuesta y tus comandos, nunca pidiéndote que la edites a mano.
-
-### PreToolUse, PostToolUse y PostToolUseFailure en Bash: `vigilar-huellas.ts`
-
-Vigila los comandos Bash por su efecto, no por su texto (`scripts/arnes/comun/huellas.ts`):
-
-1. **Antes del comando** guarda la huella (sha256) de cada fichero protegido que la fase no desbloquea, más `.claude/settings.local.json`. Guarda también una copia de cada contenido en `.git/arnes-huellas/copias/`, con la suma como nombre: un contenido ya copiado no se vuelve a copiar.
-2. **Después del comando**, haya acabado bien (PostToolUse) o con error (PostToolUseFailure), vuelve a calcular las huellas y deshace lo que haya cambiado:
-   - un fichero cambiado o borrado vuelve a ser la copia de antes del comando;
-   - un fichero nuevo dentro de un directorio protegido se quita;
-   - **salvo lo que al acabar el comando es igual que en el último commit** (HEAD): lo ha puesto ahí un commit o un rebase tuyo mientras corría el comando, y deshacerlo sería borrar tu trabajo.
-3. **La versión que dejó el comando** se aparta en `reports/huellas/<fecha y hora UTC>-<id del comando>/`, con la misma ruta. Se avisa a ti (`systemMessage`) y a Claude (`additionalContext`), y a Claude se le recuerda cómo se cambia una ruta protegida: con una propuesta.
-
-Restaura desde la copia, no desde git: un `git add` o un `git checkout` del comando no cambia lo que se restaura.
-
-En `.claude/settings.local.json` solo cuenta lo que toca al arnés: `env` (la fase), `hooks` y `disableAllHooks`. Claude Code guarda ahí los permisos que aceptas con «Allow always», a veces mientras corre un comando, y esos se quedan.
-
-Cada hook tarda unos 100 ms.
+En Bash ya no se niega nombrar `.git`: daba falsos positivos a los subagentes de búsqueda, y los hooks de git ya no forman parte del arnés.
 
 ### PreToolUse en Agent: `enrutar-modelo.ts`
 
@@ -368,28 +351,27 @@ Formatea con Prettier el fichero que se acaba de editar y le pasa ESLint. Si hay
 En cada llamada, el modelo vuelve a leer el contexto entero de la conversación, así que una conversación larga encarece cada paso. En vez de compactar, el trabajo se pasa a una conversación nueva (`scripts/arnes/comun/relevo.ts`):
 
 1. Después de cada herramienta, el hook lee del transcript de Claude Code el tamaño del contexto de la última llamada: los tokens de entrada más los de la caché.
-2. Al pasar de **145 k tokens**, te avisa a ti y le pide a Claude que acabe el paso en curso sin empezar otro, apunte el estado al final de `docs/areas/<ÁREA>.md` en una sección «## Relevo» (qué está hecho, qué falta, el paso siguiente y qué hay que leer primero, en rangos `fichero:líneas` y no en ficheros enteros, más las búsquedas ya hechas y lo que dieron) y termine con `[RELEVO]`. Los rangos y las búsquedas le ahorran a la conversación nueva repetir la lectura: medido en 74 conversaciones (30-10-2026), cada una leía unos 65 k tokens antes de su primera edición. Si la conversación no trabaja en un área, el relevo va en su mensaje final. El aviso se repite cada 20 k tokens más.
-3. Abres una conversación nueva. El aviso de inicio te dice qué área tiene el relevo, y Claude lee la sección y la borra.
+2. Al pasar de **145 k tokens**, te avisa a ti y le pide a Claude que acabe el paso en curso sin empezar otro, apunte el estado en `reports/relevo.md` de su checkout (fuera de git; el aviso le da la ruta absoluta): qué está hecho, qué falta, el paso siguiente y qué hay que leer primero, en rangos `fichero:líneas` y no en ficheros enteros, más las búsquedas ya hechas y lo que dieron. Después termina con `[RELEVO]`. Los rangos y las búsquedas le ahorran a la conversación nueva repetir la lectura: medido en 74 conversaciones (30-10-2026), cada una leía unos 65 k tokens antes de su primera edición. El aviso se repite cada 20 k tokens más.
+3. Abres una conversación nueva. El aviso de inicio, o el del carril al entrar, te dice qué checkout tiene el relevo, y Claude lo lee y lo borra.
 
 El umbral tiene que quedar por debajo de la autocompactación: con la ventana de 200 k, Claude Code compacta hacia los 167 k, y una conversación compactada ya no llega al relevo. Medido en las 48 conversaciones que pasaron un relevo hasta el 30-10-2026, desde el umbral hasta el `[RELEVO]` se gastaron 10 k tokens de mediana, 22 k en 9 de cada 10 y 40 k como máximo. Con 145 k, 9 de cada 10 llegan al relevo antes de compactar (145 + 22 = 167 k). Hasta el 30-10-2026 el umbral era de 120 k.
 
 El relevo es obligatorio. Cuando el hook Stop acepta el primer `[RELEVO]` de una conversación, lo anota en `.claude/registro-stop.jsonl` (resultado `relevo`) y desde entonces:
 
-- **`bloquear-tras-relevo.ts`**, un hook PreToolUse sobre Edit, Write, MultiEdit y NotebookEdit, niega las ediciones de esa conversación y de sus subagentes (comparten `session_id`). Bash no se frena: lo que cambie ahí lo vigilan las huellas y el pre-commit.
+- **`bloquear-tras-relevo.ts`**, un hook PreToolUse sobre Edit, Write, MultiEdit y NotebookEdit, niega las ediciones de esa conversación y de sus subagentes (comparten `session_id`). Bash no se frena: lo que cambie no llega a `main` sin pasar por la CI y por tu revisión del PR.
 - **El Stop ya no acepta `[RELEVO]`** en esa conversación: vuelven las reglas normales. Si la comprobación falla, Claude no puede arreglarla, y la nota del bloqueo le dice que explique el fallo y pare con `[DECISIÓN PENDIENTE]`; lo arreglas en la conversación nueva.
 
-Los subagentes no cuentan para el umbral: tienen su propio contexto. El último tramo avisado de cada conversación queda en `.claude/registro-contexto.jsonl` (fuera de git), para no repetir el aviso en cada herramienta.
+Los subagentes no cuentan para el umbral: tienen su propio contexto. El último tramo avisado de cada conversación queda en `.claude/registro-contexto.jsonl` de la carpeta principal (fuera de git), con el carril de la conversación, para no repetir el aviso en cada herramienta.
 
 ### Stop: `exigir-check.ts`
 
-Ejecuta la comprobación de la fase (`check`, `check-specs` o `check-aceptacion`). Si falla, no deja a Claude terminar el turno y le pasa las últimas 150 líneas de la salida.
+Ejecuta la comprobación de la fase (`check`, `check-specs` o `check-aceptacion`) en el checkout del directorio de trabajo de la conversación: la carpeta principal o el carril donde ha entrado. Si falla, no deja a Claude terminar el turno y le pasa las últimas 150 líneas de la salida.
 
 Hay una excepción: si el último mensaje de Claude contiene `[DECISIÓN PENDIENTE]`, puede parar para preguntarte. Entonces ves el aviso «la comprobación no se ha ejecutado».
 
 El mensaje del bloqueo cambia según el fallo (`scripts/arnes/comun/freno-stop.ts`):
 
 - **Error del entorno.** Si la salida contiene `EADDRINUSE` (puerto ocupado), `EACCES` (permisos), `ENOSPC` (disco lleno o límite de ficheros vigilados) o «command not found», le dice que no es su código: que no lo toque, te dé el comando que lo arreglaría y pare con `[DECISIÓN PENDIENTE]`.
-- **Falla `integridad`.** Los cambios en rutas protegidas son tuyos: para y te da los comandos.
 - **Freno.** En el tercer bloqueo seguido del mismo paso en la misma conversación, le pide que deje de probar arreglos y escriba en una frase el mecanismo exacto del fallo. Si la causa está en la especificación, el arnés o el entorno, para con `[DECISIÓN PENDIENTE]`.
 - **Cualquier otro fallo:** que arregle la causa, no la comprobación.
 
@@ -399,7 +381,7 @@ El mensaje del bloqueo cambia según el fallo (`scripts/arnes/comun/freno-stop.t
 
 **Sin cambios.** Si el árbol de trabajo no difiere del último commit (`git status` no muestra nada), no hay trabajo que comprobar: la conversación ha sido una consulta, o ya has commiteado lo que había. Claude para sin ejecutar make y ves el aviso «Sin cambios respecto al último commit». Exigirle la comprobación lo empujaría a trabajar en una etapa que nadie le ha pedido. Estas paradas tampoco se anotan.
 
-Cada parada queda en `.claude/registro-stop.jsonl` (fuera de git): la conversación (`session_id`), la fase, el resultado, el paso que falla, las áreas cerradas y el área en curso en ese momento. De ahí salen la cuenta del freno y `make bloqueos A=<ÁREA>`, que resume las paradas de la fase impl con esa área en curso, de todas las conversaciones. Cada worktree (§6) tiene su propio registro, así que `make bloqueos` se ejecuta en el worktree del área antes de integrarlo. Las líneas anteriores al área en curso, que solo copiaban las áreas fuera de alcance, se siguen leyendo.
+Cada parada queda en `.claude/registro-stop.jsonl` de la carpeta principal (fuera de git), un solo registro para todos los checkouts: la conversación (`session_id`), el carril, la fase, el resultado, el paso que falla, las áreas cerradas y el área en curso en ese momento. De ahí salen la cuenta del freno y `make bloqueos A=<ÁREA>`, que resume las paradas de la fase impl con esa área en curso, de todas las conversaciones y todos los carriles, y dice de qué carril es cada una. `make bloqueos` lee el registro del checkout donde se ejecuta, así que se lanza desde la carpeta principal. Las líneas anteriores al área en curso, que solo copiaban las áreas fuera de alcance, se siguen leyendo.
 
 ### SubagentStop: `exigir-check-implementador.ts`
 
@@ -417,84 +399,59 @@ Impide que se cambie la configuración de Claude Code (la del usuario, la del pr
 
 ---
 
-## 6. Rutas protegidas, fases e integridad
+## 6. Visto bueno, fases y carriles
 
-**Rutas** (`.claude/protegidas.txt`):
+**Visto bueno** (`.github/CODEOWNERS`). Todo el repositorio tiene dueño (`* @floringugu`) salvo la **lista blanca**, las rutas que escribe la fase impl:
 
-- los cuatro documentos de `docs/` (el informe, el arnés, su verificación y este plan);
-- `docs/deuda-diseno.md` (fase `impl`);
-- `features/` (fase `specs`);
-- `config/parametros.json` (fase `specs`);
-- `config/alcance.json`;
-- `tests/aceptacion/` (fase `aceptacion`);
-- la configuración de todas las herramientas (ESLint, jscpd, knip, dependency-cruiser, Stryker, Cucumber, Vitest, TypeScript, Prettier), además de `.gitignore`, `package.json`, `package-lock.json` y `Makefile`;
-- el arnés: `.githooks/`, `scripts/arnes/`, `tests/arnes/`, `.claude/`, `.vscode/tasks.json` y `CLAUDE.md`.
+- `/src/`;
+- `/tests/unidad/`;
+- `/docs/areas/`;
+- `/docs/deuda-diseno.md`.
+
+Dentro de ellas vuelve a tener dueño la configuración: `package.json`, `tsconfig*.json`, `.prettierrc*`, `*.config.*` y `.npmrc`. En CODEOWNERS gana la última línea que coincide.
+
+`main` lo protegen dos rulesets de GitHub:
+
+- **«main: CI»,** sin bypass para nadie: no se borra ni se reescribe `main`, la historia es lineal, todo entra por un PR que se fusiona con rebase (0 aprobaciones), y los checks `rama`, `mezcla` y `check` de la CI (§14, fila 16) tienen que estar en verde. No se exige la rama al día con `main`.
+- **«main: visto bueno»,** con la revisión del code owner obligatoria. Su bypass es tuyo, como administrador, y solo en un PR.
+
+Así, un PR que solo toca la lista blanca se fusiona solo cuando pasa la CI (Claude lo deja con auto-merge). Uno que toca una ruta con dueño espera: lo revisas y lo fusionas con bypass, con la casilla «bypass rules» de la web o con `gh pr merge <n> --rebase --admin`. Una CI en rojo no se fusiona ni con bypass. Claude trabaja con tu cuenta de `gh`, así que lo único que le impide usar `--admin`, aprobar un PR o tocar los rulesets y los ajustes del repositorio es `CLAUDE.md` (§11).
 
 **Fases.** Las eliges tú antes de abrir la conversación; Claude no puede cambiarlas:
 
-1. En VS Code, Ctrl+Shift+P → «Tasks: Run Task» → «Arnés: fase de la próxima conversación», y eliges la fase y, si hace falta, el área. Desde un terminal es lo mismo: `make fase F=specs`, o `make fase F=impl A=MATE`. La fase `aceptacion` exige un área; el área tiene que tener su feature y no estar cerrada.
-2. La fase se guarda en `.claude/settings.local.json` (`env.ARNES_FASE`), que está fuera de git, y el área en curso, en `env.ARNES_AREA`. Claude Code pasa esas variables a los hooks. Con ella se guardan el modelo y el esfuerzo con que empieza la conversación (`model` y `effortLevel`): Sonnet con esfuerzo `high` en specs y aceptacion, que escriben specs y steps, y Opus con esfuerzo `xhigh` en impl, donde están el «Mecanismo» y el diseño (`MODELO_POR_FASE` en `scripts/arnes/comun/fases.ts`). Puedes cambiarlos durante la conversación con `/model` y `/effort`.
-3. Abres una conversación nueva de Claude Code. El aviso de `anunciar-fase.ts` te confirma la fase al empezar. Las conversaciones que ya estaban abiertas siguen en la suya.
+1. En VS Code, Ctrl+Shift+P → «Tasks: Run Task» → «Arnés: fase de la próxima conversación», y eliges la fase, el área y, si hace falta, el carril. Desde un terminal es lo mismo: `make fase F=specs`, o `make fase F=impl A=MATE N=pasos`. Sin `N=` actúa sobre la carpeta principal. La fase `aceptacion` exige un área; el área tiene que tener su feature y no estar cerrada. `make fase` se niega si lo lanza Claude (variable `CLAUDECODE` o sin terminal) y, en un carril, si tiene un relevo pendiente, cambios sin commitear o una rama sin fusionar.
+2. La fase se guarda en `.claude/settings.local.json` del checkout (`env.ARNES_FASE`), que está fuera de git, y el área en curso, en `env.ARNES_AREA`. Claude Code pasa esas variables a los hooks. Con ella se guardan el modelo y el esfuerzo con que empieza la conversación (`model` y `effortLevel`): Sonnet con esfuerzo `high` en specs y aceptacion, que escriben specs y steps, y Opus con esfuerzo `xhigh` en impl, donde están el «Mecanismo» y el diseño (`MODELO_POR_FASE` en `scripts/arnes/comun/fases.ts`). Puedes cambiarlos durante la conversación con `/model` y `/effort`.
+3. Abres una conversación nueva de Claude Code. El aviso de `anunciar-fase.ts` (o el de `anunciar-carril.ts`, al entrar en un carril) te confirma la fase. Las conversaciones que ya estaban abiertas siguen en la suya.
 
-| Fase | Desbloquea | Comprobación en Stop |
-|---|---|---|
-| impl (por defecto) | `docs/deuda-diseno.md` | `make check` |
-| specs | `features/` y `config/parametros.json` | `make check-specs` |
-| aceptacion | `tests/aceptacion/` | `make check-aceptacion` |
+| Fase | Comprobación en Stop |
+|---|---|
+| impl (por defecto) | `make check` |
+| specs | `make check-specs` |
+| aceptacion | `make check-aceptacion` |
 
-Al terminar una etapa 2 o 3, vuelve a `impl` antes de abrir la siguiente conversación.
+La fase ya no desbloquea rutas: lo que escribe cada una lo decide tu visto bueno. specs escribe `features/` y `config/parametros.json`, y aceptacion, `tests/aceptacion/`; las dos tienen dueño, así que sus PR siempre te esperan. En la CI, la fase sale del nombre de la rama, y el job `check` ejecuta su objetivo además de `make check`.
 
 **Área en curso y áreas cerradas.** Lo que se comprueba depende de ellas, no de una lista de áreas pendientes:
 
 - **Cerradas** (`areas_cerradas` en `config/alcance.json`, §8): su aceptación debe seguir en verde. Es la regresión.
 - **En curso** (`ARNES_AREA`): la de la conversación. En la fase `impl`, `make check` no le exige la aceptación, porque mientras se implementa está a medias; `make cerrar-area A=<ÁREA>` sí, y es lo último que se ejecuta al cerrarla. En la fase `aceptacion`, `estado-aceptacion` le exige rojo, y verde a las cerradas.
-- El resto de las áreas no se comprueba. Cuando una área se cierra, una propuesta la añade a `areas_cerradas`.
+- El resto de las áreas no se comprueba. Cuando una área se cierra, Claude la añade a `areas_cerradas` en el PR del cierre, que espera a tu visto bueno.
 
-**Worktrees: una conversación = un worktree = una rama = una fase y un área.** Para trabajar en varias áreas a la vez, cada conversación tiene su directorio hermano del principal, con su rama y sus propios ajustes locales. Los lanzas tú, desde el directorio principal (en main):
+**Carriles: un carril = un worktree = una fase y un área.** Para trabajar en varias áreas a la vez, cada línea de trabajo tiene su carril: un directorio hermano de la carpeta principal, con su rama y sus propios ajustes locales. El flujo:
 
-- `make abrir N=<nombre> F=<fase> [A=<ÁREA>]` crea `../<directorio principal>-<nombre>` con `git worktree add -b <nombre> main`, enlaza su `node_modules` al del principal, fija la fase y el área (parte de los ajustes locales del principal, con los permisos que ya aceptaste) y abre una ventana nueva de VS Code. Abres allí la conversación de Claude Code.
-- `make integrar N=<nombre>` pone la rama encima de main con `git rebase`, ejecuta `make check` en el worktree y avanza main con `git merge --ff-only`: main se queda sin commits de fusión. Si hay conflictos, se para con el rebase a medias y lista los ficheros; la conversación de esa rama resuelve los que su fase desbloquea y te da el comando `git -C <worktree> add … && GIT_EDITOR=true git -C <worktree> rebase --continue`, y repites `make integrar`. Si la comprobación falla o main ha avanzado entretanto, no toca main.
-- `make retirar N=<nombre>` borra el worktree y la rama, solo si la rama ya está en main.
+1. **Abrir.** `make abrir N=<carril> F=<fase> A=<ÁREA>`, solo tú y desde cualquier checkout. El área es obligatoria. Hace `git fetch`, crea `../<carpeta principal>-<carril>` con la rama `<fase>/<ÁREA>/<carril>` sacada de `origin/main`, enlaza su `node_modules` al de la carpeta principal y fija la fase, el área, el modelo y el esfuerzo en sus ajustes locales, sin permisos. Imprime «Entra en el carril <carril>.» y no abre ninguna ventana.
+2. **Entrar.** En una conversación nueva de la ventana principal pegas esa frase. Claude llama a `EnterWorktree` con la ruta del carril, y `anunciar-carril.ts` (§5) le dice la fase, el área, la lista blanca, el relevo pendiente y el modelo.
+3. **Trabajar.** El hook Stop ejecuta en el carril el objetivo de su fase si hay cambios sin commitear. La guardia niega las ediciones y los Bash sobre otros carriles (§5); la carpeta principal no se frena.
+4. **Terminar.** Claude hace commits que respetan la regla de mezcla (§10), y después `git push -u origin HEAD`, `gh pr create --fill`, `gh pr merge --auto --rebase` y `gh pr checks --watch`. Nunca hace push a mitad de la conversación. Si hay relevo, lo escribe en `<carril>/reports/relevo.md` y termina con `[RELEVO]`.
+5. **Fusión.** El PR de la lista blanca se fusiona solo; el resto lo fusionas tú con bypass.
+6. **Después de cada fusión,** tú: `git pull --ff-only` en la carpeta principal, y `npm ci` si cambió `package-lock.json`.
+7. **Conversación siguiente del carril.** Si el PR está fusionado, Claude ejecuta `make rama`, que pasa el carril a la rama `<fase>/<ÁREA>/<carril>-2` (y después `-3`…) sacada de `origin/main`. Si no lo está, sigue en la misma rama.
+8. **Cambiar de fase:** `make fase N=<carril> F=… A=…`.
+9. **Retirar,** al acabar la línea de trabajo: `make retirar N=<carril>`. Borra el worktree y todas las ramas locales del carril (`git branch -D`).
 
-Límite honesto: el commit que crea `git rebase --continue` no pasa por el pre-commit (`tests/arnes/worktrees.test.ts` lo comprueba en un repositorio temporal). Por eso `make integrar` ejecuta `make check` después del rebase, y por eso el `rebase --continue` lo lanzas tú: si el conflicto toca una ruta protegida, la resuelves o la revisas antes de continuar. `integridad` compara con el último commit de la rama, así que no detectaría un cambio protegido ya commiteado en ella. El registro del hook Stop (`.claude/registro-stop.jsonl`) es de cada worktree.
+`make fase N=` y `make retirar` se niegan si el carril tiene un relevo pendiente, cambios sin commitear o una rama sin fusionar. Una rama cuenta como fusionada si, tras `git fetch`, `git cherry origin/main <rama>` no devuelve líneas `+`: el rebase de GitHub crea SHAs nuevos, así que no sirve `git merge-base --is-ancestor`.
 
-**Integridad**
-
-- El paso `integridad` compara con git, sin ficheros de sumas: falla si un fichero protegido está cambiado o borrado respecto al último commit, o si hay uno nuevo (también sin seguimiento o preparado pero sin commitear). En un directorio protegido cuenta cada fichero que git no ignora.
-- En las fases `specs` y `aceptacion` no se vigila lo que esa fase desbloquea.
-
-**Cómo cambias lo protegido.** Solo tú:
-
-1. Aplicas una propuesta que cambia un fichero protegido, o revisas lo que ha escrito Claude en una fase.
-2. Commiteas el cambio. El pre-commit rechaza que Claude Code commitee rutas protegidas; si el commit es tuyo, pasa.
-3. `make check` después del commit: `integridad` solo queda en verde cuando lo protegido es igual que en HEAD.
-
-**Propuestas.** Regla dura (`CLAUDE.md`): cuando hay que cambiar algo que Claude no puede tocar (una ruta protegida, la fase, un commit), Claude no te pide que lo edites a mano. Te da los comandos exactos, listos para copiar. Si el cambio es de ficheros protegidos:
-
-1. Claude clona el repositorio fuera de él (en su directorio temporal), hace allí los cambios y comprueba lo que pueda.
-2. Guarda el parche en `reports/propuestas/<AAAA-MM-DD>-<tema>.patch` (fuera de git) y para con `[DECISIÓN PENDIENTE]`.
-3. Tú lo aplicas. `--3way` deja los cambios preparados («Cambios preparados» en el panel de control de código fuente de VS Code), y ahí los revisas:
-
-   ```sh
-   git apply --3way reports/propuestas/<AAAA-MM-DD>-<tema>.patch
-   ```
-
-4. Si te convence, commiteas con el mensaje que te propone Claude y compruebas. `git apply --3way` ya ha dejado el parche preparado, así que el commit no arrastra cambios de otras conversaciones. `make check` va después del commit porque `integridad` compara lo protegido con el último commit:
-
-   ```sh
-   git commit -m "<mensaje que propone Claude>"
-   make check
-   ```
-
-5. Si no te convence, lo deshaces. Antes del commit:
-
-   ```sh
-   git apply -R --index reports/propuestas/<AAAA-MM-DD>-<tema>.patch
-   ```
-
-   Después del commit: `git revert --no-edit HEAD`.
-
-Claude no puede aplicar el parche él mismo: la guardia bloquea `git apply`, `git am` y `patch` (§5).
+`make abrir`, `make retirar` y `make fase` también se lanzan desde VS Code, con las tareas de `.vscode/tasks.json`. `make rama` no es solo tuyo: lo lanza la conversación del carril.
 
 ---
 
@@ -527,7 +484,7 @@ Hay tres. Los dos revisores son de solo lectura: solo tienen Read, Grep y Glob. 
 
 **`implementador`**
 
-- **Qué hace:** escribe los cuerpos y los tests unitarios de un encargo cuyo diseño ya ha decidido la conversación principal: el comentario de la interfaz y las firmas. No cambia las firmas, no toca ficheros fuera del encargo ni rutas protegidas, y no puede lanzar otros subagentes.
+- **Qué hace:** escribe los cuerpos y los tests unitarios de un encargo cuyo diseño ya ha decidido la conversación principal: el comentario de la interfaz y las firmas. No cambia las firmas, no toca ficheros fuera del encargo y no puede lanzar otros subagentes.
 - **Herramientas:** Read, Grep, Glob, Edit, Write y Bash, sin Agent. Los hooks de la conversación principal también vigilan las suyas.
 - **Encargo:** el prompt dice qué ficheros de `src/` y `tests/unidad/` puede tocar y qué comportamiento implementa (con su `@ID`). Un encargo cada vez: la conversación principal espera a que termine antes de tocar sus ficheros.
 - **Modelo:** siempre Sonnet (`model: sonnet` en `.claude/agents/implementador.md`); nunca lo elige Claude: el hook `enrutar-modelo.ts` le quita el que pase (§5). La conversación principal sigue con el modelo con el que la abriste (el de la fase, §6), y los demás subagentes van a Haiku o a Sonnet si Claude no les da modelo (§5).
@@ -596,12 +553,11 @@ Las normas:
 
 ---
 
-## 10. Pre-commit (`.githooks/pre-commit`)
+## 10. Regla de mezcla (CI, job `mezcla`)
 
-Se activa con `npm ci`: el script `prepare` ejecuta `git config core.hooksPath .githooks`. Rechaza el commit si:
+En cada PR, el job `mezcla` de la CI ejecuta `node scripts/arnes/regla-commits.ts --rango <base>..<cabeza>` y rechaza el PR si un commit **mezcla especificación y código**. Especificación es `features/`, `tests/aceptacion/` y `config/`; código es `src/` y `tests/unidad/`. El resto (docs, arnés) puede ir con cualquiera de los dos.
 
-1. **Mezcla especificación y código.** Especificación es `features/`, `tests/aceptacion/` y `config/`; código es `src/` y `tests/unidad/`. El resto (docs, arnés) puede ir con cualquiera de los dos.
-2. **Claude Code intenta commitear un fichero protegido** (lo detecta por la variable `CLAUDECODE`).
+Hasta el 30-10-2026 lo comprobaba un pre-commit local (`.githooks/pre-commit`), que además rechazaba que Claude Code commiteara un fichero protegido. Esa regla de autoría la sustituye el visto bueno de CODEOWNERS (§6).
 
 ---
 
@@ -609,64 +565,56 @@ Se activa con `npm ci`: el script `prepare` ejecuta `git config core.hooksPath .
 
 **Capas, de la primera a la última:**
 
-1. **Guardia textual de Bash.** Bloquea los atajos para saltarse el arnés, también aplicar un parche (las propuestas las aplicas tú), y los comandos que nombran `.git/` o `~/.claude/`.
-2. **Huellas de Bash.** Lo que un comando cambie en las rutas protegidas vuelve a como estaba al acabar el comando, sin depender de cómo esté escrito.
-3. **Guardia de ficheros.** Resuelve la ruta real, así que los enlaces simbólicos y los `..` no sirven para colarse.
-4. **Integridad con el último commit**, en cada `make check`: lo protegido no puede diferir de HEAD. Sin ficheros de sumas que recalcular, un cambio solo se oculta commiteándolo, y eso lo impide el pre-commit.
-5. **Pre-commit:** separa la especificación del código y comprueba la autoría de los ficheros protegidos.
-6. **ConfigChange:** los hooks no se cambian en caliente.
-7. **Tu revisión del diff antes de cada commit.**
+1. **Guardia de ficheros.** Resuelve la ruta real, así que los enlaces simbólicos y los `..` no sirven para colarse en `.git/`, en otro carril o en `~/.claude/`.
+2. **Guardia textual de Bash.** Bloquea los atajos para saltarse el arnés, instalar dependencias y los comandos que nombran otro carril o `~/.claude/`.
+3. **ConfigChange:** los hooks no se cambian en caliente.
+4. **Hook Stop:** la comprobación de la fase antes de terminar cada turno.
+5. **CI obligatoria** (ruleset «main: CI», sin bypass para nadie): el nombre de la rama, la regla de mezcla, `make check`, el objetivo de la fase y `make mutacion`. Un PR en rojo no se fusiona.
+6. **CODEOWNERS y visto bueno** (ruleset «main: visto bueno»): fuera de la lista blanca, nada llega a `main` sin que lo fusiones tú.
+7. **Tu revisión del PR.**
 
 **Límites que conviene conocer:**
 
-- **La guardia de Bash es textual.** Un comando ofuscado (una ruta construida por partes, en base64 o en variables) puede llegar a `.git/` o a `~/.claude/`, también a las copias de las huellas. Por eso existen las capas 4, 6 y 7: lo que no se bloquea, se detecta. Las rutas protegidas del repositorio ya no dependen del texto: las vigilan las huellas.
-- **Las huellas deshacen, no impiden.** Mientras dura el comando, el cambio existe, y el propio comando puede usarlo: por ejemplo, relajar `eslint.config.js` y pasar el lint en la misma línea. Por eso el hook Stop ejecuta `make check` cuando todo ya está restaurado, y lo que el comando deje fuera de las rutas protegidas lo ve tu revisión.
-- **Las huellas no ven los comandos en segundo plano ni los cancelados.** Un comando en segundo plano sigue trabajando después de PostToolUse, y uno cancelado no dispara ningún hook Post. Lo que cambien lo detectan integridad, en el hook Stop (capa 4), y tu revisión.
-- **Si cambias una ruta protegida mientras corre un comando de Claude**, por ejemplo al aplicar una propuesta, las huellas también deshacen tu cambio, salvo que al acabar el comando ya sea igual que en el último commit (si lo commiteas durante el comando, se queda). No se pierde: lo deshecho queda en `reports/huellas/` y el aviso te lo dice. Aplica las propuestas cuando Claude haya parado. Un fichero que tu commit borra sí se vuelve a poner, porque «igual que en HEAD» solo se mira en los ficheros que HEAD tiene.
-- **Las copias de las huellas crecen** en `.git/arnes-huellas/copias/`: una por cada contenido distinto de un fichero protegido. Puedes borrar la carpeta cuando ninguna conversación esté ejecutando comandos.
+- **La guardia de Bash es textual.** Un comando ofuscado (una ruta construida por partes, en base64 o en variables) puede llegar a `~/.claude/` o a otro carril. Lo que cambie en el repositorio no llega a `main` sin la CI y, fuera de la lista blanca, sin tu visto bueno.
 - **`npx <paquete>` puede descargar y ejecutar un paquete** que no está en el lockfile. No cambia `package.json`, pero se ejecuta.
 - **ConfigChange también te bloquea a ti** si cambias la configuración con `/config` durante una conversación. Edita la configuración fuera de Claude Code y abre una conversación nueva. `make fase` también cambia la configuración local, así que las conversaciones abiertas pueden mostrarte ese bloqueo: es lo esperado, y siguen en su fase.
-- **La fase vive en un fichero local** (`.claude/settings.local.json`), fuera de git. Claude no puede editarlo con Edit o Write, porque está dentro de `.claude/`, y si un comando Bash le cambia la fase, los hooks o `disableAllHooks`, las huellas lo deshacen; tú sí puedes. Si lo cambias a mano, el aviso de `anunciar-fase.ts` te muestra la fase con la que empieza cada conversación. El modelo y el esfuerzo que guarda ahí `make fase` no los vigilan las huellas: si cambian, lo ves en ese mismo aviso.
+- **La fase vive en un fichero local** (`.claude/settings.local.json` del checkout), fuera de git, y nada lo vigila: Claude podría cambiarlo con Edit o con Bash. ConfigChange impide que el cambio valga en la conversación en curso, el aviso de inicio (o el del carril) te muestra la fase con la que empieza cada conversación, y la CI no lo lee: saca la fase del nombre de la rama.
 - **Los errores del entorno se reconocen por el texto** de la salida. Un test que imprima `EACCES` a propósito daría un falso aviso; solo le pide a Claude que pare y pregunte.
 - **El freno cuenta bloqueos seguidos del mismo paso.** Si Claude alterna dos pasos que fallan, la racha empieza de cero cada vez. Lo verás en `make bloqueos`.
 - **Los hooks solo vigilan a Claude Code.** A ti no te frenan, a propósito.
 - **Los revisores son un LLM:** su informe orienta, pero no demuestra nada.
-- **El implementador puede tocar ficheros fuera de su encargo.** Nada le limita lo que edita, salvo las rutas protegidas. Lo frenan sus instrucciones, `make check` en la conversación principal y tu revisión del diff.
+- **El implementador puede tocar ficheros fuera de su encargo.** Nada le limita lo que edita, salvo la guardia de ficheros. Lo frenan sus instrucciones, `make check` en la conversación principal, la CI y, fuera de la lista blanca, tu visto bueno.
 - **Un implementador cada vez es una instrucción**, no un bloqueo. Dos a la vez podrían pisarse los ficheros, y la comprobación de uno vería los cambios a medias del otro.
 - **Claude podría escribir código con otro subagente** (`general-purpose`, por ejemplo). Va a Sonnet si Claude no le da modelo, pero si se lo da, el enrutador lo respeta. Lo frenan CLAUDE.md y tu revisión.
 - **Los bloqueos del implementador no se registran:** el hook SubagentStop solo sabe si es el segundo intento (`stop_hook_active`). `make bloqueos` no los cuenta.
-- **Un árbol limpio deja parar sin comprobar.** Si Claude commiteara su propio trabajo en rojo, el hook Stop lo dejaría parar. Lo frenan sus instrucciones (no commitea si no se lo pides), el `make check` que ejecutas después de cada commit y tu revisión.
-- **El índice de Markdown solo vigila Read.** `cat docs/plan.md` en Bash lee el fichero entero; lo frena la regla de CLAUDE.md. Tampoco cubre los `.md` de fuera del repositorio, como el clon de una propuesta.
+- **Un árbol limpio deja parar sin comprobar.** Si Claude commiteara su propio trabajo en rojo, el hook Stop lo dejaría parar. Lo frena la CI: su PR no se fusiona.
+- **El índice de Markdown solo vigila Read.** `cat docs/plan.md` en Bash lee el fichero entero; lo frena la regla de CLAUDE.md. Tampoco cubre los `.md` de fuera del repositorio.
 - **El relevo depende del transcript de Claude Code.** El tamaño sale de su campo `usage`, que puede ir una llamada por detrás y cuyo formato no es una interfaz estable. Si cambia, no hay aviso y `[RELEVO]` no deja parar: el hook Stop exige la comprobación como siempre. Como la marca solo vale por encima del umbral, tampoco sirve para saltarse la comprobación en una conversación corta.
-- **El relevo es una instrucción hasta que Claude lo pasa.** Claude podría seguir trabajando después del aviso; lo ves tú, porque el aviso se repite cada 20 k tokens. Una vez aceptado el `[RELEVO]`, la conversación ya no edita con las herramientas Edit, Write, MultiEdit y NotebookEdit; con Bash sí podría escribir ficheros, y lo cubren las huellas y el pre-commit, no este hook.
+- **El relevo es una instrucción hasta que Claude lo pasa.** Claude podría seguir trabajando después del aviso; lo ves tú, porque el aviso se repite cada 20 k tokens. Una vez aceptado el `[RELEVO]`, la conversación ya no edita con las herramientas Edit, Write, MultiEdit y NotebookEdit; con Bash sí podría escribir ficheros, y lo cubren la CI y tu revisión, no este hook.
 - **El relevo pasado se lee del registro del hook Stop.** Si el registro se pierde, la conversación vuelve a poder editar.
+- **Claude trabaja con tu cuenta de GitHub.** Podría fusionar con `gh pr merge --admin`, aprobar un PR o cambiar los rulesets y los ajustes del repositorio; solo se lo impide `CLAUDE.md`. Es un riesgo aceptado: en la auditoría de 62 sesiones no hubo ningún intento deliberado de saltarse el arnés. Si aparece uno, se replantean las credenciales.
+- **Desde un carril no se frena la carpeta principal.** Claude podría editarla, pero lo que no pase por un PR no llega a GitHub. Lo ves en `git status` antes del `git pull --ff-only`.
+- **La CI usa el arnés de la rama.** Un PR que relaja una comprobación se comprueba con ella relajada. Por eso la configuración y el arnés tienen dueño, también dentro de la lista blanca: ese PR te espera.
+- **La lista blanca se fusiona sin que la veas.** Un PR que solo toca `src/`, `tests/unidad/`, `docs/areas/` o `docs/deuda-diseno.md` entra con la CI en verde. Lo que no mide la CI (diseño, nombres, comentarios) lo señala `revisor-codigo` y lo ves después en `main`.
 - **Que pasen los tests no demuestra eficacia pedagógica.** Lo dirá el README de la etapa 5.
 
 ---
 
 ## 12. Prueba del bloqueo
 
-**1. Invocación directa del hook** con el JSON que envía Claude Code:
+**1. Invocación directa del hook** con el JSON que envía Claude Code, desde una conversación del carril `pasos`:
 
-- **Edit sobre `docs/investigacion.md`** → la respuesta es `permissionDecision: "deny"`, con el motivo:
+- **Edit sobre `/home/florin/aprendizaje-experto-revision/src/dominio/criterio.ts`**, en el carril `revision` → la respuesta es `permissionDecision: "deny"`, con el motivo:
 
-  > «docs/investigacion.md» está protegida (regla «docs/investigacion.md» de .claude/protegidas.txt). Si hay que cambiarla, prepara una propuesta (CLAUDE.md, «Propuestas»): edítala en un clon fuera del repositorio, guarda el parche en reports/propuestas/, dale al dueño los comandos exactos para aplicarlo y para con [DECISIÓN PENDIENTE]. No le pidas que la edite a mano.
+  > No se puede tocar /home/florin/aprendizaje-experto-revision: es otro carril, el de otra conversación. Cada conversación toca solo su carril y la carpeta principal. Si te hace falta algo de allí, dilo en tu mensaje y para con [DECISIÓN PENDIENTE].
 
-- **Bash `echo PRUEBA >> docs/investigacion.md`** → `proteger-rutas.ts` lo deja pasar. `vigilar-huellas.ts` guarda las huellas antes y, al acabar el comando, devuelve el informe a como estaba, aparta la versión del comando en `reports/huellas/` y responde:
-
-  > El comando ha tocado rutas protegidas (.claude/protegidas.txt):
-  >
-  > - docs/investigacion.md: lo cambió el comando y ha vuelto a como estaba.
-  >
-  > La versión que dejó el comando está en reports/huellas/2026-10-24T10-15-30Z-toolu_…/.
-
-  A Claude le añade cómo se cambia una ruta protegida (…prepara una propuesta…).
+- **Bash `cat ../aprendizaje-experto-revision/src/dominio/criterio.ts`** → `deny`, con el mismo motivo: el comando nombra otro carril.
 
 - **Bash `cat ~/.claude/settings.json`** → la respuesta es `deny`: «No se puede tocar ~/.claude/…».
 
-- **Write sobre `src/dominio/criterio.ts`** → no hay respuesta, es decir, el hook lo permite.
+- **Write sobre `src/dominio/criterio.ts` del propio carril, o Edit sobre `docs/investigacion.md`** → no hay respuesta, es decir, el hook lo permite. El informe tiene dueño en CODEOWNERS: el cambio esperará a tu visto bueno en el PR.
 
-**2. Sesión real de Claude Code**
+**2. Sesión real de Claude Code** (histórica: con la guardia de rutas protegidas, anterior a CODEOWNERS)
 
 - **Cómo:** sesión no interactiva (`claude -p`, Claude Code 2.1.302, modelo Haiku) en este repositorio, a la que se pidió añadir una línea «PRUEBA» al final del informe.
 - **Read:** permitido.
@@ -675,18 +623,17 @@ Se activa con `npm ci`: el script `prepare` ejecuta `git config core.hooksPath .
 - **Final:** el modelo informó de los dos bloqueos, no buscó otra vía y terminó con `[DECISIÓN PENDIENTE]`. El hook Stop mostró: «Claude ha parado con [DECISIÓN PENDIENTE]: espera tu decisión. La comprobación no se ha ejecutado.».
 - **Después:** `sha256sum -c` sobre el informe devolvió «La suma coincide».
 
-**3. Tests automáticos.** `tests/arnes/guardia.test.ts` repite estos casos, y más (enlaces simbólicos, `..`, `.git/`, `~/.claude/`, `--no-verify`, `env -u CLAUDECODE`, `npm install`…), en cada `make check`. `tests/arnes/huellas.test.ts` hace lo mismo con las huellas: ficheros cambiados, borrados y creados, un fichero cambiado por un enlace simbólico, los permisos de los ajustes locales y un cambio de fase.
+**3. Tests automáticos.** `tests/arnes/guardia.test.ts` repite estos casos, y más (enlaces simbólicos, `..`, el `.git/` de cada checkout, `~/.claude/`, otros carriles por ruta absoluta y relativa, `env -u CLAUDECODE`, `npm install`…), en cada `make check`.
 
 ---
 
 ## 13. Primeros pasos para ti
 
-1. `cd ~/aprendizaje-experto && npm ci`. Instala las dependencias y activa el pre-commit.
+1. `cd ~/aprendizaje-experto && npm ci`. Instala las dependencias.
 2. Revisa los ficheros. Todo es nuevo.
 3. `make check`. Debe quedar todo en verde, con el aviso de que aún no hay commits.
 4. Commitea todo junto. Está permitido porque todavía no hay código en `src/`: `git add -A && git commit -m "chore: arnés de desarrollo (etapa 1)"`.
-5. `make check` otra vez. Ahora `integridad` también compara lo protegido con el último commit.
-6. Para la etapa 2, elige la fase `specs` con la tarea de VS Code (§6) y abre una conversación nueva.
+5. Para la etapa 2, elige la fase `specs` con la tarea de VS Code (§6) y abre una conversación nueva.
 
 ---
 
@@ -697,7 +644,7 @@ Todas aprobadas por el dueño el 18-10-2026, tal como se proponen en la tabla.
 | # | Decisión | Lo aprobado | Alternativa y por qué no |
 |---|---|---|---|
 | 1 | Límites de ESLint | Complejidad 10, 40 líneas por función, 3 parámetros, 3 niveles de anidamiento, 300 líneas por fichero, 3 callbacks anidados. | Límites más laxos: el código del LLM tiende a funciones largas, y estos límites lo obligan a partirlas en piezas que puedas leer. |
-| 2 | jscpd | 1 % de duplicación, bloques de 50 tokens y 5 líneas. | 0 %: daría falsos positivos en estructuras repetidas legítimas. |
+| 2 | jscpd | Umbral 0: falla cualquier bloque duplicado de 50 tokens y 5 líneas. Aprobado el 28-10-2026; antes era un 1 % del código. | Un porcentaje: con el código creciendo, el 1 % deja pasar cada vez más bloques duplicados. |
 | 3 | Stryker | Umbrales 80 / 60, falla por debajo del 60 %. | Más alto al principio: frenaría sin ayudar; se puede subir cuando el dominio esté estable. |
 | 4 | Capas de `src/` | <ul><li>Las 4 capas del §3.</li><li>`src/dominio/unidades.ts` como único sitio para constantes técnicas.</li></ul> | Menos capas: se perdería la separación entre lo que se puede probar sin base de datos y lo que no. |
 | 5 | Entrada de la interfaz | `src/interfaz/servidor.ts`, declarada en knip. | — |
@@ -709,11 +656,11 @@ Todas aprobadas por el dueño el 18-10-2026, tal como se proponen en la tabla.
 | 11 | `umbral_retirada_ayuda` | Igual al umbral de dominio (0,85), marcado como extrapolación. Es mi lectura de «reducción de la guía cuando el rendimiento sin ayuda supera el umbral» (§4, fase 2). | Un número distinto: el informe no da ninguno. |
 | 12 | Uso de `percentil_experto` (80–90) | <ul><li>La aplicación no calcula percentiles, porque no tiene una muestra de profesionales.</li><li>Guarda el percentil que da el evaluador externo en cada evaluación fechada y lo compara con el mínimo configurado (80).</li><li>Se exigen 2 evaluaciones separadas al menos 3 meses (§4).</li></ul> | Estimar el percentil dentro de la aplicación: el informe no da forma de hacerlo. |
 | 13 | FSRS | <ul><li>Usar `ts-fsrs` en `src/infraestructura`, detrás de una interfaz definida en el dominio.</li><li>En la etapa 2 evalúo su licencia, su mantenimiento y su tamaño, y te los presento antes de instalarlo.</li></ul> | Escribir FSRS desde cero: lo descartaste tú. |
-| 14 | Enfoque de la etapa 3 | <ul><li>Crear en `src/aplicacion/` los casos de uso como funciones vacías que lanzan «Sin implementar».</li><li>Los steps las importan de forma estática, así que los escenarios fallan en rojo de verdad (FAILED, no indefinidos), los tipos se comprueban y las reglas de capas y de knip siguen funcionando.</li><li>Van en un commit de código aparte del de los steps (regla del pre-commit).</li></ul> | Un contrato tipado en `tests/aceptacion/` con import dinámico: tipado más débil, y knip y dependency-cruiser no siguen los imports dinámicos. |
-| 15 | Proteger `docs/plan.md` | Está en `protegidas.txt`, para que el plan no se reescriba para encajar con el código. | Dejarlo libre: más cómodo, pero el plan perdería su papel de contrato. |
-| 16 | Integración continua | <ul><li>No hay repositorio remoto. Mientras tanto, la integración continua son el hook Stop, el pre-commit y tu `make check` antes de cada commit.</li><li>Si subes el repositorio a un servidor, un job que ejecute `npm ci && make check && make mutacion`.</li></ul> | Ejecutar `make check` entero en el pre-commit: haría lentos los commits y chocaría con la etapa 3, en la que todo está en rojo a propósito. |
+| 14 | Enfoque de la etapa 3 | <ul><li>Crear en `src/aplicacion/` los casos de uso como funciones vacías que lanzan «Sin implementar».</li><li>Los steps las importan de forma estática, así que los escenarios fallan en rojo de verdad (FAILED, no indefinidos), los tipos se comprueban y las reglas de capas y de knip siguen funcionando.</li><li>Van en un commit de código aparte del de los steps (regla de mezcla, §10).</li></ul> | Un contrato tipado en `tests/aceptacion/` con import dinámico: tipado más débil, y knip y dependency-cruiser no siguen los imports dinámicos. |
+| 15 | Proteger `docs/plan.md` | Tiene dueño en `.github/CODEOWNERS`, para que el plan no se reescriba para encajar con el código: un cambio espera a tu visto bueno. | Dejarlo libre: más cómodo, pero el plan perdería su papel de contrato. |
+| 16 | Integración continua | <ul><li>GitHub Actions, `.github/workflows/puerta.yml`, en cada PR y en cada push a `main`, con el arnés de la rama.</li><li>Tres jobs: `rama` (el nombre `<fase>/<ÁREA>/<carril>` y que el área exista) y `mezcla` (§10), solo en los PR; y `check`: `npm ci`, la fase y el área de la rama en los ajustes locales, `make check`, el objetivo de la fase en un PR y `make mutacion`.</li><li>Los tres son obligatorios en el ruleset «main: CI», sin bypass (§6). Aprobado el 28-10-2026.</li></ul> | Seguir sin repositorio remoto, con el hook Stop, el pre-commit y tu `make check` antes de cada commit: dependía de que nada se saltara la puerta local, y obligaba a las propuestas para cada ruta protegida. |
 | 17 | Base de datos e interfaz | `node:sqlite` y `node:http`, como en el §2. | — |
-| 18 | `npm audit` | <ul><li>Hay 2 avisos moderados de `qs` (≤ 6.15.3, denegación de servicio), que llega a través de `typed-rest-client`, una dependencia de `@stryker-mutator/core`.</li><li>Solo afecta al desarrollo, no a la aplicación.</li><li>Se ignoran por ahora y se revisan cuando salga una versión nueva de Stryker. `npm audit fix` cambiaría `package-lock.json`, que está protegido, así que lo haría el dueño.</li></ul> | — |
+| 18 | `npm audit` | <ul><li>Hay 2 avisos moderados de `qs` (≤ 6.15.3, denegación de servicio), que llega a través de `typed-rest-client`, una dependencia de `@stryker-mutator/core`.</li><li>Solo afecta al desarrollo, no a la aplicación.</li><li>Se ignoran por ahora y se revisan cuando salga una versión nueva de Stryker. `npm audit fix` cambiaría `package-lock.json`, que tiene dueño, así que el cambio esperaría a su visto bueno.</li></ul> | — |
 
 ---
 
@@ -781,7 +728,7 @@ Resueltas el 18-10-2026: el dueño aprobó cada propuesta (la opción b en la 5,
 
 ## 16. Etapas 2 a 5
 
-Cada etapa, y cada área de la etapa 4, empieza en una conversación nueva de Claude Code en VS Code. Antes de abrirla eliges su fase y su área con la tarea «Arnés: fase de la próxima conversación» (§6), o abres un worktree con `make abrir` si hay otra conversación en marcha, y el aviso del principio te la confirma. Lo que Claude no puede hacer (aplicar una propuesta, cambiar la fase, commitear) te lo deja en comandos exactos, listos para copiar.
+Cada etapa, y cada área de la etapa 4, empieza en una conversación nueva de Claude Code en VS Code. Antes de abrirla eliges su fase y su área con la tarea «Arnés: fase de la próxima conversación» (§6), o abres un carril con `make abrir` y pegas en la conversación nueva «Entra en el carril <carril>.», y el aviso del principio (o el del carril) te la confirma. Al terminar, Claude commitea y abre el PR (§6). Lo que no puede hacer (cambiar la fase, abrir o retirar un carril, actualizar la carpeta principal) te lo deja en comandos exactos, listos para copiar.
 
 ### Etapa 2: especificación
 
@@ -815,7 +762,7 @@ Conversación nueva en la fase `aceptacion`.
 
 - **Steps.** En `tests/aceptacion/`, contra `src/aplicacion` y con las funciones vacías de la decisión 14.
 - **Estado.** Todo en rojo, sin skip, pending ni xfail. `make check-aceptacion` en verde.
-- **Commits.** Dos, que haces tú con los comandos que te doy: los steps y las funciones vacías por separado.
+- **Commits.** Dos, los steps y las funciones vacías por separado (regla de mezcla, §10). El PR espera a tu visto bueno: `tests/aceptacion/` tiene dueño.
 - **Cierre.** **PARA.**
 
 ### Etapa 4: implementación
@@ -830,7 +777,7 @@ Una conversación nueva en la fase `impl` por cada área. El MVP es DIAG, PLAN, 
 
 Para cada área:
 
-1. Abro su archivo, `docs/areas/<ÁREA>.md`, copiando `docs/areas/plantilla.md`. Te propongo qué partidas de `docs/deuda-diseno.md` se pagan con ella: al menos una o, si no, una línea que diga por qué ninguna. Tú eliges. Pago las partidas primero, sin comportamiento nuevo y con `make check` en verde, y paro para que las commitees aparte (`refactor: …`), con los comandos que te doy.
+1. Abro su archivo, `docs/areas/<ÁREA>.md`, copiando `docs/areas/plantilla.md`. Te propongo qué partidas de `docs/deuda-diseno.md` se pagan con ella: al menos una o, si no, una línea que diga por qué ninguna. Tú eliges. Pago las partidas primero, sin comportamiento nuevo y con `make check` en verde, y las commiteo aparte (`refactor: …`).
 2. **Mecanismo.** Solo en las áreas con arquitectura: MATE, PLAN (`ts-fsrs`) y las que añaden una pantalla nueva a la interfaz. Antes de escribir nada en `src/`:
    - explico en prosa cómo funcionará por dentro: qué datos entran, qué módulo hace qué y qué queda guardado;
    - esbozo dos interfaces radicalmente distintas para su módulo central, con sus pros y contras;
@@ -840,9 +787,9 @@ Para cada área:
 3. Escribo el comentario de la interfaz y las firmas de `src/dominio`, y encargo los cuerpos y sus tests unitarios, que citan el `@ID`, al subagente `implementador` (§7). Si lo devuelve en rojo, lo termino yo o lo reencargo con lo que ha aprendido.
 4. Hago lo mismo con la aplicación y la infraestructura necesarias.
 5. Dejo `make check` en verde, que no incluye la aceptación del área en curso.
-6. Cierro el área con `make cerrar-area A=<ÁREA>`: además de lo anterior, exige en verde la aceptación y la cobertura de sus escenarios. Ejecuto los dos revisores, `make mutacion` y `make bloqueos A=<ÁREA>`.
+6. Cierro el área con `make cerrar-area A=<ÁREA>`: además de lo anterior, exige en verde la aceptación y la cobertura de sus escenarios. Ejecuto los dos revisores, `make mutacion` y `make bloqueos A=<ÁREA>`, este desde la carpeta principal, que tiene el registro del hook Stop (§5).
 7. Completo el archivo del área: mecanismo, interfaces descartadas y por qué, deuda pagada, puntuación de mutación y bloqueos del hook Stop.
-8. Apunto en `docs/deuda-diseno.md`, que se edita en la fase `impl`, las partidas nuevas del revisor, las pagadas y la línea del área. Te doy un resumen breve, con la propuesta que añade el área a `areas_cerradas` en `config/alcance.json` (§6) y los comandos para aplicarlas, commitear el área, integrar su rama (`make integrar`) y retirar el worktree (`make retirar`).
+8. Apunto en `docs/deuda-diseno.md` las partidas nuevas del revisor, las pagadas y la línea del área. Añado el área a `areas_cerradas` en `config/alcance.json` (§6), en un commit aparte (regla de mezcla, §10), y abro el PR, que espera a tu visto bueno porque `config/` tiene dueño. Te doy un resumen breve y, si la línea de trabajo ha terminado, el comando para retirar el carril (`make retirar`) después de la fusión.
 
 Antes del código de cada fichero nuevo de `src/`, de cualquier capa (`docs/arnes.md`, §6, y skill `codebase-design`):
 
@@ -850,7 +797,7 @@ Antes del código de cada fichero nuevo de `src/`, de cualquier capa (`docs/arne
 - esbozo al menos otra interfaz radicalmente distinta, solo con sus métodos principales, y me quedo con la más profunda;
 - anoto la descartada y por qué en el archivo del área.
 
-Sin dependencias nuevas sin tu aprobación. Si un escenario o un parámetro parece mal, paro y te preparo una propuesta (§6) que solo toque la especificación, para que la commitees aparte.
+Sin dependencias nuevas sin tu aprobación. Si un escenario o un parámetro parece mal, paro con `[DECISIÓN PENDIENTE]`. Si te convence el cambio, va en un commit que solo toca la especificación (§10), y su PR espera a tu visto bueno.
 
 ### Etapa 5: README
 

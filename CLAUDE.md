@@ -1,55 +1,38 @@
 # aprendizaje-experto
 
 - **Markdown largos:** los `.md` de más de 200 líneas (`docs/plan.md`, `docs/investigacion.md`, `docs/arnes.md`, `docs/arnes-verificacion.md`) nunca se leen enteros, tampoco con `cat`. Busca primero lo que necesitas (con Grep o con `git grep -n "<texto>" -- <fichero>`) y luego lee solo esas líneas con Read, usando offset y limit. Si intentas leer uno entero, el hook te devuelve su índice de secciones.
-- **Rutas protegidas en Bash:** se pueden leer (`cat`, `grep`, `git diff`), pero lo que un comando cambie en ellas vuelve a como estaba al acabar el comando, y la versión del comando queda en `reports/huellas/`. Para cambiarlas, prepara una propuesta.
 
 ## Comandos para el dueño (regla dura)
 
-Cuando el dueño tenga que hacer algo que Claude no puede hacer, dale los comandos exactos en un único bloque `sh`. Esto incluye aplicar una propuesta, elegir la fase y el área, abrir, integrar y retirar un worktree, commitear y deshacer.
+Cuando el dueño tenga que hacer algo que Claude no puede hacer, dale los comandos exactos en un único bloque `sh`. Esto incluye elegir la fase y el área, abrir y retirar un carril, fusionar con bypass un PR que espera su visto bueno y actualizar la carpeta principal.
 
-- El bloque se copia y se pega tal cual: rutas y mensajes de commit ya rellenos, en el orden en que se ejecutan, desde la raíz del repositorio.
-- Nunca le pidas que edite un fichero a mano ni le describas un cambio para que lo escriba él. Si el cambio toca una ruta protegida, prepárale una propuesta.
+- El bloque se copia y se pega tal cual: empieza con `cd <ruta absoluta>`, lleva las rutas y los números de PR ya rellenos y sigue el orden en que se ejecuta.
+- Tras cada fusión, el bloque actualiza la carpeta principal: `cd /home/florin/aprendizaje-experto && git pull --ff-only`, y `npm ci` si el PR cambió `package-lock.json`.
+- Nunca le pidas que edite un fichero a mano ni le describas un cambio para que lo escriba él.
 
-## Propuestas
+## Carriles, commits y PR
 
-Una ruta de `.claude/protegidas.txt` sin anotación de fase no se edita en el repositorio. El cambio se propone así (plan §6):
-
-1. Clona el repositorio en el scratchpad, enlaza `node_modules` y haz allí los cambios con Edit o Write.
-2. En el clon, pasa las comprobaciones que no dependen del commit (todas salvo `integridad`): `npm run --silent <paso>` para tipos, lint, duplicacion, codigo-muerto, capas, unidad, specs, aceptacion y cobertura-ids.
-3. Guarda el parche fuera de git:
-   - `git -C <clon> add -A` (`.gitignore` ya ignora `node_modules`, también el enlace simbólico del clon)
-   - `git -C <clon> diff --cached --binary > reports/propuestas/<AAAA-MM-DD>-<tema>.patch`
-4. Para con `[DECISIÓN PENDIENTE]` y dale al dueño estos bloques, con la ruta y el mensaje rellenos:
-
-```sh
-# Aplicar: los cambios quedan en «Cambios preparados» de VS Code para revisarlos.
-git apply --3way reports/propuestas/<AAAA-MM-DD>-<tema>.patch
-```
-
-```sh
-# Si le convence. El parche ya está preparado, así que el commit es solo suyo. make check va después: integridad compara con él.
-git commit -m "<tipo>: <mensaje en inglés>"
-make check
-```
-
-```sh
-# Si no le convence, antes del commit.
-git apply -R --index reports/propuestas/<AAAA-MM-DD>-<tema>.patch
-```
-
-Después del commit se deshace con `git revert --no-edit HEAD`. Claude no aplica parches: la guardia bloquea `git apply`, `git am` y `patch`.
+- Un carril = un worktree = una rama = una fase y un área (plan §6). Lo abre el dueño con `make abrir N=<carril> F=<fase> A=<ÁREA>`. La conversación empieza en la carpeta principal y, cuando el dueño pega «Entra en el carril <carril>.», llama a `EnterWorktree` con la ruta del carril, `/home/florin/aprendizaje-experto-<carril>`. El aviso de `anunciar-carril` dice la fase, el área, la lista blanca, el relevo pendiente y el modelo.
+- En un carril, los enlaces a ficheros llevan la ruta absoluta del carril: VS Code los resuelve desde la carpeta principal.
+- No toques los otros carriles. Si te hace falta algo de allí, dilo y para con `[DECISIÓN PENDIENTE]`.
+- Lo que tenga que llegar a `main` se hace en un carril: la carpeta principal no tiene rama para el PR. Si tienes que commitear desde ella, para y dale al dueño el `make abrir`.
+- Al empezar en un carril, mira con `gh pr view` si el PR de su rama ya está fusionado. Si lo está, ejecuta `make rama`, que pasa el carril a `<fase>/<ÁREA>/<carril>-2` (y después `-3`…) desde `origin/main`. Si no, sigue en la misma rama.
+- **Regla de mezcla** (job `mezcla` de la CI, plan §10): un commit de especificación (`features/`, `tests/aceptacion/`, `config/`) no lleva código (`src/`, `tests/unidad/`), ni al revés.
+- **Al terminar,** con la comprobación de la fase en verde: commits, `git push -u origin HEAD`, `gh pr create --fill`, `gh pr merge --auto --rebase` y `gh pr checks --watch`. Nunca hagas push a mitad de la conversación.
+- Un PR que solo toca la lista blanca (las rutas sin dueño de `.github/CODEOWNERS`: `src/`, `tests/unidad/`, `docs/areas/` y `docs/deuda-diseno.md`, salvo la configuración) se fusiona solo cuando pasa la CI. Los demás esperan el visto bueno del dueño: dale el bloque con `gh pr merge <n> --rebase --admin` y la actualización de la carpeta principal.
+- **Prohibido:** `gh pr merge --admin`, aprobar un PR y tocar los rulesets o los ajustes del repositorio. Trabajas con la cuenta de `gh` del dueño, y solo esta regla te lo impide (plan §11).
+- Cuando acabe la línea de trabajo del carril, dale al dueño `make retirar N=<carril>` para después de la fusión. Se niega si el carril tiene un relevo pendiente, cambios sin commitear o una rama sin fusionar.
 
 ## Etapas, áreas y fases
 
 - Cada etapa (2, specs; 3, aceptación) y cada área de la etapa 4 empieza en una conversación nueva de Claude Code en VS Code.
-- La fase y el área en curso los elige el dueño antes de abrir la conversación: Ctrl+Shift+P → «Tasks: Run Task» → «Arnés: fase de la próxima conversación», o `make fase F=<fase> A=<ÁREA>` desde su terminal. La fase aceptacion necesita área.
-- Con varias conversaciones a la vez, cada una va en su worktree (una conversación = un worktree = una rama = una fase y un área): `make abrir N=<nombre> F=<fase> A=<ÁREA>`, y al acabar `make integrar N=<nombre>` y `make retirar N=<nombre>`, siempre desde el directorio principal y solo el dueño. Si `make integrar` deja un rebase con conflictos en tu rama, resuelve los ficheros que tu fase desbloquea y dale el comando `git -C <worktree> add <ficheros> && GIT_EDITOR=true git -C <worktree> rebase --continue`; si el conflicto está en una ruta protegida, prepara una propuesta.
-- El aviso de SessionStart dice la fase y el área en curso al empezar. Si no son las que pide la tarea, para y dale el comando para cambiarlas.
+- La fase y el área los elige el dueño antes de abrir la conversación: Ctrl+Shift+P → «Tasks: Run Task» → «Arnés: fase de la próxima conversación», o `make fase F=<fase> A=<ÁREA> N=<carril>` desde su terminal (sin `N=`, la de la carpeta principal). La fase aceptacion necesita área.
+- El aviso de SessionStart, o el de `anunciar-carril` al entrar en un carril, dice la fase y el área en curso. Si no son las que pide la tarea, para y dale el comando para cambiarlas.
 - Al empezar un área, copia `docs/areas/plantilla.md` a `docs/areas/<ÁREA>.md`.
 - En MATE, PLAN y las áreas con una pantalla nueva, el paso «Mecanismo» (plan §16) va antes de tocar `src/`: explica el mecanismo en prosa, esboza dos interfaces y para con `[DECISIÓN PENDIENTE]`.
 - En la fase impl, escribe tú los comentarios de interfaz y las firmas, y encarga los cuerpos y los tests unitarios al subagente `implementador` (siempre Sonnet; plan §7), diciéndole en el prompt qué ficheros de `src/` y `tests/unidad/` puede tocar. Un encargo cada vez: espera a que termine antes de tocar sus ficheros. Lo que devuelva en rojo, y los arreglos de una o dos líneas, los haces tú.
-- `docs/deuda-diseno.md` se edita en la fase impl (`@impl` en `.claude/protegidas.txt`): apunta ahí la deuda nueva y la pagada, sin propuesta.
+- En `docs/deuda-diseno.md` apunta la deuda nueva y la pagada.
 - `make check` en impl no exige la aceptación del área en curso, solo la de las áreas cerradas. Al cerrar el área, pasa `make cerrar-area A=<ÁREA>`: exige además la aceptación y la cobertura del área en verde.
-- El relevo es obligatorio: tras el `[RELEVO]` que acepta el hook Stop, la conversación ya no edita (plan §5). Escribe la sección «## Relevo» antes de terminar con la marca.
+- El relevo es obligatorio: tras el `[RELEVO]` que acepta el hook Stop, la conversación ya no edita (plan §5). Antes de terminar con la marca, escribe en `reports/relevo.md` de tu checkout (ruta absoluta; fuera de git) qué está hecho, qué falta, el paso siguiente y los ficheros que hay que leer primero. Si el aviso de inicio o el del carril señala un relevo de tu checkout, léelo antes de nada y bórralo.
 - No añadas un mecanismo al arnés (hook, registro, comprobación, comando) sin un dato de los registros (`.claude/registro-*.jsonl`, `reports/`, transcripts) que muestre el problema. Si no lo tienes, párate con `[DECISIÓN PENDIENTE]` y dilo (plan §1, principio 7).
-- Al cerrar el área, completa su archivo con la interfaz descartada, la deuda pagada, la puntuación de mutación y la salida de `make bloqueos A=<ÁREA>` (ejecútalo en el worktree del área, que tiene su propio registro), y prepara una propuesta que añada el área a `areas_cerradas` en `config/alcance.json`. En el bloque del dueño, `make integrar` y `make retirar` van después de commitear.
+- Al cerrar el área, completa su archivo con la interfaz descartada, la deuda pagada, la puntuación de mutación y la salida de `make -C /home/florin/aprendizaje-experto bloqueos A=<ÁREA>`, que lee el registro del hook Stop de la carpeta principal. Añade el área a `areas_cerradas` en `config/alcance.json` en un commit aparte del código (regla de mezcla); el PR esperará el visto bueno del dueño.
