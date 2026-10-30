@@ -3,7 +3,7 @@ import {
   contextoDeLaCita,
   marcadorDelMaterial,
   type Cita,
-  type Marca,
+  type MarcaDeCita,
   type TextosDelMaterial,
 } from '../../src/dominio/citas.ts';
 
@@ -31,7 +31,7 @@ function marcaDe(
   fragmento: string,
   material: TextosDelMaterial = MATERIAL,
   documento = 'apuntes.pdf',
-): Marca | undefined {
+): MarcaDeCita | undefined {
   return marcadorDelMaterial(material)(citaDe(fragmento, 'página 2', documento));
 }
 

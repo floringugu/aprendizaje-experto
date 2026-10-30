@@ -4,6 +4,7 @@
 // de tests: vitest solo recoge los *.test.ts, así que aquí no se ejecuta nada.
 import type { Marcador } from '../../src/dominio/citas.ts';
 import type {
+  CategoriaContenido,
   ContenidoDominio,
   EjemploResueltoContenido,
   Fuente,
@@ -13,8 +14,8 @@ import type {
 } from '../../src/aplicacion/contenido.ts';
 import type { Ficheros } from '../../src/aplicacion/puertos.ts';
 import type { Resultado } from '../../src/aplicacion/resultado.ts';
-import { aplicar, revisar, type Accion, type FiltroRevision } from '../../src/aplicacion/revision.ts';
-import type { BorradorDominio, Mesa } from '../../src/aplicacion/mesa.ts';
+import { aplicar, revisar, type Accion, type FiltroRevision, type Marca } from '../../src/aplicacion/revision.ts';
+import type { BorradorDominio, Mesa, TareaDelBorrador } from '../../src/aplicacion/mesa.ts';
 
 export const FUENTE_BUENA: Fuente = { documento: 'apuntes.pdf', lugar: 'página 12', fragmento: 'buena' };
 export const FUENTE_MALA: Fuente = { ...FUENTE_BUENA, fragmento: 'mala' };
@@ -32,8 +33,19 @@ export function item(id: string, fuente?: Fuente, objetivo = 'O1'): ItemContenid
   const base = { id, objetivo, tipo: 'hecho', diagnostico: false, enunciado: `Enunciado de ${id}`, respuesta };
   return { ...(base as Omit<ItemContenido, 'feedback'>), feedback: 'Feedback', ...conFuente(fuente) };
 }
+/** Un ítem que pertenece a esa categoría; por defecto, de O1, como `item`. */
+export function itemDeCategoria(id: string, categoria: string, objetivo = 'O1'): ItemContenido {
+  return { ...item(id, undefined, objetivo), categoria };
+}
+export function categoria(id: string, fuente?: Fuente): CategoriaContenido {
+  return { id, descripcion: `Descripción de ${id}`, ...conFuente(fuente) };
+}
 export function ejemplo(id: string, fuente?: Fuente): EjemploResueltoContenido {
   return { id, pasos: ['P1'], ...conFuente(fuente) };
+}
+/** Un ejemplo con tantos pasos como se pida (`ejemplo` lleva uno solo, el mínimo que pide el formato). */
+export function ejemploDePasos(id: string, pasos: number, fuente?: Fuente): EjemploResueltoContenido {
+  return { ...ejemplo(id, fuente), pasos: Array.from({ length: pasos }, (_, indice) => `P${String(indice + 1)}`) };
 }
 export function objetivo(id: string, ejemplos: EjemploResueltoContenido[] = [], fuente?: Fuente): ObjetivoContenido {
   return { id, instruccion: `Instrucción de ${id}`, ejemplos_resueltos: ejemplos, ...conFuente(fuente) };
@@ -41,6 +53,10 @@ export function objetivo(id: string, ejemplos: EjemploResueltoContenido[] = [], 
 export function tarea(id: string, fuente?: Fuente): TareaContenido {
   const rubrica = [{ criterio: 'Planteamiento', niveles: [{ nivel: 0, descriptor: 'Descriptor' }] }];
   return { id, enunciado: `Enunciado de ${id}`, rubrica, ...conFuente(fuente) };
+}
+/** Una tarea del borrador que dice cuál va justo detrás (`antes_de`), aprobada o del borrador. */
+export function tareaAntesDe(id: string, antesDe: string, fuente?: Fuente): TareaDelBorrador {
+  return { ...tarea(id, fuente), antes_de: antesDe };
 }
 
 /** Congela la mesa entera: si el código intenta cambiarla en vez de copiarla, el test falla con un error. */
@@ -74,6 +90,12 @@ export const codificar = (valor: unknown): Uint8Array => new TextEncoder().encod
 export function escribirMesa(ficheros: Ficheros, mesa: Mesa, dominio = 'ficticio'): void {
   ficheros.escribir(`contenido/borradores/${dominio}.json`, codificar({ ...mesa.borrador, dominio }));
   ficheros.escribir(`contenido/${dominio}.json`, codificar({ ...mesa.aprobado, dominio }));
+}
+
+/** Las marcas de la pieza `id` en la revisión, o `undefined` si la pieza no sale (por el filtro o porque no está). */
+export function marcasDe(mesa: Mesa, id: string, filtro: FiltroRevision = 'pendientes'): readonly Marca[] | undefined {
+  const piezas = revisar(mesa, marcador, filtro).grupos.flatMap((grupo) => grupo.piezas);
+  return piezas.find((pieza) => pieza.id === id)?.marcas;
 }
 
 /** Cada grupo como [objetivo, ids de sus piezas]. */

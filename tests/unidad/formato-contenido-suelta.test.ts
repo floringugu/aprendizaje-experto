@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { falloDeLaPiezaSuelta, lugarDelFallo, type TipoDePieza } from '../../src/aplicacion/formato-contenido.ts';
 import {
+  categoria,
+  CATEGORIA,
   ejemplo,
   EJEMPLO,
   FUENTE,
@@ -15,6 +17,9 @@ import {
   type Pieza,
 } from './formato-contenido-piezas.ts';
 
+// Cómo se nombra la fuente de la categoría de los contenidos de prueba.
+const FUENTE_DE_LA_CATEGORIA = 'la fuente de la categoría C1';
+
 describe('falloDeLaPiezaSuelta', () => {
   /** Un ejemplo que va aparte lleva el `objetivo` del que cuelga. */
   const ejemploAparte = (cambios: Pieza = {}): Pieza => ejemplo({ objetivo: 'O2', ...cambios });
@@ -23,6 +28,7 @@ describe('falloDeLaPiezaSuelta', () => {
     ['objetivo', objetivo({ fuente: FUENTE })],
     ['ejemplo', ejemploAparte({ fuente: FUENTE })],
     ['item', item({ fuente: FUENTE })],
+    ['categoria', categoria({ fuente: FUENTE })],
     ['tarea', tarea({ fuente: FUENTE })],
   ])('@MATE-2.3 una pieza que cumple el formato (%s) no tiene fallo', (tipo, pieza) => {
     expect(falloDeLaPiezaSuelta(tipo, pieza)).toBeUndefined();
@@ -36,6 +42,7 @@ describe('falloDeLaPiezaSuelta', () => {
   it.each<[string, TipoDePieza, unknown, string, string]>([
     ['un ítem sin feedback', 'item', sin(item(), 'feedback'), ITEM, 'feedback'],
     ['una tarea con la rúbrica vacía', 'tarea', tarea({ rubrica: [] }), TAREA, 'rubrica'],
+    ['una categoría sin descripción', 'categoria', sin(categoria(), 'descripcion'), CATEGORIA, 'descripcion'],
     ['un objetivo sin instrucción', 'objetivo', sin(objetivo(), 'instruccion'), OBJETIVO, 'instruccion'],
     [
       'un ejemplo de dentro de un objetivo',
@@ -46,6 +53,13 @@ describe('falloDeLaPiezaSuelta', () => {
     ],
     ['un ejemplo que va aparte, nombrado por su objetivo', 'ejemplo', ejemploAparte({ pasos: [] }), EJEMPLO, 'pasos'],
     ['la fuente de un ítem', 'item', item({ fuente: sin(FUENTE, 'lugar') }), FUENTE_DEL_ITEM, 'lugar'],
+    [
+      'la fuente de una categoría',
+      'categoria',
+      categoria({ fuente: sin(FUENTE, 'lugar') }),
+      FUENTE_DE_LA_CATEGORIA,
+      'lugar',
+    ],
   ])('@MATE-4.8 devuelve el fallo de %s', (...fila) => {
     const [, tipo, pieza, nombre, falta] = fila;
     expect(falloDeLaPiezaSuelta(tipo, pieza)).toStrictEqual({ pieza: nombre, falta });
@@ -76,9 +90,64 @@ describe('falloDeLaPiezaSuelta', () => {
     ['objetivo', 'el objetivo 1'],
     ['ejemplo', 'el ejemplo resuelto 1 de su objetivo'],
     ['item', 'el ítem 1'],
+    ['categoria', 'la categoría 1'],
     ['tarea', 'la tarea 1'],
   ])('@MATE-4.8 lo que no es un objeto (%s) falla en id, como la primera de su lista', (tipo, nombre) => {
     expect(falloDeLaPiezaSuelta(tipo, 'texto')).toStrictEqual({ pieza: nombre, falta: 'id' });
+  });
+
+  // Una pieza sin `id` válido: lo que no es un objeto y un objeto al que le falta el `id`. Cada fila dice
+  // el `id` de la corrección, cómo se nombra la pieza con él y cómo se nombra sin él.
+  const PIEZAS_SIN_ID: Record<TipoDePieza, Pieza> = {
+    objetivo: sin(objetivo(), 'id'),
+    ejemplo: sin(ejemplo(), 'id'),
+    item: sin(item(), 'id'),
+    categoria: sin(categoria(), 'id'),
+    tarea: sin(tarea(), 'id'),
+  };
+  const NOMBRES_SIN_ID: [TipoDePieza, string, string, string][] = [
+    ['objetivo', 'O7', 'el objetivo O7', 'el objetivo 1'],
+    ['ejemplo', 'E9', 'el ejemplo resuelto E9 de su objetivo', 'el ejemplo resuelto 1 de su objetivo'],
+    ['item', 'I7', 'el ítem I7', 'el ítem 1'],
+    ['categoria', 'C1', 'la categoría C1', 'la categoría 1'],
+    ['tarea', 'T3', 'la tarea T3', 'la tarea 1'],
+  ];
+
+  it.each(NOMBRES_SIN_ID)(
+    '@MATE-4.8 lo que no es un objeto (%s) se nombra con el id que viene, «%s»',
+    (tipo, id, nombreConId) => {
+      expect(falloDeLaPiezaSuelta(tipo, 'texto', id)).toStrictEqual({ pieza: nombreConId, falta: 'id' });
+    },
+  );
+
+  it.each(NOMBRES_SIN_ID)(
+    '@MATE-4.8 una pieza sin id (%s) se nombra con el id que viene, «%s», y sin él, por su posición',
+    (...fila) => {
+      const [tipo, id, nombreConId, nombreSinId] = fila;
+      const pieza = PIEZAS_SIN_ID[tipo];
+      expect(falloDeLaPiezaSuelta(tipo, pieza, id)).toStrictEqual({ pieza: nombreConId, falta: 'id' });
+      expect(falloDeLaPiezaSuelta(tipo, pieza)).toStrictEqual({ pieza: nombreSinId, falta: 'id' });
+    },
+  );
+
+  it.each<[string, TipoDePieza, Pieza, string, string]>([
+    ['un objetivo', 'objetivo', sin(objetivo(), 'instruccion'), OBJETIVO, 'instruccion'],
+    ['un ejemplo que va aparte', 'ejemplo', ejemploAparte({ pasos: [] }), EJEMPLO, 'pasos'],
+    ['un ítem', 'item', sin(item(), 'feedback'), ITEM, 'feedback'],
+    ['una categoría', 'categoria', sin(categoria(), 'descripcion'), CATEGORIA, 'descripcion'],
+    ['una tarea', 'tarea', tarea({ rubrica: [] }), TAREA, 'rubrica'],
+    ['la fuente de un ítem', 'item', item({ fuente: sin(FUENTE, 'lugar') }), FUENTE_DEL_ITEM, 'lugar'],
+  ])('@MATE-4.8 %s con un id válido distinto del que viene se nombra por el suyo', (...fila) => {
+    const [, tipo, pieza, nombre, falta] = fila;
+    expect(falloDeLaPiezaSuelta(tipo, pieza, 'X99')).toStrictEqual({ pieza: nombre, falta });
+  });
+
+  it('@MATE-4.8 el id que viene es el de la pieza, no el de los ejemplos que lleva dentro un objetivo', () => {
+    const conEjemploSinId = objetivo({ ejemplos_resueltos: [sin(ejemplo(), 'id')] });
+    expect(falloDeLaPiezaSuelta('objetivo', conEjemploSinId, 'O7')).toStrictEqual({
+      pieza: 'el ejemplo resuelto 1 de O2',
+      falta: 'id',
+    });
   });
 });
 

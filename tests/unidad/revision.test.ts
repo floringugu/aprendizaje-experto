@@ -1,13 +1,19 @@
 import { describe, expect, it } from 'vitest';
+import type { EjemploResueltoContenido } from '../../src/aplicacion/contenido.ts';
+import type { Mesa } from '../../src/aplicacion/mesa.ts';
 import { revisar } from '../../src/aplicacion/revision.ts';
 import {
   FUENTE_BUENA,
+  FUENTE_MALA,
   ITEMS,
   MESA,
   agrupadas,
+  categoria,
   ejemplo,
+  ejemploDePasos,
   item,
   marcador,
+  marcasDe,
   mesaDe,
   objetivo,
   tarea,
@@ -48,6 +54,41 @@ describe('revisar: agrupación y orden', () => {
   });
 });
 
+describe('revisar: categorías', () => {
+  const mesa = mesaDe({
+    objetivos: [objetivo('O2', [], FUENTE_BUENA)],
+    items: [item('I7', FUENTE_BUENA)],
+    categorias: [categoria('C1', FUENTE_BUENA), categoria('C2')],
+    tareas: [tarea('T1', FUENTE_BUENA)],
+  });
+
+  it('@MATE-4.1 una categoría pendiente va en el grupo sin objetivo, después de los ítems y antes que las tareas', () => {
+    expect(agrupadas(mesa)).toStrictEqual([
+      ['O2', ['O2']],
+      ['O1', ['I7']],
+      [undefined, ['C1', 'C2', 'T1']],
+    ]);
+    expect(revisar(mesa, marcador, 'pendientes').grupos.at(-1)).not.toHaveProperty('objetivo');
+  });
+
+  it('@MATE-4.1 la pieza de una categoría dice que es una categoría', () => {
+    const sinObjetivo = revisar(mesa, marcador, 'pendientes').grupos.at(-1);
+    expect(sinObjetivo?.piezas[0]).toStrictEqual({ id: 'C1', tipo: 'categoria', marcas: [] });
+  });
+
+  it.each([
+    ['con la cita encontrada', FUENTE_BUENA, []],
+    ['sin fuente', undefined, ['sin_fuente']],
+    ['con una cita que no se encuentra', FUENTE_MALA, ['cita_no_encontrada']],
+  ] as const)('@MATE-3.1 @MATE-3.2 una categoría %s lleva las marcas %j', (_descripcion, fuente, marcas) => {
+    expect(marcasDe(mesaDe({ categorias: [categoria('C1', fuente)] }), 'C1')).toStrictEqual(marcas);
+  });
+
+  it('@MATE-4.2 el filtro por marca deja solo las categorías que la llevan, en el grupo sin objetivo', () => {
+    expect(agrupadas(mesa, 'sin_fuente')).toStrictEqual([[undefined, ['C2']]]);
+  });
+});
+
 describe('revisar: filtros', () => {
   it.each([
     ['pendientes', ['I7', 'I8', 'I9', 'I10']],
@@ -61,4 +102,66 @@ describe('revisar: filtros', () => {
     const mesa = mesaDe({ items: [item('I7', FUENTE_BUENA), item('I8', undefined, 'O2')] });
     expect(agrupadas(mesa, 'sin_fuente')).toStrictEqual([['O2', ['I8']]]);
   });
+});
+
+describe('revisar: marca «un_solo_paso»', () => {
+  /** Una mesa con ese ejemplo, dentro de su objetivo O1 pendiente o aparte, con O1 ya aprobado. */
+  const mesaConEjemplo = (lugar: 'dentro' | 'aparte', pieza: EjemploResueltoContenido): Mesa =>
+    lugar === 'dentro'
+      ? mesaDe({ objetivos: [objetivo('O1', [pieza])] })
+      : mesaDe({ ejemplos_resueltos: [{ ...pieza, objetivo: 'O1' }] }, { objetivos: [objetivo('O1')] });
+
+  it.each([
+    ['dentro', 1, ['un_solo_paso']],
+    ['dentro', 2, []],
+    ['aparte', 1, ['un_solo_paso']],
+    ['aparte', 2, []],
+  ] as const)('@MATE-3.5 un ejemplo «%s» de su objetivo con %i paso(s) lleva las marcas %j', (lugar, pasos, marcas) => {
+    const mesa = mesaConEjemplo(lugar, ejemploDePasos('E9', pasos, FUENTE_BUENA));
+    expect(marcasDe(mesa, 'E9')).toStrictEqual(marcas);
+  });
+
+  it.each([
+    ['sin fuente', undefined, ['sin_fuente', 'un_solo_paso']],
+    ['con una cita que no se encuentra', FUENTE_MALA, ['cita_no_encontrada', 'un_solo_paso']],
+  ] as const)(
+    '@MATE-3.5 un ejemplo de un paso %s lleva primero la marca de su cita',
+    (_descripcion, fuente, marcas) => {
+      expect(marcasDe(mesaConEjemplo('dentro', ejemploDePasos('E9', 1, fuente)), 'E9')).toStrictEqual(marcas);
+      expect(marcasDe(mesaConEjemplo('aparte', ejemploDePasos('E9', 1, fuente)), 'E9')).toStrictEqual(marcas);
+    },
+  );
+
+  it('@MATE-3.5 el filtro «un_solo_paso» deja solo los ejemplos de un paso, estén donde estén', () => {
+    const mesa = mesaDe(
+      {
+        objetivos: [objetivo('O2', [ejemploDePasos('E1', 1, FUENTE_BUENA), ejemploDePasos('E2', 2, FUENTE_BUENA)])],
+        ejemplos_resueltos: [
+          { ...ejemploDePasos('E3', 1), objetivo: 'O1' },
+          { ...ejemploDePasos('E4', 3, FUENTE_BUENA), objetivo: 'O1' },
+        ],
+        items: [item('I7')],
+        tareas: [tarea('T1')],
+      },
+      { objetivos: [objetivo('O1')] },
+    );
+    expect(agrupadas(mesa, 'un_solo_paso')).toStrictEqual([
+      ['O2', ['E1']],
+      ['O1', ['E3']],
+    ]);
+  });
+
+  it.each(['O1', 'I7', 'T1'])(
+    '@MATE-3.5 una pieza que no es un ejemplo (%s) nunca lleva la marca «un_solo_paso»',
+    (id) => {
+      // Sin fuente, para que lleve alguna marca: la de su cita, y solo esa. El objetivo lleva dentro un ejemplo de un paso.
+      const mesa = mesaDe({
+        objetivos: [objetivo('O1', [ejemplo('E1', FUENTE_BUENA)])],
+        items: [item('I7')],
+        tareas: [tarea('T1')],
+      });
+      expect(marcasDe(mesa, id)).toStrictEqual(['sin_fuente']);
+      expect(marcasDe(mesa, id, 'un_solo_paso')).toBeUndefined();
+    },
+  );
 });

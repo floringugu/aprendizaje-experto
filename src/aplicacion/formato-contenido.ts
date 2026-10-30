@@ -9,7 +9,8 @@ export interface FalloDeFormato {
   /**
    * La pieza que falla, como la buscaría el autor en el fichero: «el ítem I9», «la tarea T3», «el
    * ejemplo resuelto E1 de O2», «la fuente del ítem I9». Una pieza sin `id` válido se nombra por su
-   * posición en la lista, contando desde 1: «el ítem 3». No viene si el fallo está en la raíz.
+   * posición en la lista, contando desde 1: «el ítem 3», o, si es una corrección, por el `id` de la pieza
+   * que sustituye (`falloDeLaPiezaSuelta`). No viene si el fallo está en la raíz.
    */
   readonly pieza?: string;
   /**
@@ -61,26 +62,37 @@ export function validarContenido(leido: unknown): Validacion<ContenidoValidado> 
   return fallo === undefined ? { ok: true, valor: leido as ContenidoValidado } : { ok: false, fallo };
 }
 
-/** Las piezas que se revisan una a una en el borrador (MATE-2.3, MATE-4). Las categorías no se revisan. */
-export type TipoDePieza = 'objetivo' | 'ejemplo' | 'item' | 'tarea';
+/**
+ * Las piezas que se revisan una a una en el borrador (MATE-2.3, MATE-4). Las categorías también: la IA las
+ * redacta como una pieza más (plan §0, «Categorías en el borrador»).
+ */
+export type TipoDePieza = 'objetivo' | 'ejemplo' | 'item' | 'categoria' | 'tarea';
 
 /**
  * El primer fallo de una pieza suelta del borrador, o `undefined` si cumple el formato, con las mismas
  * reglas que `validarContenido`: un objetivo con los ejemplos que lleva dentro, y cada pieza con su
  * fuente si la trae. Sirve para apartar las piezas que entrega la IA (MATE-2.3) y para rechazar una
  * corrección (MATE-4.8). Las propiedades de más se ignoran, como el `objetivo` de un ejemplo que va
- * aparte. La pieza se nombra como la primera de su lista: «el ítem 1» si no tiene `id` válido.
+ * aparte.
+ *
+ * Si la pieza no trae `id` válido, se nombra con `id`, el de la pieza a la que sustituye una corrección:
+ * «el ítem I7» (regla que la feature no cubre, aprobada por el dueño el 30-10-2026). Sin `id`, como la
+ * primera de su lista: «el ítem 1». Una pieza con `id` válido se nombra siempre por el suyo.
  */
-export function falloDeLaPiezaSuelta(tipo: TipoDePieza, pieza: unknown): FalloDeFormato | undefined {
+export function falloDeLaPiezaSuelta(tipo: TipoDePieza, pieza: unknown, id?: string): FalloDeFormato | undefined {
+  // Sin `id` de la corrección, la pieza se nombra como la primera de su lista.
+  const sinId = id ?? porPosicion(0);
   switch (tipo) {
     case 'objetivo':
-      return falloDelObjetivo(pieza, 0);
+      return falloDelObjetivo(pieza, sinId);
     case 'ejemplo':
-      return falloDelEjemplo(pieza, 0, nombreDelObjetivoDelEjemplo(pieza));
+      return falloDelEjemplo(pieza, sinId, nombreDelObjetivoDelEjemplo(pieza));
     case 'item':
-      return falloDelItem(pieza, 0);
+      return falloDelItem(pieza, sinId);
+    case 'categoria':
+      return falloDeLaCategoria(pieza, sinId);
     case 'tarea':
-      return falloDeLaTarea(pieza, 0);
+      return falloDeLaTarea(pieza, sinId);
   }
 }
 
@@ -94,28 +106,35 @@ function nombreDelObjetivoDelEjemplo(ejemplo: unknown): string {
 }
 
 // Una función por pieza. Cada una devuelve el primer fallo de la pieza, o `undefined` si cumple el
-// formato. `posicion` es su índice en la lista, desde 0, para nombrarla cuando no tiene `id` válido.
+// formato. `sinId` es cómo se nombra la pieza cuando no tiene `id` válido: su posición en la lista
+// (`porPosicion`) o el `id` de la pieza a la que sustituye una corrección. Es un texto y no un número
+// para que cada función tenga un solo artículo («el ítem», «la tarea») y no una versión por cada caso.
 
-function falloDelObjetivo(objetivo: unknown, posicion: number): FalloDeFormato | undefined {
-  return falloDeLaPieza(objetivo, nombrarPieza('el objetivo', objetivo, posicion), MOLDE_DEL_OBJETIVO);
+/** Cómo se nombra una pieza sin `id` válido por su índice en la lista, que cuenta desde 0: «3». */
+function porPosicion(indice: number): string {
+  return String(indice + 1);
+}
+
+function falloDelObjetivo(objetivo: unknown, sinId: string): FalloDeFormato | undefined {
+  return falloDeLaPieza(objetivo, nombrarPieza('el objetivo', objetivo, sinId), MOLDE_DEL_OBJETIVO);
 }
 
 /** `objetivo` es cómo se nombra el objetivo del ejemplo: su `id` o su posición. */
-function falloDelEjemplo(ejemplo: unknown, posicion: number, objetivo: string): FalloDeFormato | undefined {
-  const nombre = `${nombrarPieza('el ejemplo resuelto', ejemplo, posicion)} de ${objetivo}`;
+function falloDelEjemplo(ejemplo: unknown, sinId: string, objetivo: string): FalloDeFormato | undefined {
+  const nombre = `${nombrarPieza('el ejemplo resuelto', ejemplo, sinId)} de ${objetivo}`;
   return falloDeLaPieza(ejemplo, nombre, MOLDE_DEL_EJEMPLO);
 }
 
-function falloDeLaCategoria(categoria: unknown, posicion: number): FalloDeFormato | undefined {
-  return falloDeLaPieza(categoria, nombrarPieza('la categoría', categoria, posicion), MOLDE_DE_LA_CATEGORIA);
+function falloDeLaCategoria(categoria: unknown, sinId: string): FalloDeFormato | undefined {
+  return falloDeLaPieza(categoria, nombrarPieza('la categoría', categoria, sinId), MOLDE_DE_LA_CATEGORIA);
 }
 
-function falloDelItem(item: unknown, posicion: number): FalloDeFormato | undefined {
-  return falloDeLaPieza(item, nombrarPieza('el ítem', item, posicion), MOLDE_DEL_ITEM);
+function falloDelItem(item: unknown, sinId: string): FalloDeFormato | undefined {
+  return falloDeLaPieza(item, nombrarPieza('el ítem', item, sinId), MOLDE_DEL_ITEM);
 }
 
-function falloDeLaTarea(tarea: unknown, posicion: number): FalloDeFormato | undefined {
-  return falloDeLaPieza(tarea, nombrarPieza('la tarea', tarea, posicion), MOLDE_DE_LA_TAREA);
+function falloDeLaTarea(tarea: unknown, sinId: string): FalloDeFormato | undefined {
+  return falloDeLaPieza(tarea, nombrarPieza('la tarea', tarea, sinId), MOLDE_DE_LA_TAREA);
 }
 
 /** `pieza` es el nombre de la pieza que cita la fuente: «el ítem I9». */
@@ -300,9 +319,9 @@ function tieneId(pieza: unknown): pieza is PiezaConId {
   return esRegistro(pieza) && esTextoNoVacio(pieza['id']);
 }
 
-/** «el ítem I9», o, si no tiene `id` válido, su posición contando desde 1: «el ítem 3». */
-function nombrarPieza(tipo: string, pieza: unknown, posicion: number): string {
-  return `${tipo} ${tieneId(pieza) ? pieza.id : String(posicion + 1)}`;
+/** «el ítem I9», o, si no tiene `id` válido, `sinId`: «el ítem 3» o «el ítem I7». */
+function nombrarPieza(tipo: string, pieza: unknown, sinId: string): string {
+  return `${tipo} ${tieneId(pieza) ? pieza.id : sinId}`;
 }
 
 /** Sin `id` válido falla en `id`; con él, sus reglas y después su interior, en ese orden. */
@@ -330,7 +349,7 @@ function falloDelInteriorDelObjetivo(objetivo: PiezaConId, nombre: string): Fall
     return { pieza: nombre, falta: 'ejemplos_resueltos' };
   }
   const falloDeUnEjemplo = (ejemplo: unknown, posicion: number): FalloDeFormato | undefined =>
-    falloDelEjemplo(ejemplo, posicion, objetivo.id);
+    falloDelEjemplo(ejemplo, porPosicion(posicion), objetivo.id);
   return primerResultado(ejemplos, falloDeUnEjemplo) ?? falloDeLaFuenteOpcional(objetivo, nombre);
 }
 
@@ -346,7 +365,7 @@ const MOLDE_DEL_EJEMPLO: Molde = {
 
 const MOLDE_DE_LA_CATEGORIA: Molde = {
   reglas: [exigir('descripcion', esTextoNoVacio), exigir('grupo_parecidas', opcional(esTextoNoVacio))],
-  interior: () => undefined,
+  interior: falloDeLaFuenteOpcional,
 };
 
 // El orden de las reglas es el de las propiedades en contenido.ts.
@@ -370,12 +389,14 @@ const MOLDE_DE_LA_TAREA: Molde = {
 
 // --- La raíz del fichero ---
 
-type FalloDeLaPieza = (pieza: unknown, posicion: number) => FalloDeFormato | undefined;
+type FalloDeLaPieza = (pieza: unknown, sinId: string) => FalloDeFormato | undefined;
 
-/** Una lista de la raíz tiene que ser una lista; si lo es, el primer fallo de sus piezas. */
+/** Una lista de la raíz tiene que ser una lista; si lo es, el primer fallo de sus piezas, nombradas por posición. */
 function falloDeLaLista(raiz: Registro, nombre: string, falloDeUnaPieza: FalloDeLaPieza): FalloDeFormato | undefined {
   const lista = raiz[nombre];
-  return esLista(lista) ? primerResultado(lista, falloDeUnaPieza) : { falta: nombre };
+  const falloDeLaDePosicion = (pieza: unknown, posicion: number): FalloDeFormato | undefined =>
+    falloDeUnaPieza(pieza, porPosicion(posicion));
+  return esLista(lista) ? primerResultado(lista, falloDeLaDePosicion) : { falta: nombre };
 }
 
 function falloDelContenido(leido: unknown): FalloDeFormato | undefined {

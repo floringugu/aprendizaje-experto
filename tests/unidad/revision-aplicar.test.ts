@@ -208,14 +208,27 @@ describe('aplicar: corregir', () => {
     expect(resultado.motivo).toBe('No se guarda la corrección: falta o no es válido «feedback» en el ítem I7.');
   });
 
-  it.each([['texto'], [null]])(
-    '@MATE-4.8 una corrección que no es un objeto (%s) falla en «id» y se nombra como la primera pieza de su lista (regla que la feature no cubre)',
-    (corregida) => {
+  it.each<[string, unknown]>([
+    ['un texto', 'texto'],
+    ['null', null],
+    ['un objeto sin id', Object.fromEntries(Object.entries(corregido).filter(([clave]) => clave !== 'id'))],
+  ])(
+    '@MATE-4.8 una corrección que es %s falla en «id» y nombra la pieza por su id, I7 (regla que la feature no cubre, aprobada por el dueño el 30-10-2026)',
+    (_descripcion, corregida) => {
       const resultado = rechazado(MESA, { tipo: 'corregir', pieza: 'I7', corregida });
       expect(resultado).toMatchObject({ ok: false, campo: 'id' });
-      expect(resultado.motivo).toBe('No se guarda la corrección: falta o no es válido «id» en el ítem 1.');
+      expect(resultado.motivo).toBe('No se guarda la corrección: falta o no es válido «id» en el ítem I7.');
     },
   );
+
+  it('@MATE-4.8 un ejemplo corregido sin id se nombra por el suyo y con su objetivo (regla que la feature no cubre)', () => {
+    const mesa = mesaDe({ ejemplos_resueltos: [{ ...ejemplo('E2'), objetivo: 'O1' }] });
+    const resultado = rechazado(mesa, { tipo: 'corregir', pieza: 'E2', corregida: { pasos: ['Nuevo paso'] } });
+    expect(resultado).toMatchObject({ ok: false, campo: 'id' });
+    expect(resultado.motivo).toBe(
+      'No se guarda la corrección: falta o no es válido «id» en el ejemplo resuelto E2 de O1.',
+    );
+  });
 
   it('cambiar el id se rechaza con el campo «id» (regla que la feature no cubre)', () => {
     const resultado = rechazado(MESA, { tipo: 'corregir', pieza: 'I7', corregida: { ...corregido, id: 'I99' } });
