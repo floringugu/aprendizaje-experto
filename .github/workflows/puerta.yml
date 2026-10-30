@@ -54,6 +54,9 @@ jobs:
           node-version: 26
           cache: npm
       - run: npm ci
+      # src/aplicacion/texto-pdf.ts llama al pdftotext de Poppler, un programa del sistema (plan §0, «Texto
+      # de un PDF»): sin él fallan los tests y los escenarios que leen un PDF.
+      - run: sudo apt-get update -q && sudo apt-get install -y -q poppler-utils
       # En un push a main GITHUB_HEAD_REF está vacío: queda la fase impl sin área en curso.
       - run: node scripts/arnes/ci.ts ajustes "$GITHUB_HEAD_REF"
       - run: make check
