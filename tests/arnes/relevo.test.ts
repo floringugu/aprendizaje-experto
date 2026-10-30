@@ -27,7 +27,7 @@ function respuesta(entrada: number, cacheLeida: number, extra: Record<string, un
 }
 
 function tramo(sesion: string, valor: number): TramoAnotado {
-  return { fecha: '2026-10-24T10:00:00.000Z', sesion, tokens: 120_000, tramo: valor };
+  return { fecha: '2026-10-24T10:00:00.000Z', sesion, tokens: 145_000, tramo: valor };
 }
 
 describe('tokensDeContexto', () => {
@@ -53,11 +53,11 @@ describe('tokensDeContexto', () => {
 
 describe('tramoDeContexto', () => {
   it.each([
-    [119_999, 0],
-    [120_000, 1],
-    [139_999, 1],
-    [140_000, 2],
-    [185_000, 4],
+    [144_999, 0],
+    [145_000, 1],
+    [164_999, 1],
+    [165_000, 2],
+    [210_000, 4],
   ])('%i tokens están en el tramo %i', (tokens, esperado) => {
     expect(tramoDeContexto(tokens)).toBe(esperado);
   });
@@ -65,8 +65,8 @@ describe('tramoDeContexto', () => {
 
 describe('puedePasarElRelevo', () => {
   it('solo deja parar con [RELEVO] desde el umbral', () => {
-    expect(puedePasarElRelevo(119_999)).toBe(false);
-    expect(puedePasarElRelevo(120_000)).toBe(true);
+    expect(puedePasarElRelevo(144_999)).toBe(false);
+    expect(puedePasarElRelevo(145_000)).toBe(true);
   });
 });
 
@@ -103,13 +103,13 @@ describe('areasConRelevo', () => {
 
 describe('avisoParaClaude', () => {
   it('da el tamaño en miles y pide terminar con la marca', () => {
-    const aviso = avisoParaClaude(126_400);
-    expect(aviso).toContain('126 k tokens (umbral: 120 k)');
+    const aviso = avisoParaClaude(151_400);
+    expect(aviso).toContain('151 k tokens (umbral: 145 k)');
     expect(aviso).toContain(MARCA_RELEVO);
   });
 
   it('pide rangos de líneas y las búsquedas hechas, no ficheros enteros', () => {
-    const aviso = avisoParaClaude(126_400);
+    const aviso = avisoParaClaude(151_400);
     expect(aviso).toContain('rangos fichero:líneas');
     expect(aviso).toMatch(/búsquedas que ya has hecho y lo que dieron/);
   });
@@ -117,7 +117,7 @@ describe('avisoParaClaude', () => {
 
 describe('después del relevo', () => {
   it('el aviso a Claude dice que no podrá editar más', () => {
-    expect(avisoParaClaude(126_400)).toMatch(/ya no podrá editar/);
+    expect(avisoParaClaude(151_400)).toMatch(/ya no podrá editar/);
   });
 
   it('al editar, Claude ve que el relevo está pasado y cómo acabar', () => {

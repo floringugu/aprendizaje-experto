@@ -1,4 +1,4 @@
-// Hook PostToolUse (todas las herramientas): cuando el contexto de la conversación pasa de 120 k
+// Hook PostToolUse (todas las herramientas): cuando el contexto de la conversación pasa de 145 k
 // tokens, le pide a Claude que acabe el paso en curso y pase el relevo, y te avisa a ti. Vuelve a
 // avisar cada 20 k tokens más. La regla está en scripts/arnes/comun/relevo.ts.
 //

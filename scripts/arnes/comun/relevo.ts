@@ -21,7 +21,9 @@ import { MARCA_DECISION_PENDIENTE } from './freno-stop.ts';
 import { anotarLinea, leerLineas, parsearLineas } from './jsonl.ts';
 
 export const MARCA_RELEVO = '[RELEVO]';
-const UMBRAL_DE_RELEVO = 120_000;
+// Por debajo de la autocompactación de Claude Code (~167 k con la ventana de 200 k), con el margen
+// que se gasta entre el aviso y el [RELEVO] (docs/plan.md §5, «Relevo»).
+const UMBRAL_DE_RELEVO = 145_000;
 const PASO_DE_AVISO = 20_000;
 
 // Fuera de git (.gitignore), como el registro del hook Stop.
