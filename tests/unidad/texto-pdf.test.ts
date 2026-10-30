@@ -1,6 +1,6 @@
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { delimiter, join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { textoDelPdf } from '../../src/aplicacion/texto-pdf.ts';
 import { pdfDePrueba } from '../aceptacion/soporte/pdf.ts';
@@ -81,6 +81,19 @@ describe('textoDelPdf', () => {
     const resultado = await textoDelPdf(mitad);
 
     expect(resultado).toMatchObject({ ok: false, causa: 'pdf_ilegible' });
+  });
+
+  it('quita el «\\n» con el que Poppler 24.02 cierra cada página, para dar lo mismo que el 26.01 (regla que la feature no cubre)', async () => {
+    // Un pdftotext falso, delante en el PATH, que escribe lo que da Poppler 24.02 con tres páginas, la segunda sin texto.
+    const carpeta = mkdtempSync(join(tmpdir(), 'poppler-24-'));
+    const programa = "#!/bin/sh\ncat > /dev/null\nprintf 'Primera\\nlínea\\n\\f\\fTercera\\n\\f'\n";
+    writeFileSync(join(carpeta, 'pdftotext'), programa, { mode: 0o755 });
+    vi.stubEnv('PATH', `${carpeta}${delimiter}${process.env['PATH'] ?? ''}`);
+    try {
+      expect(await paginasDe(pdfDePrueba([['Texto']]))).toEqual(['Primera\nlínea', '', 'Tercera']);
+    } finally {
+      rmSync(carpeta, { recursive: true });
+    }
   });
 
   it('sin pdftotext instalado se rechaza con falta_poppler (regla que la feature no cubre)', async () => {

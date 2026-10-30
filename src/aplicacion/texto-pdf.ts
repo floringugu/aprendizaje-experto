@@ -12,18 +12,26 @@ const PROGRAMA = 'pdftotext';
 const ARGUMENTOS = ['-raw', '-enc', 'UTF-8', '-', '-'];
 // pdftotext escribe un salto de página (`\f`) detrás del texto de cada página.
 const FIN_DE_PAGINA = '\f';
+// Poppler 24.02 (el de Ubuntu 24.04) cierra también la última línea de cada página con `\n`; el 26.01, no.
+const FIN_DE_LINEA = '\n';
 
-/** Las páginas de la salida de pdftotext: se parte por `\f` y se descarta lo que va detrás del último. */
+/**
+ * Las páginas de la salida de pdftotext: se parte por `\f`, se descarta lo que va detrás del último y se
+ * quita el `\n` final de cada página, si lo tiene, para que el texto no dependa de la versión de Poppler.
+ */
 function paginasDeLaSalida(salida: string): readonly string[] {
   const trozos = salida.split(FIN_DE_PAGINA);
-  return trozos.slice(0, trozos.length - 1);
+  return trozos
+    .slice(0, trozos.length - 1)
+    .map((pagina) => (pagina.endsWith(FIN_DE_LINEA) ? pagina.slice(0, -FIN_DE_LINEA.length) : pagina));
 }
 
 /**
  * Las páginas del PDF, en orden, cada una con su texto. Lanza `pdftotext -raw -enc UTF-8 - -`, le pasa el
  * PDF por la entrada estándar y decodifica la salida en UTF-8 cuando ya está entera: un carácter puede
  * llegar partido entre dos trozos. pdftotext cierra cada página con `\f`, así que la salida se parte por
- * `\f` y se quita el último trozo, el que va detrás del último `\f`. Una página sin texto da `''`.
+ * `\f`, se quita el último trozo, el que va detrás del último `\f`, y cada página pierde el `\n` final que
+ * le ponen algunas versiones de Poppler. Una página sin texto da `''`.
  * Con `-raw`, «tam-» y «bién» siguen en dos líneas, sin unirse (@MATE-3.4).
  *
  * Rechaza con `causa`:
