@@ -118,6 +118,66 @@ Así, aprobar es `localizar` + `quitar` + `poner`; descartar, `quitar`; corregir
 - el texto de un HTML se saca con código propio, sin dependencia;
 - el formato del borrador descrito arriba.
 
+### Reservados (etapa 3)
+
+Lo piden MATE-2.8 a 2.11, 3.6, 3.7 y 4.12 (commit 1625a1c). Tres cosas no existen aún: el campo `reservado` de un ítem, la operación de pedir más reservados y los avisos de la revisión. El campo es un `reservado?: boolean` más en `ItemContenido`; MATE-2.8, 2.9 y 4.12 no piden nada más en la interfaz (la forma «reservado a verdadero» es la del formato de contenido, y lo que haga con él la sesión es de MAST). Lo que sigue es lo que hay que decidir.
+
+**1. Pedir más reservados (MATE-2.10, 2.11).** Dos formas de ofrecerlo:
+
+*A. Una operación aparte, `pedirMasReservados`, con su cuerpo compartido con `redactarBorrador` (recomendada).*
+
+```ts
+/**
+ * La IA configurada redacta, a partir de un documento del material, ítems reservados de un objetivo (MATE-2.10).
+ * A la IA se le piden solo ítems con `reservado: true` y se le pasan los enunciados de los ítems que el
+ * objetivo ya tiene, aprobados y pendientes, para que el caso sea otro (I10). Lo que entrega pasa por el
+ * mismo formato que `redactarBorrador`; además, un ítem que no trae `reservado: true` se aparta
+ * (MATE-2.11), y uno que cuelga de otro objetivo también (regla que la feature no cubre, más abajo).
+ * Rechaza con `causa` `sin_ia`, `objetivo_no_encontrado` (no está ni en el contenido aprobado ni en el
+ * borrador) y las del documento que ya tiene `redactarBorrador`.
+ */
+pedirMasReservados(peticion: {
+  readonly dominio: string;
+  readonly objetivo: string;
+  readonly documento: string;
+}): Promise<Resultado<BorradorRedactado>>;
+```
+
+- Salida: la misma `BorradorRedactado` que `redactarBorrador`, con `apartadas: { falta }[]`. Una pieza que no es reservada, o que trae un `reservado` que no es booleano (MATE-2.9), se aparta con `falta: 'reservado'`: la propiedad del formato que no cumple. Los pasos de «ha apartado 1 pieza porque …» siguen usando `comprobarApartadas`.
+- El puerto `RedactorIa.redactar` recibe un campo más, opcional: `reservadosDe?: { objetivo: string; enunciados: readonly string[] }`. Sin él, la petición es la de siempre. Es lo que lee el doble de prueba en MATE-2.10 («pide solo ítems reservados de O1», «incluye los enunciados de I1 e I2»).
+- *A favor:* el nombre dice lo que la persona hace y rechaza por lo suyo (`objetivo_no_encontrado`). *En contra:* una operación más en `CasosDeMaterial`.
+
+*B. Un parámetro opcional de `redactarBorrador`: `{ dominio, documento, soloReservadosDe?: string }`.* La misma salida y las mismas causas, sin operación nueva. *En contra:* un modo que cambia qué pieza es válida dentro de una operación que ya valida otra cosa, y `objetivo_no_encontrado` solo vale con el modo puesto. El parámetro opcional esconde dos operaciones en una.
+
+**2. Dónde salen los avisos (MATE-3.6, 3.7).** Se calculan solo con el contenido aprobado (MAST-6.7), cada vez que se abre la revisión, y no se guardan, como las marcas.
+
+*A. `avisos` en la raíz de `Revision`, a la altura de `grupos` (recomendada).*
+
+```ts
+interface Revision {
+  readonly grupos: readonly GrupoRevision[];
+  /** Lo que falta para medir la transferencia; vacío si no falta nada. Solo con el contenido aprobado. */
+  readonly avisos: readonly AvisoDeReservados[];
+}
+
+type AvisoDeReservados =
+  /** `categoria` tiene grupo de parecidas, tiene problemas en `objetivo` y ninguno es reservado (MATE-3.6). */
+  | { readonly tipo: 'categoria_sin_reservado'; readonly objetivo: string; readonly categoria: string }
+  /** Con `hay` < `hacen_falta` problemas reservados en categorías con grupo (MATE-3.7); no cuelga de un objetivo. */
+  | { readonly tipo: 'pocos_reservados'; readonly hay: number; readonly hacen_falta: number };
+```
+
+- El texto («C1 no tiene ningún problema reservado», «Hay 3 problemas reservados en categorías con grupo; hacen falta 5») lo compone la interfaz, como los nombres de las marcas; los steps traducen el texto a estos datos. `hacen_falta` sale de `minimo_problemas_reservados`.
+- *Por qué en la raíz y no dentro de `GrupoRevision`:* en MATE-3.6 el borrador está vacío (los problemas están en `contenido/ficticio.json`), así que O1 no tiene ninguna pieza pendiente y no hay grupo de O1 donde colgar el aviso. «Bajo O1» es el `objetivo` del aviso, no su posición en `grupos`.
+- *B. Dentro de `GrupoRevision`, un `avisos` por grupo, más uno global.* Descartada por lo anterior: en 3.6 no hay grupo, y habría que inventar uno vacío para O1.
+
+**3. Reglas que la feature no cubre (las propongo; el dueño las confirma o las cambia).**
+
+- Un aviso `categoria_sin_reservado` solo sale para una categoría con grupo que tiene al menos un problema en el objetivo. Una categoría con grupo sin ningún problema en el objetivo no lleva aviso (en MATE-3.6, C2 es del grupo G1 y no tiene problemas en O1: no sale «C2 no tiene…»).
+- En `pedirMasReservados`, un ítem que cuelga de otro objetivo que el pedido se aparta con `falta: 'objetivo'`, y las piezas que no son ítems (objetivos, categorías, tareas, ejemplos) se ignoran sin entrada en `apartadas`: no se pidieron. Ningún escenario lo prueba.
+
+**Cómo los steps van por delante de la interfaz.** `reservado` no está aún en `ItemContenido`, `avisos` no está en `Revision` y `pedirMasReservados` no existe. Los steps declaran en `tests/aceptacion/soporte/escenario-material.ts` los tipos que faltan (`ItemConReservado`, `RevisionConAvisos`, `PedirMasReservados`) por intersección, como ya hace `CategoriaDelBorrador`, y los comprueban en tiempo de ejecución: un escenario falla con «la aplicación aún no tiene `pedirMasReservados`» o «la revisión no trae `avisos`», no con un error de tipos. Al implementar, se cambian por los tipos de `src/` y se borran.
+
 ## Interfaces descartadas y por qué
 
 Las dos interfaces que se compararon («diseñarlo dos veces»): cuál se eligió, cuál se descartó y la razón.
@@ -243,3 +303,18 @@ Opciones que se compararon, para dejar constancia en «Interfaces descartadas» 
 **Paso siguiente:** el dueño commitea y decide los tres puntos (bloque en el mensaje final); una conversación nueva implementa lo decidido en los ficheros de mate-revision.
 
 **Leer primero:** este relevo, `reports/revisor-codigo-MATE.md` (está en el directorio principal, no en los worktrees; `reports/` no se versiona), `docs/deuda-diseno.md` (D22) y `features/material.feature` (MATE-6).
+Etapa 3 de MATE en el worktree `/home/florin/aprendizaje-experto-mate-pasos` (rama `mate-pasos`). Solo se toca `tests/aceptacion/` y este fichero. La conversación siguiente tiene que ser de fase aceptacion, área MATE (ya fijadas en `.claude/settings.local.json`), abierta sobre ese worktree. Léelo y borra esta sección al acabar.
+
+**Hecho**
+- Lectura completa de lo necesario y firma aprobada por el dueño en «### Reservados (etapa 3)», con las cuatro respuestas recomendadas: `pedirMasReservados({ dominio, objetivo, documento })` (operación aparte, causas `sin_ia` y `objetivo_no_encontrado`, salida `BorradorRedactado`); `avisos` en la raíz de `Revision` (`categoria_sin_reservado { objetivo, categoria }` y `pocos_reservados { hay, hacen_falta }`); una categoría con grupo solo lleva aviso si tiene problemas en el objetivo; en el pedido, un ítem de otro objetivo se aparta con `falta: 'objetivo'` y lo que no es ítem se ignora.
+- `tests/aceptacion/soporte/externos.ts`: `IaDePrueba` guarda cada petición en `peticiones` (nuevo tipo `PeticionALaIa`, con `reservadosDe?: { objetivo, enunciados }`). Sin pasar tipos ni lint todavía.
+
+**Falta**
+1. Tipos por intersección en `soporte/escenario-material.ts`: `ItemConReservado` (`reservado?: boolean`), `RevisionConAvisos` (`avisos?`), `AvisoDeReservados` y la operación `pedirMasReservados`, que se busca en tiempo de ejecución y falla con «la aplicación aún no tiene pedirMasReservados». Un campo `reservadosDe` en `EscenarioMaterial` para el «Dado que la persona pidió más problemas reservados de O1» (2.11): el «Dado» solo anota el objetivo y el «Cuando» hace la petición con lo que entrega la IA.
+2. Un fichero nuevo `pasos/reservados.ts` con los pasos que salen de `ARNES_AREA=MATE npx cucumber-js --profile area --tags @MATE --dry-run` (12 escenarios sin definir: 2.8, 2.9, 2.10, 2.11, 3.6 ×3, 3.7 ×3 y 4.12 ×2). Frases literales que ya vimos: «ha apartado 1 pieza porque su «reservado» no es verdadero ni falso» y «porque no es reservado» (los dos con `falta: 'reservado'`, usando `comprobarApartadas` de `pasos/redaccion-rechazos.ts`, que hay que exportar); «el mínimo de problemas reservados configurado es 5» con `establecerParametro('minimo_problemas_reservados', 5)`; «C1 es de un grupo de parecidas y C5 no tiene grupo» con `contenido().fijarCategorias`; problemas reservados aprobados y pendientes con `itemDePrueba` más `reservado`. Para 3.6 y 3.7 los «Entonces» leen `revision.avisos` con `presente(...)`, así los escenarios «no ve ningún aviso» también fallan hoy, y traducen el texto del aviso a datos con una expresión regular (en «bajo O1», el `objetivo` del aviso; el aviso de mínimo no tiene objetivo, así que «no ve ningún aviso de problemas reservados» bajo O1 solo mira los de categoría).
+3. **Decisión que quedó sin preguntar (4.12):** los pasos «I7 tiene la marca «Reservado»» y «no tiene la marca «Reservado»» ya los define `pasos/revision.ts` con `MARCAS`, que no tiene «Reservado». Hoy fallarían por «no hay la marca», y nunca podrían pasar. Hay que decidir dónde ve la persona el «Reservado» en lo que devuelve `abrirRevision`: lo que propongo es un `reservado?: boolean` en cada pieza de `grupos[].piezas` (`PiezaPendiente`), que no es una marca (las marcas las pone la aplicación y el filtro de marcas no cambia). Si se acepta, `revision.ts` debe tratar «Reservado» aparte de `MARCAS`, y los pasos de «quita/pone «Reservado» en I7 y guarda la corrección» llaman a `corregirPieza` con `{ ...inicial, reservado: false | true }`; hay que escribir esta decisión en «### Reservados (etapa 3)» y pararse con [DECISIÓN PENDIENTE] antes de escribir esos pasos.
+4. Comprobar que cada escenario falla de verdad (ni pendiente, ni saltado, ni en verde): `ARNES_AREA=MATE npx cucumber-js --profile area --tags @MATE` y mirar el resultado de los 12.
+5. `escenarios_en_rojo`: ejecutar la aceptación del área y apuntar los IDs de MATE que fallan (los 12 de arriba más los que ya tenían steps pero no aplicación; el dueño cree que son 2.1, 2.3, 2.5, 2.6, 2.7, 3.5, 4.11 y 5.5, hay que comprobarlo). Preparar la propuesta (plan §6, clon en el scratchpad, parche en `reports/propuestas/`) que añade `"escenarios_en_rojo": {"MATE": [...]}` a `config/alcance.json`. Con ella aplicada, `make check-aceptacion` tiene que dar verde.
+6. Pasar tipos, lint, duplicación, código muerto y capas sobre `tests/aceptacion/` (`npm run --silent <paso>`), y dar al dueño el bloque `sh` para commitear en el worktree y para integrar desde el directorio principal: `make integrar N=mate-pasos` y `make retirar N=mate-pasos`.
+
+**Leer primero:** esta sección y «### Reservados (etapa 3)» (arriba); `features/material.feature` (las reglas MATE-2 y MATE-3, y 4.12); `tests/aceptacion/pasos/redaccion-rechazos.ts`, `revision.ts` y `aprobacion.ts`; `tests/aceptacion/soporte/escenario-material.ts`, `externos.ts` y `contenido.ts`; `config/alcance.json`.

@@ -114,13 +114,25 @@ export class WebDePrueba implements Web {
   }
 }
 
-/** La IA: entrega el borrador que haya preparado el escenario y anota qué documento le pidieron. */
+/**
+ * Lo que la aplicación le pide a la IA. `reservadosDe` solo viene al pedir más reservados de un objetivo
+ * (MATE-2.10): el objetivo y los enunciados de los ítems que ya tiene.
+ */
+export interface PeticionALaIa {
+  readonly documento: string;
+  readonly pdf: Uint8Array;
+  readonly reservadosDe?: { readonly objetivo: string; readonly enunciados: readonly string[] };
+}
+
+/** La IA: entrega el borrador que haya preparado el escenario y anota qué le pidieron. */
 export class IaDePrueba implements RedactorIa {
   respuesta: unknown = {};
   readonly documentosPedidos: string[] = [];
+  readonly peticiones: PeticionALaIa[] = [];
 
-  redactar(peticion: { readonly documento: string; readonly pdf: Uint8Array }): Promise<unknown> {
+  redactar(peticion: PeticionALaIa): Promise<unknown> {
     this.documentosPedidos.push(peticion.documento);
+    this.peticiones.push(peticion);
     return Promise.resolve(this.respuesta);
   }
 }
