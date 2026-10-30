@@ -123,11 +123,12 @@ export function avisoParaClaude(tokens: number): string {
   return (
     `Relevo: el contexto de esta conversación va por ${miles(tokens)} tokens (umbral: ${miles(UMBRAL_DE_RELEVO)}), ` +
     'y cada llamada lo vuelve a leer entero. Acaba el paso en curso sin empezar otro. Después apunta el estado ' +
-    `al final de ${CARPETA_DE_AREAS}/<ÁREA>.md, en una sección «## Relevo»: qué está hecho, qué falta, el paso ` +
-    'siguiente y los ficheros que hay que leer primero (si el fichero no existe, cópialo de la plantilla). Si la ' +
-    `conversación no trabaja en un área, escribe el relevo en tu mensaje final. Termina el mensaje con ${MARCA_RELEVO}: ` +
-    'el hook Stop te deja parar así sin la comprobación, y el dueño seguirá en una conversación nueva. ' +
-    'Después de ese relevo esta conversación ya no podrá editar ficheros.'
+    `al final de ${CARPETA_DE_AREAS}/<ÁREA>.md (si no existe, cópialo de la plantilla), en una sección «## Relevo»: ` +
+    'qué está hecho, qué falta, el paso siguiente y qué hay que leer primero, en rangos fichero:líneas y no en ' +
+    'ficheros enteros. Apunta también las búsquedas que ya has hecho y lo que dieron: así la conversación nueva no ' +
+    'repite tu lectura. Si la conversación no trabaja en un área, escribe el relevo en tu mensaje final. Termina el ' +
+    `mensaje con ${MARCA_RELEVO}: el hook Stop te deja parar así sin la comprobación, y el dueño seguirá en una ` +
+    'conversación nueva. Después de ese relevo esta conversación ya no podrá editar ficheros.'
   );
 }
 

@@ -227,6 +227,7 @@ Están en `.claude/settings.json`:
 ```json
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "bashOutputMaxChars": 8000,
   "hooks": {
     "SessionStart": [
       {
@@ -295,6 +296,8 @@ Están en `.claude/settings.json`:
   }
 }
 ```
+
+`bashOutputMaxChars` no es un hook, pero va en el mismo fichero: limita a 8000 caracteres lo que Claude recibe de una orden de Bash (el valor por defecto es 30 000). Si una salida correcta es más larga, Claude Code la guarda en un fichero y Claude recibe un avance de unos 2000 caracteres y la ruta, para leer solo lo que necesite. Medido en 74 conversaciones (30-10-2026), las salidas correctas de entre 8000 y 30 000 caracteres le costaban a cada conversación unos 13 k tokens. Tiene un precio: si una orden falla y saca más de 8000 caracteres, Claude solo ve los primeros 8000, sin el final y sin aviso de recorte. Ve que ha fallado por el código de salida, pero no por qué, y tiene que repetirla con `tail`. En aquellas conversaciones no pasó nunca: ninguna de las 98 salidas fallidas llegaba a 8000 caracteres, porque Claude filtra `make check` con `tail`, `grep` o `head`, o lo manda a un fichero (73 de 74 veces). Al hook Stop no le afecta: lee la salida de make él mismo. La variable `BASH_MAX_OUTPUT_LENGTH` no sirve para esto: solo cambia cuánto se relee del fichero de salida, no lo que llega en línea.
 
 ### SessionStart: `anunciar-fase.ts`
 
@@ -365,7 +368,7 @@ Formatea con Prettier el fichero que se acaba de editar y le pasa ESLint. Si hay
 En cada llamada, el modelo vuelve a leer el contexto entero de la conversación, así que una conversación larga encarece cada paso. En vez de compactar, el trabajo se pasa a una conversación nueva (`scripts/arnes/comun/relevo.ts`):
 
 1. Después de cada herramienta, el hook lee del transcript de Claude Code el tamaño del contexto de la última llamada: los tokens de entrada más los de la caché.
-2. Al pasar de **120 k tokens**, te avisa a ti y le pide a Claude que acabe el paso en curso sin empezar otro, apunte el estado al final de `docs/areas/<ÁREA>.md` en una sección «## Relevo» (qué está hecho, qué falta, el paso siguiente y los ficheros que hay que leer primero) y termine con `[RELEVO]`. Si la conversación no trabaja en un área, el relevo va en su mensaje final. El aviso se repite cada 20 k tokens más.
+2. Al pasar de **120 k tokens**, te avisa a ti y le pide a Claude que acabe el paso en curso sin empezar otro, apunte el estado al final de `docs/areas/<ÁREA>.md` en una sección «## Relevo» (qué está hecho, qué falta, el paso siguiente y qué hay que leer primero, en rangos `fichero:líneas` y no en ficheros enteros, más las búsquedas ya hechas y lo que dieron) y termine con `[RELEVO]`. Los rangos y las búsquedas le ahorran a la conversación nueva repetir la lectura: medido en 74 conversaciones (30-10-2026), cada una leía unos 65 k tokens antes de su primera edición. Si la conversación no trabaja en un área, el relevo va en su mensaje final. El aviso se repite cada 20 k tokens más.
 3. Abres una conversación nueva. El aviso de inicio te dice qué área tiene el relevo, y Claude lee la sección y la borra.
 
 El relevo es obligatorio. Cuando el hook Stop acepta el primer `[RELEVO]` de una conversación, lo anota en `.claude/registro-stop.jsonl` (resultado `relevo`) y desde entonces:

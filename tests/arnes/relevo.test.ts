@@ -107,6 +107,12 @@ describe('avisoParaClaude', () => {
     expect(aviso).toContain('126 k tokens (umbral: 120 k)');
     expect(aviso).toContain(MARCA_RELEVO);
   });
+
+  it('pide rangos de líneas y las búsquedas hechas, no ficheros enteros', () => {
+    const aviso = avisoParaClaude(126_400);
+    expect(aviso).toContain('rangos fichero:líneas');
+    expect(aviso).toMatch(/búsquedas que ya has hecho y lo que dieron/);
+  });
 });
 
 describe('después del relevo', () => {
