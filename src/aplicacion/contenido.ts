@@ -5,7 +5,7 @@ type TipoItem = 'hecho' | 'problema';
 
 /**
  * De dónde sale una pieza redactada a partir del material (plan §0, campo `fuente`). Es opcional en
- * objetivos, ítems, ejemplos resueltos y tareas: el contenido escrito a mano no la lleva.
+ * objetivos, categorías, ítems, ejemplos resueltos y tareas: el contenido escrito a mano no la lleva.
  */
 export interface Fuente {
   readonly documento: string;
@@ -65,6 +65,8 @@ export interface CategoriaContenido {
    */
   readonly descripcion: string;
   readonly grupo_parecidas?: string;
+  /** La IA redacta las categorías como una pieza más del borrador (plan §0, «Categorías en el borrador»). */
+  readonly fuente?: Fuente;
 }
 
 export interface NivelRubrica {

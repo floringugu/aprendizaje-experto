@@ -1,4 +1,5 @@
 import type {
+  CategoriaContenido,
   ContenidoDominio,
   EjemploResueltoContenido,
   Fuente,
@@ -18,11 +19,21 @@ export interface EjemploDeObjetivoAprobado extends EjemploResueltoContenido {
 }
 
 /**
+ * Una tarea del borrador. `antes_de` es el id de la tarea que va justo detrás, aprobada o del borrador
+ * (plan §0, «Reglas de `MATE` que la feature no cubre»); sin él, va al final. El campo es solo del
+ * borrador: la tarea entra en el aprobado sin él (@MATE-4.11).
+ */
+export interface TareaDelBorrador extends TareaContenido {
+  readonly antes_de?: string;
+}
+
+/**
  * `contenido/borradores/<dominio>.json`: el formato del contenido, con las piezas pendientes de revisar.
  * Los ejemplos de un objetivo nuevo van dentro de él; los de un objetivo ya aprobado, en `ejemplos_resueltos`.
  */
 export interface BorradorDominio extends ContenidoDominio {
   readonly ejemplos_resueltos?: readonly EjemploDeObjetivoAprobado[];
+  readonly tareas: readonly TareaDelBorrador[];
 }
 
 /** Lo que la revisión lee y escribe de un dominio. */
@@ -93,7 +104,8 @@ export type Pendiente =
       readonly aparte: boolean;
     }
   | { readonly tipo: 'item'; readonly pieza: ItemContenido }
-  | { readonly tipo: 'tarea'; readonly pieza: TareaContenido };
+  | { readonly tipo: 'categoria'; readonly pieza: CategoriaContenido }
+  | { readonly tipo: 'tarea'; readonly pieza: TareaDelBorrador };
 
 /** Las pendientes en el orden de la revisión: ver `revisar`. */
 export function pendientesDelBorrador(borrador: BorradorDominio): readonly Pendiente[] {
@@ -113,6 +125,7 @@ export function pendientesDelBorrador(borrador: BorradorDominio): readonly Pendi
     aparte: true,
   }));
   const items = borrador.items.map((pieza): Pendiente => ({ tipo: 'item', pieza }));
+  const categorias = borrador.categorias.map((pieza): Pendiente => ({ tipo: 'categoria', pieza }));
   const tareas = borrador.tareas.map((pieza): Pendiente => ({ tipo: 'tarea', pieza }));
-  return [...deObjetivos, ...aparte, ...items, ...tareas];
+  return [...deObjetivos, ...aparte, ...items, ...categorias, ...tareas];
 }

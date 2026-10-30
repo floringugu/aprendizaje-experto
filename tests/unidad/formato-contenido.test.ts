@@ -265,5 +265,12 @@ describe('validarContenido: fuente', () => {
       'documento',
     ],
     ['documento se mira antes que lugar', enItem({ fuente: { lugar: '' } }), FUENTE_DEL_ITEM, 'documento'],
+    [
+      'una categoría con la fuente sin lugar',
+      enCategoria({ fuente: sin(FUENTE, 'lugar') }),
+      'la fuente de la categoría C1',
+      'lugar',
+    ],
+    ['una categoría con una fuente que no es un objeto', enCategoria({ fuente: 'apuntes' }), CATEGORIA, 'fuente'],
   ]);
 });

@@ -1,5 +1,5 @@
-import type { Marca, Marcador } from '../dominio/citas.ts';
-import type { ContenidoDominio, EjemploResueltoContenido, ObjetivoContenido } from './contenido.ts';
+import type { MarcaDeCita, Marcador } from '../dominio/citas.ts';
+import type { ContenidoDominio, EjemploResueltoContenido, ItemContenido, ObjetivoContenido } from './contenido.ts';
 import {
   esRegistro,
   falloDeLaPiezaSuelta,
@@ -9,11 +9,18 @@ import {
   type TipoDePieza,
 } from './formato-contenido.ts';
 import { idRepetido, pendientesDelBorrador, type BorradorDominio, type Mesa, type Pendiente } from './mesa.ts';
+import { conLaTareaAprobada, sinLaTareaDescartada } from './orden-de-las-tareas.ts';
 import { aceptar, rechazarElCampo, rechazarPorCausa, type Resultado } from './resultado.ts';
 
 // La revisión del material (MATE-4, MATE-5): cómo pasa cada pieza del borrador al contenido aprobado.
 // Es lógica pura sobre la mesa (mesa.ts); leer y escribir los ficheros, y guardar lo que había para
 // deshacer, lo hacen los casos de uso de revision-del-material.ts.
+
+/**
+ * Las marcas de una pieza pendiente. Las pone la aplicación, no la IA (MATE-3): la de su cita, que da el
+ * marcador, y `un_solo_paso`, la de un ejemplo resuelto con menos de 2 pasos (@MATE-3.5).
+ */
+export type Marca = MarcaDeCita | 'un_solo_paso';
 
 /** Filtros de la revisión (MATE-4.2): todas las pendientes, o solo las que llevan una marca. */
 export type FiltroRevision = 'pendientes' | Marca;
@@ -21,7 +28,10 @@ export type FiltroRevision = 'pendientes' | Marca;
 interface PiezaPendiente {
   readonly id: string;
   readonly tipo: TipoDePieza;
-  /** La marca que le pone el marcador, si tiene alguna: una lista vacía o de un elemento. */
+  /**
+   * La marca de su cita, si tiene, y después `un_solo_paso`, si es un ejemplo resuelto con menos de 2
+   * pasos: de ninguna a dos marcas.
+   */
   readonly marcas: readonly Marca[];
 }
 
@@ -46,10 +56,12 @@ export type Accion =
  * (@MATE-4.1). De qué objetivo cuelga cada una:
  * - un objetivo, de sí mismo, y los ejemplos que lleva dentro, de él;
  * - un ejemplo de los que van aparte, un ítem, de su `objetivo`;
- * - una tarea, de ninguno: las tareas van en un grupo sin `objetivo`, el último.
+ * - una categoría o una tarea, de ninguno: van en un grupo sin `objetivo`, el último (plan §0,
+ *   «Categorías en el borrador»).
  *
  * Los grupos salen en el orden en que aparece su primera pieza, y las piezas de cada grupo en el orden
- * del borrador: objetivos (cada uno seguido de sus ejemplos), ejemplos que van aparte, ítems y tareas.
+ * del borrador: objetivos (cada uno seguido de sus ejemplos), ejemplos que van aparte, ítems, categorías
+ * y tareas.
  * Con un filtro de marca solo quedan las piezas que la llevan, y un grupo sin piezas no sale (@MATE-4.2).
  */
 export function revisar(mesa: Mesa, marcas: Marcador, filtro: FiltroRevision): Revision {
@@ -63,26 +75,43 @@ export function revisar(mesa: Mesa, marcas: Marcador, filtro: FiltroRevision): R
 
 /**
  * Aplica la acción y devuelve la mesa nueva, sin tocar la de entrada. Lo que no cambia se queda donde
- * estaba y en el mismo orden; lo que entra en una lista va al final. La mesa de entrada no repite ids
- * (`idRepetido` da `undefined`), y la que devuelve tampoco.
+ * estaba y en el mismo orden; lo que entra en una lista va al final, salvo una tarea con `antes_de`. La
+ * mesa de entrada no repite ids (`idRepetido` da `undefined`), y la que devuelve tampoco.
  *
  * - `aprobar` saca la pieza del borrador y la pone en el aprobado con su fuente, si la tiene (@MATE-4.4,
  *   @MATE-5.3); da igual que lleve marca. Un objetivo entra sin sus ejemplos, que siguen pendientes y
  *   pasan a la lista de los que van aparte, con `objetivo`. Un ejemplo que iba aparte entra dentro de
  *   su objetivo, ya sin `objetivo`. Una pieza que cuelga de un objetivo que no está en el aprobado no
  *   se aprueba: el aprobado quedaría con un objetivo que no existe. Rechaza con `causa`
- *   `objetivo_pendiente` (regla que la feature no cubre, aprobada en el Mecanismo de MATE).
+ *   `objetivo_pendiente` (regla que la feature no cubre, aprobada en el Mecanismo de MATE). Igual un
+ *   ítem cuya `categoria` no está en el aprobado: `categoria_pendiente`, después de mirar el objetivo
+ *   (plan §0, «Reglas de `MATE` que la feature no cubre»).
+ *
+ *   Una tarea entra sin `antes_de`, delante de la primera tarea aprobada que se encuentra siguiendo los
+ *   `antes_de` desde el suyo: si apunta a una tarea pendiente, se sigue el de esa. Si la cadena se corta
+ *   (una tarea sin `antes_de`, o un id que no es de ninguna tarea) o vuelve a una tarea por la que ya ha
+ *   pasado, empezando por la propia, va al final (@MATE-4.11, plan §0). Así da igual en qué orden se
+ *   aprueben, y no se rechaza nada.
  * - `descartar` saca la pieza del borrador y no toca el aprobado (@MATE-4.5). Un objetivo se va con
  *   todo lo que cuelga de él en el borrador: sus ejemplos y sus ítems (regla que la feature no cubre).
+ *   Los ítems del borrador cuya `categoria` es la categoría descartada se quedan sin `categoria` y
+ *   siguen pendientes (regla que la feature no cubre, aprobada por el dueño el 30-10-2026). Las tareas
+ *   del borrador con `antes_de` hacia la tarea descartada pasan a llevar el de ella, o ninguno si ella
+ *   no lo llevaba o si apuntaba a la propia tarea: siguen en el mismo sitio de la cadena (plan §0).
  * - `corregir` sustituye la pieza por `corregida`, en el mismo sitio del borrador, y sigue pendiente
  *   (@MATE-4.6). Se valida como una pieza suelta de su tipo: si no cumple el formato del contenido, no
  *   cambia nada y rechaza con el `campo` que falta (@MATE-4.8). Si cambia el `id`, o si la mesa queda
  *   con un id repetido (un objetivo corregido con un ejemplo dentro que usa el id de otra pieza),
- *   rechaza con `campo` `id` (regla que la feature no cubre, plan §0). Un ítem que pasa a colgar de un
- *   `objetivo` que no está ni en el borrador ni en el aprobado rechaza con `campo` `objetivo`: nunca se
- *   podría aprobar (regla que la feature no cubre, aprobada por el dueño el 24-10-2026). Se comprueba en
- *   este orden: el formato, el `id`, el `objetivo` y los ids repetidos. Un ejemplo que va aparte
- *   conserva su `objetivo`, venga o no en `corregida`.
+ *   rechaza con `campo` `id` (regla que la feature no cubre, plan §0). Una corrección que deja una
+ *   referencia que no lleva a ninguna parte rechaza con el `campo` de la referencia (plan §0; el
+ *   `objetivo`, aprobado por el dueño el 24-10-2026):
+ *   - `objetivo`: un ítem que pasa a colgar de un objetivo que no está ni en el borrador ni en el
+ *     aprobado. Nunca se podría aprobar;
+ *   - `categoria`: un ítem con una `categoria` que no está ni en el borrador ni en el aprobado;
+ *   - `antes_de`: una tarea con un `antes_de` que es su propio id o que no es el de ninguna tarea del
+ *     borrador ni del aprobado.
+ *   Se comprueba en este orden: el formato, el `id`, el `objetivo`, la `categoria`, el `antes_de` y los
+ *   ids repetidos. Un ejemplo que va aparte conserva su `objetivo`, venga o no en `corregida`.
  *
  * Una pieza que no está en el borrador rechaza con `causa` `pieza_no_encontrada`. No hay acción sobre
  * varias piezas a la vez: cada una se aprueba al leerla, también las que no tienen marca (@MATE-5.5).
@@ -100,7 +129,7 @@ export function aplicar(mesa: Mesa, accion: Accion): Resultado<Mesa> {
 
 // --- Las piezas pendientes del borrador ---
 
-/** El objetivo del que cuelga la pieza; las tareas no cuelgan de ninguno. */
+/** El objetivo del que cuelga la pieza; las categorías y las tareas no cuelgan de ninguno. */
 function colgadoDe(pendiente: Pendiente): string | undefined {
   switch (pendiente.tipo) {
     case 'objetivo':
@@ -109,14 +138,25 @@ function colgadoDe(pendiente: Pendiente): string | undefined {
       return pendiente.objetivo;
     case 'item':
       return pendiente.pieza.objetivo;
+    case 'categoria':
     case 'tarea':
       return undefined;
   }
 }
 
 function piezaPendiente(pendiente: Pendiente, marcas: Marcador): PiezaPendiente {
-  const marca = marcas(pendiente.pieza.fuente);
-  return { id: pendiente.pieza.id, tipo: pendiente.tipo, marcas: marca === undefined ? [] : [marca] };
+  return { id: pendiente.pieza.id, tipo: pendiente.tipo, marcas: marcasDeLaPieza(pendiente, marcas) };
+}
+
+/**
+ * Las marcas de la pieza, en este orden: la de su cita, si el marcador da una, y `un_solo_paso`, si es un
+ * ejemplo resuelto con menos de 2 pasos, vaya dentro de su objetivo o aparte (@MATE-3.5). Los pasos de un
+ * ejemplo nunca están vacíos en un contenido válido; `<= 1` cubre ese caso igual que «menos de 2».
+ */
+function marcasDeLaPieza(pendiente: Pendiente, marcadorDeCita: Marcador): readonly Marca[] {
+  const deLaCita = marcadorDeCita(pendiente.pieza.fuente);
+  const unSoloPaso = pendiente.tipo === 'ejemplo' && pendiente.pieza.pasos.length <= 1;
+  return [...(deLaCita === undefined ? [] : [deLaCita]), ...(unSoloPaso ? (['un_solo_paso'] as const) : [])];
 }
 
 /** Los grupos salen en el orden en que aparece su primera pieza: un `Map` recuerda el orden de inserción. */
@@ -133,6 +173,9 @@ function agruparPorObjetivo(
 }
 
 // --- Rechazos ---
+
+/** Lo que da una comprobación previa a un cambio: el rechazo, o `undefined` si la pieza la pasa. */
+type Rechazo = Resultado<never> | undefined;
 
 /** Busca la pieza en el borrador y le aplica la acción; si no está, `pieza_no_encontrada`. */
 function sobrePieza(
@@ -171,6 +214,8 @@ function cambiarPieza(mesa: Mesa, pendiente: Pendiente, cambio: CambioDeLista): 
       return conBorrador(mesa, { objetivos: cambio(borrador.objetivos) });
     case 'item':
       return conBorrador(mesa, { items: cambio(borrador.items) });
+    case 'categoria':
+      return conBorrador(mesa, { categorias: cambio(borrador.categorias) });
     case 'tarea':
       return conBorrador(mesa, { tareas: cambio(borrador.tareas) });
     case 'ejemplo':
@@ -194,7 +239,18 @@ function cambiarEjemplosDe(
 
 function descartarPieza(mesa: Mesa, pendiente: Pendiente): Mesa {
   const sinLaPieza = cambiarPieza(mesa, pendiente, quitar(pendiente.pieza.id));
-  return pendiente.tipo === 'objetivo' ? sinLoQueCuelga(sinLaPieza, pendiente.pieza.id) : sinLaPieza;
+  switch (pendiente.tipo) {
+    case 'objetivo':
+      return sinLoQueCuelga(sinLaPieza, pendiente.pieza.id);
+    case 'categoria':
+      return sinLaCategoriaEnLosItems(sinLaPieza, pendiente.pieza.id);
+    case 'tarea':
+      // `mesa` aún tiene la tarea en el borrador: así se ve cuáles apuntaban a ella.
+      return conBorrador(mesa, { tareas: sinLaTareaDescartada(mesa.borrador.tareas, pendiente.pieza) });
+    case 'ejemplo':
+    case 'item':
+      return sinLaPieza;
+  }
 }
 
 /** Al descartar un objetivo se van con él los ejemplos que iban aparte y los ítems que eran suyos. */
@@ -208,18 +264,48 @@ function sinLoQueCuelga(mesa: Mesa, objetivo: string): Mesa {
   return conBorrador(mesa, { ...sinEjemplos, items: borrador.items.filter((item) => !cuelga(item)) });
 }
 
+/**
+ * Al descartar una categoría, los ítems del borrador que la tenían siguen pendientes, en el mismo sitio y
+ * sin `categoria`: sin la propiedad, no con el valor `undefined`, que el formato del contenido trataría
+ * igual pero que dejaría el fichero con una clave de más.
+ */
+function sinLaCategoriaEnLosItems(mesa: Mesa, categoria: string): Mesa {
+  const sinCategoria = (item: ItemContenido): ItemContenido => {
+    const { categoria: suya, ...resto } = item;
+    return suya === categoria ? resto : item;
+  };
+  return conBorrador(mesa, { items: mesa.borrador.items.map(sinCategoria) });
+}
+
 // --- Aprobar ---
 
 function aprobarPieza(mesa: Mesa, pendiente: Pendiente): Resultado<Mesa> {
-  const sinAprobar = objetivoSinAprobar(mesa, pendiente);
-  if (sinAprobar !== undefined) {
-    return rechazarPorCausa(
-      'objetivo_pendiente',
-      `No se puede aprobar «${pendiente.pieza.id}»: su objetivo ${sinAprobar} sigue pendiente. Aprueba antes el objetivo.`,
-    );
+  const rechazo = rechazoPorPendiente(mesa, pendiente);
+  if (rechazo !== undefined) {
+    return rechazo;
   }
   const sinLaPieza = cambiarPieza(mesa, pendiente, quitar(pendiente.pieza.id));
   return aceptar(entrarEnElAprobado(sinLaPieza, pendiente));
+}
+
+/** El rechazo de aprobar una pieza cuyo objetivo o cuya categoría siguen pendientes: primero el objetivo. */
+function rechazoPorPendiente(mesa: Mesa, pendiente: Pendiente): Rechazo {
+  const id = pendiente.pieza.id;
+  const objetivo = objetivoSinAprobar(mesa, pendiente);
+  if (objetivo !== undefined) {
+    return rechazarPorCausa(
+      'objetivo_pendiente',
+      `No se puede aprobar «${id}»: su objetivo ${objetivo} sigue pendiente. Aprueba antes el objetivo.`,
+    );
+  }
+  const categoria = pendiente.tipo === 'item' ? pendiente.pieza.categoria : undefined;
+  const aprobada = mesa.aprobado.categorias.some(({ id }) => id === categoria);
+  return categoria === undefined || aprobada
+    ? undefined
+    : rechazarPorCausa(
+        'categoria_pendiente',
+        `No se puede aprobar «${id}»: su categoría ${categoria} sigue pendiente. Aprueba antes la categoría.`,
+      );
 }
 
 /**
@@ -244,8 +330,11 @@ function entrarEnElAprobado(mesa: Mesa, pendiente: Pendiente): Mesa {
       return aprobarObjetivo(mesa, pendiente.pieza);
     case 'item':
       return conAprobado(mesa, { items: [...aprobado.items, pendiente.pieza] });
+    case 'categoria':
+      return conAprobado(mesa, { categorias: [...aprobado.categorias, pendiente.pieza] });
     case 'tarea':
-      return conAprobado(mesa, { tareas: [...aprobado.tareas, pendiente.pieza] });
+      // `mesa` ya no tiene la tarea en el borrador, y esas son las pendientes por las que sigue la cadena.
+      return conAprobado(mesa, { tareas: conLaTareaAprobada(aprobado.tareas, pendiente.pieza, mesa.borrador.tareas) });
     case 'ejemplo':
       return conAprobado(mesa, {
         objetivos: aprobado.objetivos.map((objetivo) =>
@@ -320,13 +409,12 @@ function conObjetivoDelEjemplo(pendiente: Pendiente, corregida: unknown): unknow
     : corregida;
 }
 
-/** El primer rechazo de la corrección, en el orden del plan (formato, `id`, `objetivo`), o `undefined` si pasa todos. */
-function primerRechazoDeLaCorreccion(
-  mesa: Mesa,
-  pendiente: Pendiente,
-  correccion: Correccion,
-): Resultado<never> | undefined {
-  const fallo = falloDeLaPiezaSuelta(pendiente.tipo, correccion.validada);
+/**
+ * El primer rechazo de la corrección, en el orden del plan (formato, `id`, `objetivo`, `categoria` y
+ * `antes_de`), o `undefined` si pasa todos. Los ids repetidos se miran después, sobre la mesa ya corregida.
+ */
+function primerRechazoDeLaCorreccion(mesa: Mesa, pendiente: Pendiente, correccion: Correccion): Rechazo {
+  const fallo = falloDeLaPiezaSuelta(pendiente.tipo, correccion.validada, pendiente.pieza.id);
   if (fallo !== undefined) {
     return rechazoDeFormato(fallo);
   }
@@ -335,22 +423,48 @@ function primerRechazoDeLaCorreccion(
   if (!esRegistro(recibida) || recibida['id'] !== id) {
     return rechazarElCampo('id', `No se guarda la corrección: no se puede cambiar el id de «${id}».`);
   }
-  return rechazoDeObjetivoInexistente(mesa, pendiente, recibida);
+  return (
+    rechazoDeReferenciaDelItem(mesa, pendiente, recibida) ?? rechazoDeAntesDeInexistente(mesa, pendiente, recibida)
+  );
 }
 
-/** Un ítem que pasa a un objetivo que no está ni en el borrador ni en el aprobado nunca se podría aprobar. */
-function rechazoDeObjetivoInexistente(
-  mesa: Mesa,
-  pendiente: Pendiente,
-  corregida: Registro,
-): Resultado<never> | undefined {
-  const objetivo = corregida['objetivo'];
-  const existe = [...mesa.borrador.objetivos, ...mesa.aprobado.objetivos].some(({ id }) => id === objetivo);
-  return pendiente.tipo !== 'item' || existe
+/**
+ * Un ítem que pasa a colgar de un objetivo, o de una categoría, que no está ni en el borrador ni en el
+ * aprobado nunca se podría aprobar. Primero se mira el objetivo. El formato ya ha comprobado que `objetivo`
+ * y `categoria` son textos no vacíos si vienen; sin `categoria` no hay a qué apuntar.
+ */
+function rechazoDeReferenciaDelItem(mesa: Mesa, pendiente: Pendiente, corregida: Registro): Rechazo {
+  const { borrador, aprobado } = mesa;
+  // Lo que no es un texto no es una referencia: el formato ya ha dejado pasar solo textos en estas propiedades.
+  const sinDestino = (campo: string, nombre: string, piezas: readonly { readonly id: string }[]) =>
+    typeof corregida[campo] !== 'string' || piezas.some(({ id }) => id === corregida[campo])
+      ? undefined
+      : rechazarElCampo(
+          campo,
+          `No se guarda la corrección: ${nombre} «${corregida[campo]}» no está ni en el borrador ni en el aprobado.`,
+        );
+  return pendiente.tipo !== 'item'
+    ? undefined
+    : (sinDestino('objetivo', 'el objetivo', [...borrador.objetivos, ...aprobado.objetivos]) ??
+        sinDestino('categoria', 'la categoría', [...borrador.categorias, ...aprobado.categorias]));
+}
+
+/**
+ * Una tarea con un `antes_de` que es su propio id, o que no es el de ninguna tarea del borrador ni del
+ * aprobado, deja la cadena apuntando a ninguna parte. El formato no mira `antes_de`, que es solo del
+ * borrador: lo que no sea un texto tampoco coincide con ningún id y se rechaza aquí.
+ */
+function rechazoDeAntesDeInexistente(mesa: Mesa, pendiente: Pendiente, corregida: Registro): Rechazo {
+  const antesDe = corregida['antes_de'];
+  if (pendiente.tipo !== 'tarea' || antesDe === undefined) {
+    return undefined;
+  }
+  const otras = [...mesa.borrador.tareas, ...mesa.aprobado.tareas].filter(({ id }) => id !== pendiente.pieza.id);
+  return otras.some(({ id }) => id === antesDe)
     ? undefined
     : rechazarElCampo(
-        'objetivo',
-        `No se guarda la corrección: el objetivo «${String(objetivo)}» no está ni en el borrador ni en el aprobado.`,
+        'antes_de',
+        `No se guarda la corrección: «antes_de» tiene que ser el id de otra tarea, del borrador o del aprobado, y ${JSON.stringify(antesDe)} no lo es.`,
       );
 }
 

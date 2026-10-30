@@ -17,11 +17,11 @@ export interface Cita {
 /** El texto del material: cada nombre de fichero o URL con sus páginas, en orden. Una URL es una sola página. */
 export type TextosDelMaterial = ReadonlyMap<string, readonly string[]>;
 
-/** «No está en tu material» y «Cita no encontrada». Las pone la aplicación, no la IA (MATE-3). */
-export type Marca = 'sin_fuente' | 'cita_no_encontrada';
+/** «No está en tu material» y «Cita no encontrada»: las marcas que salen de la fuente de una pieza (MATE-3). */
+export type MarcaDeCita = 'sin_fuente' | 'cita_no_encontrada';
 
 /** La marca de una pieza a partir de su fuente; `undefined` si no lleva ninguna. */
-export type Marcador = (fuente: Cita | undefined) => Marca | undefined;
+export type Marcador = (fuente: Cita | undefined) => MarcaDeCita | undefined;
 
 /**
  * El marcador de un material. Una pieza lleva:
