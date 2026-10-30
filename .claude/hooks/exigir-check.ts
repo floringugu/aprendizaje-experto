@@ -5,9 +5,9 @@
 // [DECISIÓN PENDIENTE]. Entonces puede parar, y el dueño ve un aviso de que la
 // comprobación no se ha hecho.
 //
-// Freno: si el fallo es del entorno, de la integridad, o es el tercer bloqueo seguido del mismo
-// paso, el mensaje cambia (scripts/arnes/comun/freno-stop.ts). Cada parada se anota en
-// .claude/registro-stop.jsonl (scripts/arnes/comun/registro-stop.ts).
+// Freno: si el fallo es del entorno o es el tercer bloqueo seguido del mismo paso, el mensaje
+// cambia (scripts/arnes/comun/freno-stop.ts). Cada parada se anota en .claude/registro-stop.jsonl
+// (scripts/arnes/comun/registro-stop.ts).
 //
 // Relevo: si el contexto ha pasado del umbral (scripts/arnes/comun/relevo.ts), Claude acaba el paso
 // en curso, apunta el relevo y termina con [RELEVO]. Entonces puede parar sin la comprobación: el

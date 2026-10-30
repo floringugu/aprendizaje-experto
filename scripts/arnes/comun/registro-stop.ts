@@ -5,8 +5,7 @@
 //   - el relevo: saber si la conversación ya ha pasado el suyo (relevoPasado);
 //   - el archivo de cada área (docs/areas/<ÁREA>.md): cuántas veces bloqueó el hook mientras
 //     se implementaba el área («make bloqueos A=<ÁREA>»).
-// El fichero está en .gitignore: es local, como reports/, pero vive en .claude/ para que
-// Claude no pueda borrarlo ni editarlo (la ruta está protegida).
+// El fichero está en .gitignore: es local, como reports/.
 import path from 'node:path';
 import { BLOQUEOS_PARA_FRENAR } from './freno-stop.ts';
 import { anotarLinea, leerLineas, parsearLineas } from './jsonl.ts';

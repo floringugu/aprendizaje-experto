@@ -4,6 +4,7 @@ import {
   areasEnAlcance,
   escenariosEnRojo,
   leerAlcance,
+  problemaDeArea,
   problemaDeFaseYArea,
   problemaDelAreaACerrar,
 } from '../../scripts/arnes/comun/alcance.ts';
@@ -111,6 +112,15 @@ describe('problemaDeFaseYArea', () => {
     expect(problemaDeFaseYArea(raiz, 'impl', 'XXXX')).toMatch(/no existe en features\/. Hay: DIAG, MATE, PANT/);
     expect(problemaDeFaseYArea(raiz, 'impl', 'DIAG')).toMatch(/ya está cerrada/);
     expect(problemaDeFaseYArea(raiz, 'impl', 'mate')).toMatch(/no es un prefijo de área/);
+  });
+});
+
+describe('problemaDeArea', () => {
+  it('el área tiene que existir en features/, aunque esté cerrada', () => {
+    const raiz = raizConAreas(['DIAG'], ['DIAG', 'MATE']);
+    expect(problemaDeArea(raiz, 'DIAG')).toBeUndefined();
+    expect(problemaDeArea(raiz, 'XXXX')).toMatch(/no existe en features\/. Hay: DIAG, MATE/);
+    expect(problemaDeArea(raiz, 'mate')).toMatch(/no es un prefijo de área/);
   });
 });
 

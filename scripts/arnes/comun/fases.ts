@@ -7,7 +7,7 @@
  * (faseYAreaDelCheckout en checkout.ts).
  * - specs: etapa 2, se pueden escribir features/ y config/parametros.json.
  * - aceptacion: etapa 3, se pueden escribir los steps de tests/aceptacion/.
- * - impl: resto del tiempo; lo protegido está bloqueado salvo lo anotado con @impl (docs/deuda-diseno.md).
+ * - impl: resto del tiempo, implementar el área en curso en src/ y tests/unidad/.
  */
 export const FASES = ['specs', 'aceptacion', 'impl'] as const;
 export type Fase = (typeof FASES)[number];

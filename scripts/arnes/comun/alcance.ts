@@ -87,10 +87,20 @@ export function problemaDeFaseYArea(raiz: string, fase: Fase, area: string | und
   if (area === undefined) {
     return fase === 'aceptacion' ? 'La fase aceptacion necesita el área en curso (A=<ÁREA>).' : undefined;
   }
+  const problema = problemaDeArea(raiz, area);
+  if (problema !== undefined) return problema;
+  if (leerAreasCerradas(raiz).includes(area)) return `El área ${area} ya está cerrada (config/alcance.json).`;
+  return undefined;
+}
+
+/**
+ * Por qué `area` no es un área de features/, o undefined si lo es. No mira si está cerrada: la rama
+ * del PR que cierra un área ya la lleva en areas_cerradas.
+ */
+export function problemaDeArea(raiz: string, area: string): string | undefined {
   if (!esArea(area)) return `«${area}» no es un prefijo de área (por ejemplo, MATE).`;
   const existentes = areasDeFeatures(raiz);
   if (!existentes.includes(area)) return `El área ${area} no existe en features/. Hay: ${existentes.join(', ')}.`;
-  if (leerAreasCerradas(raiz).includes(area)) return `El área ${area} ya está cerrada (config/alcance.json).`;
   return undefined;
 }
 

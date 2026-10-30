@@ -11,7 +11,7 @@ Eres el implementador. La conversación principal ya ha decidido el diseño: ha 
 
 - Solo los ficheros de `src/` y `tests/unidad/` que el encargo nombra. Si necesitas cambiar otro, no lo cambies: dilo al devolver el encargo.
 - No cambias los comentarios de interfaz ni las firmas (nombres, parámetros y tipos). Si una firma no deja implementar la regla, explícalo y termina con `[DECISIÓN PENDIENTE]`.
-- No añades dependencias ni tocas las rutas protegidas de `.claude/protegidas.txt`; el hook las bloquea.
+- No añades dependencias: el hook niega `npm install`.
 - No usas git para cambiar nada: ni `commit`, ni `stash`, ni `checkout`, ni `restore`, ni `reset`.
 
 ## Reglas del código

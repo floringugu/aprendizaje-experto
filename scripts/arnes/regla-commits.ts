@@ -1,26 +1,24 @@
-// Hook pre-commit de git (.githooks/pre-commit). Rechaza el commit si:
-//   - mezcla especificación (features/, tests/aceptacion/, config/) y código (src/, tests/unidad/);
-//   - Claude Code intenta commitear un fichero protegido.
-import { problemaDeAutoria, problemaDeMezcla } from './comun/commits.ts';
-import { git } from './comun/git.ts';
-import { leerProtegidas } from './comun/protegidas.ts';
+// La regla de mezcla (comun/commits.ts): ningún commit lleva a la vez especificación (features/,
+// tests/aceptacion/, config/) y código (src/, tests/unidad/).
+//   node scripts/arnes/regla-commits.ts                 lo preparado, antes de commitear
+//   node scripts/arnes/regla-commits.ts --rango a..b    cada commit del rango: el job «mezcla» de la CI
+//                                                       (.github/workflows/puerta.yml), con la base y la cabeza del PR
+import { problemasDeLoPreparado, problemasDelRango } from './comun/commits.ts';
 import { RAIZ } from './comun/raiz.ts';
 
 function principal(): number {
-  // --no-renames: un renombrado aparece como borrado + alta, y se comprueban las dos rutas.
-  const { codigo, salida } = git(RAIZ, ['diff', '--cached', '--name-only', '--no-renames', '-z']);
-  if (codigo !== 0) {
-    console.error('No se pueden leer los cambios preparados (git diff --cached).');
+  const argumentos = process.argv.slice(2);
+  const [opcion, rango] = argumentos;
+  if (argumentos.length !== 0 && (opcion !== '--rango' || rango === undefined || argumentos.length !== 2)) {
+    console.error('Uso: node scripts/arnes/regla-commits.ts [--rango <base>..<cabeza>]');
     return 1;
   }
-  const rutas = salida.split('\0').filter((ruta) => ruta !== '');
-  const entradas = leerProtegidas(RAIZ);
-  const problemas = [
-    problemaDeMezcla(rutas),
-    problemaDeAutoria(rutas, entradas, process.env['CLAUDECODE'] !== undefined),
-  ].filter((problema) => problema !== undefined);
-  if (problemas.length === 0) return 0;
-  console.error(`Commit rechazado:\n${problemas.map((problema) => `  - ${problema}`).join('\n')}`);
+  const problemas = rango === undefined ? problemasDeLoPreparado(RAIZ) : problemasDelRango(RAIZ, rango);
+  if (problemas.length === 0) {
+    console.log('Regla de mezcla: ningún commit mezcla especificación y código.');
+    return 0;
+  }
+  console.error(`Regla de mezcla rota:\n${problemas.map((problema) => `  - ${problema}`).join('\n')}`);
   return 1;
 }
 

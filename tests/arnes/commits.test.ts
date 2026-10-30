@@ -1,8 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { categoriaDe, problemaDeAutoria, problemaDeMezcla } from '../../scripts/arnes/comun/commits.ts';
-import { parsearProtegidas } from '../../scripts/arnes/comun/protegidas.ts';
-
-const entradas = parsearProtegidas('features/ @specs\nconfig/parametros.json @specs\nMakefile\n.claude/\n');
+import {
+  categoriaDe,
+  problemaDeMezcla,
+  problemasDeLoPreparado,
+  problemasDelRango,
+} from '../../scripts/arnes/comun/commits.ts';
+import { commit, gitBien } from './origen.ts';
+import { directorioTemporal, escribirFicheros, repositorioConCommit } from './temporal.ts';
 
 describe('categoriaDe', () => {
   it.each([
@@ -29,14 +33,42 @@ describe('problemaDeMezcla', () => {
   });
 });
 
-describe('problemaDeAutoria', () => {
-  it('desde Claude Code no se commitean ficheros protegidos, ni los de la fase specs', () => {
-    expect(problemaDeAutoria(['features/a.feature'], entradas, true)).toMatch(/los commitea el dueño/);
-    expect(problemaDeAutoria(['Makefile'], entradas, true)).toMatch(/Makefile/);
+describe('problemasDeLoPreparado', () => {
+  it('mira solo lo preparado, con un renombrado como baja y alta', () => {
+    const raiz = repositorioConCommit({ 'features/a.feature': '' });
+    escribirFicheros(raiz, { 'src/a.ts': '' });
+    expect(problemasDeLoPreparado(raiz)).toEqual([]);
+    gitBien(raiz, ['mv', 'features/a.feature', 'src/a.feature']);
+    expect(problemasDeLoPreparado(raiz)).toEqual([
+      expect.stringMatching(/\(features\/a\.feature\).*\(src\/a\.feature\)/),
+    ]);
   });
 
-  it('el dueño sí puede, y Claude Code puede commitear lo que no está protegido', () => {
-    expect(problemaDeAutoria(['features/a.feature'], entradas, false)).toBeUndefined();
-    expect(problemaDeAutoria(['src/dominio/a.ts'], entradas, true)).toBeUndefined();
+  it('lanza fuera de un repositorio', () => {
+    expect(() => problemasDeLoPreparado(directorioTemporal())).toThrow('git diff --cached ha fallado');
+  });
+});
+
+describe('problemasDelRango', () => {
+  it('comprueba cada commit del rango por separado, con su SHA corto y su título', () => {
+    const raiz = repositorioConCommit({ 'features/a.feature': '', 'src/a.ts': '' });
+    const base = gitBien(raiz, ['rev-parse', 'HEAD']).trim();
+    commit(raiz, 'spec', { 'features/a.feature': 'Feature: a' });
+    commit(raiz, 'mezcla', { 'config/b.json': '{}', 'tests/unidad/b.test.ts': '' });
+    commit(raiz, 'codigo', { 'src/a.ts': 'export {};' });
+    const sha = gitBien(raiz, ['rev-parse', '--short', 'HEAD~1']).trim();
+    expect(problemasDelRango(raiz, `${base}..HEAD`)).toEqual([
+      expect.stringMatching(new RegExp(`^${sha} «mezcla»: Este commit mezcla .*config/b\\.json`)),
+    ]);
+  });
+
+  it('con --root, también el primer commit de la historia', () => {
+    const raiz = repositorioConCommit({ 'features/a.feature': '', 'src/a.ts': '' });
+    expect(problemasDelRango(raiz, 'HEAD')).toEqual([expect.stringMatching(/«inicial»: Este commit mezcla/)]);
+  });
+
+  it('lanza si git no conoce el rango', () => {
+    const raiz = repositorioConCommit({ 'src/a.ts': '' });
+    expect(() => problemasDelRango(raiz, 'nada..HEAD')).toThrow('git rev-list --reverse ha fallado');
   });
 });

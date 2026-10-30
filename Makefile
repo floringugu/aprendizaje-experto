@@ -1,6 +1,7 @@
 # Comprobaciones del proyecto. El hook Stop (.claude/hooks/exigir-check.ts) ejecuta la de la fase:
-#   make check             fase impl (por defecto): los pasos estáticos, la unidad, la aceptación de las
-#                          áreas cerradas (regresión; no la del área en curso), la cobertura y la integridad
+#   make check             fase impl (por defecto): los pasos estáticos, la unidad con su cobertura de src/,
+#                          features/ y parámetros válidos, la aceptación de las áreas cerradas (regresión; no la
+#                          del área en curso) y la cobertura de los IDs
 #   make check-specs       fase specs (etapa 2): features/ y parámetros válidos
 #   make check-aceptacion  fase aceptacion (etapa 3): el área en curso falla en rojo y las cerradas, en verde
 # Y el hook SubagentStop (.claude/hooks/exigir-check-implementador.ts), la del implementador:
@@ -31,28 +32,29 @@ endef
 .PHONY: check check-specs check-aceptacion cerrar-area check-implementador mutacion fase abrir retirar rama bloqueos instalar formatear
 
 check:
-	$(call ejecutar_pasos,$(ESTATICOS) aceptacion cobertura-ids integridad)
+	$(call ejecutar_pasos,$(ESTATICOS) specs aceptacion cobertura-ids)
 
 check-specs:
-	$(call ejecutar_pasos,$(ESTATICOS) specs integridad)
+	$(call ejecutar_pasos,$(ESTATICOS) specs)
 
 check-aceptacion:
-	$(call ejecutar_pasos,$(ESTATICOS) specs estado-aceptacion integridad)
+	$(call ejecutar_pasos,$(ESTATICOS) specs estado-aceptacion)
 
 # El área A en curso, completa: la aceptación y la cobertura incluyen sus escenarios. A tiene que ser
 # el área en curso del checkout, la que lee scripts/arnes/comun/alcance.ts (comprobar-area.ts).
 # Es lo último antes de proponer que A pase a areas_cerradas.
 cerrar-area:
 	@node scripts/arnes/comprobar-area.ts $(A)
-	$(call ejecutar_pasos,$(ESTATICOS) aceptacion-area cobertura-ids-area integridad)
+	$(call ejecutar_pasos,$(ESTATICOS) aceptacion-area cobertura-ids-area)
 
 # Sin codigo-muerto: cuando el implementador devuelve su encargo, la aplicación aún no usa las
-# funciones nuevas del dominio. Ese paso, la aceptación y la integridad los exige después el
-# hook Stop a la conversación principal (make check).
+# funciones nuevas del dominio. Ese paso y la aceptación los exige después el hook Stop a la
+# conversación principal (make check).
 check-implementador:
 	$(call ejecutar_pasos,$(filter-out codigo-muerto,$(ESTATICOS)))
 
-# Mutation testing de src/dominio/. No forma parte de make check: es lento.
+# Mutation testing de src/dominio/. No forma parte de make check: es lento. La CI lo ejecuta al final
+# (.github/workflows/puerta.yml).
 mutacion:
 	npm run --silent mutacion
 

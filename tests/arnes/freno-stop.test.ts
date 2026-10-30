@@ -65,14 +65,6 @@ describe('motivoDeBloqueo', () => {
     expect(motivo).toMatch(/\[DECISIÓN PENDIENTE\]/);
   });
 
-  it('si falla «integridad», no deja tocar nada y pide darle al dueño los comandos', () => {
-    const motivo = motivoDeBloqueo(fallo({ paso: 'integridad', bloqueosSeguidos: 5 }));
-    expect(motivo).toMatch(/Falla el paso «integridad»/);
-    expect(motivo).toMatch(/git commit/);
-    expect(motivo).not.toMatch(/sumas/);
-    expect(motivo).not.toMatch(/mecanismo/);
-  });
-
   it('si el fallo es del entorno, avisa de que no es su código, aunque sea el tercer bloqueo', () => {
     const entorno = errorDeEntorno('listen EADDRINUSE');
     const motivo = motivoDeBloqueo(fallo({ entorno, bloqueosSeguidos: 3 }));

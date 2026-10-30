@@ -1,0 +1,64 @@
+# La puerta del arnés: los checks que el ruleset «main: CI» exige para fusionar un PR en main.
+#   rama    el nombre de la rama del PR sigue el formato de los carriles y su área existe (scripts/arnes/ci.ts)
+#   mezcla  ningún commit del PR mezcla rutas de fases distintas (scripts/arnes/regla-commits.ts)
+#   check   make check con la fase y el área de la rama, el objetivo de esa fase si es otro, y make mutacion
+# Usa el arnés de la rama del PR. Los valores del evento llegan a los scripts por env, nunca con ${{ }}
+# dentro de run.
+name: puerta
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  rama:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          cache: npm
+      # ci.ts lee los IDs de features/ con @cucumber/gherkin.
+      - run: npm ci
+      - run: node scripts/arnes/ci.ts rama "$GITHUB_HEAD_REF"
+
+  mezcla:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      # La cabeza del PR con toda la historia, para recorrer sus commits uno a uno.
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+      - run: node scripts/arnes/regla-commits.ts --rango "$BASE..$CABEZA"
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          CABEZA: ${{ github.event.pull_request.head.sha }}
+
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          cache: npm
+      - run: npm ci
+      # En un push a main GITHUB_HEAD_REF está vacío: queda la fase impl sin área en curso.
+      - run: node scripts/arnes/ci.ts ajustes "$GITHUB_HEAD_REF"
+      - run: make check
+      - if: github.event_name == 'pull_request'
+        run: |
+          objetivo="$(node scripts/arnes/ci.ts objetivo)"
+          if [ -n "$objetivo" ]; then make "$objetivo"; fi
+      - run: make mutacion

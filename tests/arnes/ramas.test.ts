@@ -4,6 +4,7 @@ import { git } from '../../scripts/arnes/comun/git.ts';
 import {
   esNombreDeCarril,
   estaFusionada,
+  faseYAreaDeLaRama,
   leerNombreDeRama,
   nombreDeRama,
   RAMA_DE_ORIGEN,
@@ -12,7 +13,7 @@ import {
   traerOrigen,
 } from '../../scripts/arnes/comun/ramas.ts';
 import { commit, fusionarComoGitHub, gitBien, otroPrFusionado, principalConOrigen } from './origen.ts';
-import { repositorioConCommit } from './temporal.ts';
+import { directorioTemporal, escribirFicheros, repositorioConCommit } from './temporal.ts';
 
 describe('esNombreDeCarril', () => {
   it('acepta minúsculas, números y guiones, con cada tramo empezando por una letra, hasta 31', () => {
@@ -60,6 +61,27 @@ describe('nombreDeRama y leerNombreDeRama', () => {
       `impl/MATE/${'a'.repeat(32)}`,
     ];
     expect(otros.filter((nombre) => leerNombreDeRama(nombre) !== undefined)).toEqual([]);
+  });
+});
+
+describe('faseYAreaDeLaRama', () => {
+  const raiz = directorioTemporal();
+  escribirFicheros(raiz, {
+    'features/mate.feature': '# language: es\n@MATE\nCaracterística: M\n\n  @MATE-1.1\n  Escenario: E\n    Dado algo\n',
+  });
+
+  it('lee la fase y el área del nombre, si el área existe en features/', () => {
+    expect(faseYAreaDeLaRama(raiz, 'aceptacion/MATE/pasos-2')).toEqual({ fase: 'aceptacion', area: 'MATE' });
+    expect(faseYAreaDeLaRama(raiz, 'impl/DIAG/pasos')).toEqual({
+      problema: expect.stringMatching(/DIAG no existe en features/) as unknown,
+    });
+  });
+
+  it('rechaza un nombre fuera del formato, también el vacío', () => {
+    expect(faseYAreaDeLaRama(raiz, 'migracion')).toEqual({
+      problema: expect.stringMatching(/no sigue el formato/) as unknown,
+    });
+    expect(faseYAreaDeLaRama(raiz, '')).toEqual({ problema: expect.stringMatching(/no sigue el formato/) as unknown });
   });
 });
 

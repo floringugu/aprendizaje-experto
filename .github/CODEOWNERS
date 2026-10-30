@@ -1,0 +1,13 @@
+# Visto bueno del dueño (ruleset «main: visto bueno»): un PR que toca una ruta con dueño espera a que él lo
+# fusione. Gana la última línea que coincide. Las rutas sin dueño son la lista blanca de la fase impl: un PR
+# que solo toca esas se fusiona solo cuando pasa la CI. La configuración vuelve a tener dueño dentro de ellas.
+* @floringugu
+/src/
+/tests/unidad/
+/docs/areas/
+/docs/deuda-diseno.md
+**/package.json @floringugu
+**/tsconfig*.json @floringugu
+**/.prettierrc* @floringugu
+**/*.config.* @floringugu
+**/.npmrc @floringugu

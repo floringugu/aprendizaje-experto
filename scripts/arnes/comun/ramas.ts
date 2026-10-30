@@ -5,7 +5,9 @@
 // GitHub fusiona los PR con rebase, que crea commits nuevos: main no contiene los de la rama
 // (merge-base --is-ancestor falla). Una rama cuenta como fusionada cuando cada uno de sus commits
 // tiene en origin/main otro con el mismo cambio (git cherry).
+import { problemaDeArea } from './alcance.ts';
 import { esArea } from './checkout.ts';
+import type { FaseYArea } from './checkout.ts';
 import { esFase } from './fases.ts';
 import type { Fase } from './fases.ts';
 import { git } from './git.ts';
@@ -39,6 +41,21 @@ export function leerNombreDeRama(nombre: string): Rama | undefined {
   const [, fase = '', area = '', carril = '', numero = '1'] = partes ?? [];
   if (!esFase(fase) || !esArea(area) || !esNombreDeCarril(carril)) return undefined;
   return { fase, area, carril, numero: Number(numero) };
+}
+
+/**
+ * La fase y el área que la rama `nombre` lleva en el nombre, o por qué no valen: el nombre no sigue el
+ * formato de nombreDeRama o el área no existe en features/ de `raiz`. La CI (ci.ts) la usa con la rama del PR.
+ */
+export function faseYAreaDeLaRama(raiz: string, nombre: string): FaseYArea | { problema: string } {
+  const rama = leerNombreDeRama(nombre);
+  if (rama === undefined) {
+    return {
+      problema: `La rama «${nombre}» no sigue el formato <fase>/<ÁREA>/<carril>[-n], p. ej. impl/MATE/pasos-2.`,
+    };
+  }
+  const problema = problemaDeArea(raiz, rama.area);
+  return problema === undefined ? { fase: rama.fase, area: rama.area } : { problema };
 }
 
 /** Las ramas locales del carril, de cualquier fase y área. */

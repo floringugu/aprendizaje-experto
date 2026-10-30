@@ -3,7 +3,6 @@
 // El mensaje cambia según el fallo, para que Claude no se quede probando arreglos a ciegas:
 //   - error del entorno (puerto ocupado, permisos, disco lleno, programa que no existe):
 //     no es su código, así que no lo toca y para a preguntar;
-//   - falla «integridad»: los cambios en rutas protegidas son cosa del dueño, así que para y le da los comandos;
 //   - tercer bloqueo seguido del mismo paso: antes de seguir, escribe en una frase el
 //     mecanismo del fallo, o para si la causa está en la especificación o en el entorno;
 //   - cualquier otro fallo: el mensaje normal, «arregla la causa».
@@ -79,11 +78,10 @@ function ultimasLineas(salida: string): string {
 
 function instruccion(fallo: Fallo): string {
   if (fallo.entorno !== undefined) return instruccionEntorno(fallo.objetivo, fallo.entorno);
-  if (fallo.paso === 'integridad') return INSTRUCCION_INTEGRIDAD;
   if (fallo.bloqueosSeguidos >= BLOQUEOS_PARA_FRENAR) return instruccionFreno(fallo);
   return (
     `make ${fallo.objetivo} falla en el paso «${fallo.paso}» y no puedes terminar hasta que pase. ` +
-    'Arregla la causa, no la comprobación (los ficheros del arnés están protegidos). ' +
+    'Arregla la causa, no la comprobación (un cambio en el arnés espera al visto bueno del dueño). ' +
     'Si necesitas una decisión del dueño (un escenario o un parámetro que parece incorrecto, una dependencia nueva…), ' +
     `explícala y termina tu mensaje con ${MARCA_DECISION_PENDIENTE}.`
   );
@@ -96,12 +94,6 @@ function instruccionEntorno(objetivo: string, entorno: ErrorDeEntorno): string {
     `dale el comando exacto que lo arreglaría si lo sabes, y para con ${MARCA_DECISION_PENDIENTE}.`
   );
 }
-
-const INSTRUCCION_INTEGRIDAD =
-  'Falla el paso «integridad»: un fichero protegido difiere del último commit. No es tu código: ' +
-  'las rutas protegidas solo las cambia el dueño con un commit. No toques nada para esquivarlo. ' +
-  'Dale los comandos exactos que lo arreglan (la salida de abajo dice qué ha cambiado; normalmente ' +
-  `un «git commit» con esos ficheros y después «make check») y para con ${MARCA_DECISION_PENDIENTE}.`;
 
 function instruccionFreno(fallo: Fallo): string {
   return (
