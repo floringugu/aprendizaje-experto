@@ -1,0 +1,76 @@
+// Lógica del hook PostToolUse anunciar-carril.ts: cuando la conversación entra en un carril con
+// EnterWorktree, le dice en qué carril está y cómo se trabaja en él. Hace para el carril lo que
+// anunciar-fase.ts hace al empezar la conversación. Separada del hook para probarla con tests.
+import { existsSync, readFileSync } from 'node:fs';
+import path from 'node:path';
+import { checkoutDelRepositorio, faseYAreaDelCheckout, nombreDelCarril } from './checkout.ts';
+import { campo, campoTexto } from './entrada-hook.ts';
+import { MODELO_POR_FASE, OBJETIVO_POR_FASE, PROPOSITO_POR_FASE } from './fases.ts';
+import { avisoDeRelevoPendiente, carrilesConRelevo } from './relevo.ts';
+
+const RUTA_CODEOWNERS = '.github/CODEOWNERS';
+
+export interface AnuncioDelCarril {
+  /** Aviso de una línea para el dueño (systemMessage). */
+  readonly paraElDueno: string;
+  /** Contexto para Claude (additionalContext). */
+  readonly paraClaude: string;
+}
+
+/**
+ * El anuncio del carril en el que entra la conversación, según la entrada del hook: el
+ * tool_input.path de EnterWorktree, resuelto contra el cwd de la entrada. undefined sin path, si la
+ * ruta no es de un checkout del repositorio de `raiz` o si es la carpeta principal, que no es un carril.
+ */
+export function anuncioDelCarril(raiz: string, entrada: unknown): AnuncioDelCarril | undefined {
+  const enCarril = carrilDeLaEntrada(raiz, entrada);
+  if (enCarril === undefined) return undefined;
+  const { carril, nombre } = enCarril;
+  const { fase, area } = faseYAreaDelCheckout(carril);
+  const objetivo = OBJETIVO_POR_FASE[fase];
+  const { modelo, esfuerzo } = MODELO_POR_FASE[fase];
+  const blanca = listaBlanca(carril);
+  const relevos = carrilesConRelevo([carril]);
+  const avisos = [
+    `Carril ${nombre}: fase ${fase} (${modelo}, esfuerzo ${esfuerzo})`,
+    `área en curso: ${area ?? 'ninguna'}`,
+    `Stop exige make ${objetivo}`,
+    ...(relevos.length === 0 ? [] : ['relevo pendiente']),
+  ];
+  return {
+    paraElDueno: `${avisos.join(' · ')}.`,
+    paraClaude: [
+      `Arnés: la conversación ha entrado en el carril «${nombre}» (${carril}), en la fase «${fase}» ` +
+        `(${PROPOSITO_POR_FASE[fase]}). Área en curso: ${area ?? 'ninguna'}.`,
+      `El hook Stop exige «make ${objetivo}» en verde en este carril antes de terminar, si hay cambios respecto al último commit.`,
+      blanca.length === 0
+        ? `El carril no tiene lista blanca (${RUTA_CODEOWNERS}): todo PR espera al visto bueno del dueño.`
+        : `Un PR que solo toca la lista blanca (${RUTA_CODEOWNERS}) se fusiona solo: ${blanca.join(', ')}. ` +
+          'Lo demás espera al visto bueno del dueño.',
+      `La fase pide ${modelo} con esfuerzo ${esfuerzo}. Si la conversación usa otro modelo, pídele al dueño «/model ${modelo}».`,
+      `Los enlaces a ficheros del carril van con ruta absoluta (${carril}/…): las relativas apuntan a la carpeta principal.`,
+      'Los demás carriles son de otras conversaciones: no se tocan.',
+      ...(relevos.length === 0 ? [] : [avisoDeRelevoPendiente(relevos)]),
+    ].join('\n'),
+  };
+}
+
+/** La ruta y el nombre del carril de la entrada; undefined sin path, fuera del repositorio o en la carpeta principal. */
+function carrilDeLaEntrada(raiz: string, entrada: unknown): { carril: string; nombre: string } | undefined {
+  const ruta = campoTexto(campo(entrada, 'tool_input'), 'path');
+  if (ruta === undefined) return undefined;
+  const carril = checkoutDelRepositorio(raiz, path.resolve(campoTexto(entrada, 'cwd') ?? raiz, ruta));
+  const nombre = carril === undefined ? undefined : nombreDelCarril(carril);
+  return carril === undefined || nombre === undefined ? undefined : { carril, nombre };
+}
+
+/** Las rutas sin dueño de .github/CODEOWNERS del carril: las líneas de un solo campo, sin las vacías ni los comentarios. */
+function listaBlanca(carril: string): string[] {
+  const ruta = path.join(carril, RUTA_CODEOWNERS);
+  if (!existsSync(ruta)) return [];
+  return readFileSync(ruta, 'utf8')
+    .split('\n')
+    .map((linea) => linea.trim().split(/\s+/))
+    .filter((campos) => campos.length === 1 && campos[0] !== '' && !campos[0]?.startsWith('#'))
+    .map(([patron = '']) => patron);
+}

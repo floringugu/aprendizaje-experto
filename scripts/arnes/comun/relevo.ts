@@ -7,13 +7,14 @@
 // obligatorio: la conversación que lo ha pasado ya no edita (MOTIVO_EDICION_TRAS_RELEVO) y no puede
 // pasar otro (NOTA_TRAS_RELEVO); solo le queda explicar y parar con la comprobación o con una decisión.
 //
-// Lo usan cuatro hooks:
+// Lo usan cinco hooks:
 //   - vigilar-contexto (PostToolUse): avisa al pasar el umbral, y otra vez cada PASO_DE_AVISO tokens;
 //   - exigir-check (Stop): deja parar con [RELEVO] sin la comprobación, si el contexto pasa del umbral
 //     y la conversación no ha pasado ya el relevo;
 //   - bloquear-tras-relevo (PreToolUse): niega Edit, Write, MultiEdit y NotebookEdit a la conversación
 //     que ya ha pasado el relevo;
-//   - anunciar-fase (SessionStart): señala los carriles que tienen un relevo pendiente.
+//   - anunciar-fase (SessionStart): señala los checkouts del repositorio que tienen un relevo pendiente;
+//   - anunciar-carril (PostToolUse de EnterWorktree): señala el relevo pendiente del carril en el que entra.
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { campo } from './entrada-hook.ts';

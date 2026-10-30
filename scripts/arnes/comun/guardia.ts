@@ -1,18 +1,19 @@
-// Lógica del hook PreToolUse proteger-rutas.ts: decide si una edición toca algo protegido y
-// si un comando Bash intenta una salida del arnés. Separada del hook para probarla con tests.
-// Lo que un comando Bash cambie en las rutas protegidas lo vigila otro hook, por su efecto:
-// vigilar-huellas.ts (scripts/arnes/comun/huellas.ts).
+// Lógica del hook PreToolUse proteger-rutas.ts: decide si una edición o un comando Bash toca algo que
+// la conversación no puede tocar. Separada del hook para probarla con tests.
+//
+// Cada conversación trabaja en su checkout (checkout.ts), la carpeta principal o un carril, y puede
+// tocar el suyo y la carpeta principal, que no se frena aquí porque main la protege GitHub. Los demás
+// carriles son de otras conversaciones. Además se niegan el .git/ de cada checkout, ~/.claude/ y
+// unos pocos comandos que se salen del arnés.
 import { lstatSync, readlinkSync, realpathSync } from 'node:fs';
 import path from 'node:path';
-import { entradaQueBloquea, RUTA_PROTEGIDAS } from './protegidas.ts';
-import type { Fase } from './fases.ts';
-import type { EntradaProtegida } from './protegidas.ts';
+import type { CheckoutsDelRepositorio } from './checkout.ts';
+import { MARCA_DECISION_PENDIENTE } from './freno-stop.ts';
 
-export interface ContextoGuardia {
-  readonly raiz: string;
+export interface ContextoGuardia extends CheckoutsDelRepositorio {
+  /** El checkout de la conversación: la carpeta principal o uno de los carriles. */
+  readonly checkout: string;
   readonly home: string;
-  readonly entradas: readonly EntradaProtegida[];
-  readonly fase: Fase;
 }
 
 const MAXIMO_SALTOS_DE_ENLACE = 40;
@@ -24,40 +25,26 @@ const MOTIVO_HOME_CLAUDE =
   'Solo quedan abiertos los planes (~/.claude/plans/), la memoria del proyecto ' +
   '(~/.claude/projects/<proyecto>/memory/) y, para leer desde Bash, el resto de ~/.claude/projects/.';
 
-/**
- * Comandos prohibidos sea cual sea la ruta. Cierran las salidas más obvias del arnés.
- * No es una lista exhaustiva: un comando ofuscado puede escaparse, y por eso existen
- * también la comprobación de integridad y el hook pre-commit.
- */
+function motivoOtroCarril(carril: string): string {
+  return (
+    `No se puede tocar ${carril}: es otro carril, el de otra conversación. Cada conversación toca solo ` +
+    `su carril y la carpeta principal. Si te hace falta algo de allí, dilo en tu mensaje y para con ` +
+    `${MARCA_DECISION_PENDIENTE}.`
+  );
+}
+
+/** Comandos prohibidos sea cual sea la ruta. No es una lista exhaustiva: un comando ofuscado puede escaparse. */
 const PATRONES_PROHIBIDOS: readonly { readonly patron: RegExp; readonly motivo: string }[] = [
-  {
-    patron: /--no-verify\b|\bgit\b[^\n;&|]*\bcommit\b[^\n;&|]*\s-[a-zA-Z]*n[a-zA-Z]*\b/,
-    motivo: 'No se puede saltar el hook pre-commit (--no-verify / -n).',
-  },
-  { patron: /hooksPath/i, motivo: 'No se puede cambiar core.hooksPath: desactivaría el hook pre-commit.' },
   {
     patron: /\bCLAUDECODE\b|\benv\b[^\n;&|]*\s(-[a-zA-Z]*[iu]|--ignore-environment|--unset)\b/,
     motivo: 'No se puede alterar el entorno (CLAUDECODE, env -i, env -u): los scripts del dueño dependen de él.',
   },
-  {
-    patron: /\bARNES_FASE\b/,
-    motivo:
-      'La fase (ARNES_FASE) la fija el dueño antes de abrir la conversación, con «make fase» o la tarea ' +
-      'de VS Code; no se cambia desde un comando.',
-  },
   { patron: /disableAllHooks/, motivo: 'No se pueden desactivar los hooks de Claude Code.' },
-  {
-    // «patch» solo como orden (al principio o tras ; & | o «(»): «x.patch» como nombre de fichero sí pasa.
-    patron: /\bgit\s+(?:-C\s+\S+\s+)?(?:apply|am)\b|(?:^|[;&|(]\s*)patch\s/,
-    motivo:
-      'Las propuestas (reports/propuestas/*.patch) las aplica el dueño. Dale el comando exacto ' +
-      '(git apply --3way …) y para con [DECISIÓN PENDIENTE].',
-  },
   {
     patron: /\b(npm|pnpm|yarn)\s+(install|i|add|uninstall|un|remove|rm|update|up|upgrade|link)\b/,
     motivo:
-      'Las dependencias las cambia el dueño: package.json está protegido. Propón la dependencia ' +
-      '(tamaño, licencia y beneficio) y espera su aprobación.',
+      'Las dependencias las cambia el dueño: los carriles comparten el node_modules de la carpeta principal. ' +
+      'Propón la dependencia (tamaño, licencia y beneficio) y espera su aprobación.',
   },
 ];
 
@@ -67,16 +54,26 @@ const PATRONES_PROHIBIDOS: readonly { readonly patron: RegExp; readonly motivo: 
 
 export function motivoBloqueoFichero(rutaAbsoluta: string, contexto: ContextoGuardia): string | undefined {
   const real = resolverReal(rutaAbsoluta);
-  const relativa = relativaSiDentro(real, resolverReal(contexto.raiz));
-  if (relativa === undefined) return motivoFueraDelRepositorio(real, contexto.home);
-  if (relativa === '.git' || relativa.startsWith('.git/')) return MOTIVO_GIT;
-  const entrada = entradaQueBloquea(relativa, contexto.entradas, contexto.fase);
-  return entrada === undefined ? undefined : mensajeRutaProtegida(relativa, entrada);
+  // El más profundo primero: un carril puede estar dentro de la carpeta principal, en .claude/worktrees/.
+  const checkouts = [contexto.principal, ...contexto.carriles].map((checkout) => resolverReal(checkout));
+  for (const checkout of checkouts.sort((a, b) => b.length - a.length)) {
+    const relativa = relativaSiDentro(real, checkout);
+    if (relativa === undefined) continue;
+    if (relativa === '.git' || relativa.startsWith('.git/')) return MOTIVO_GIT;
+    return carrilesAjenos(contexto).includes(checkout) ? motivoOtroCarril(checkout) : undefined;
+  }
+  return motivoFueraDelRepositorio(real, contexto.home);
+}
+
+/** Los carriles que no son de la conversación: desde la carpeta principal, todos. */
+function carrilesAjenos(contexto: ContextoGuardia): string[] {
+  const propio = resolverReal(contexto.checkout);
+  return contexto.carriles.map((carril) => resolverReal(carril)).filter((carril) => carril !== propio);
 }
 
 /**
  * Ruta real, siguiendo enlaces simbólicos aunque el fichero final aún no exista.
- * Así un enlace en src/ que apunte a docs/investigacion.md no sirve para escribir en él.
+ * Así un enlace en src/ que apunte a otro carril no sirve para escribir en él.
  */
 function resolverReal(ruta: string, saltos = 0): string {
   if (saltos > MAXIMO_SALTOS_DE_ENLACE) throw new Error(`Demasiados enlaces simbólicos en ${ruta}`);
@@ -92,6 +89,7 @@ function resolverReal(ruta: string, saltos = 0): string {
   return realpathSync(ruta);
 }
 
+/** La ruta relativa a `directorio`, con «/», si está dentro; path.relative, porque con startsWith «/a» contendría a «/a-b». */
 function relativaSiDentro(ruta: string, directorio: string): string | undefined {
   const relativa = path.relative(directorio, ruta);
   if (relativa === '') return '.';
@@ -107,35 +105,33 @@ function motivoFueraDelRepositorio(rutaReal: string, home: string): string | und
   return estaAbierta ? undefined : MOTIVO_HOME_CLAUDE;
 }
 
-/** Cómo se cambia una ruta protegida: con una propuesta que aplica el dueño, nunca a mano. */
-export const COMO_SE_CAMBIA =
-  'Si hay que cambiarla, prepara una propuesta (CLAUDE.md, «Propuestas»): edítala en un clon fuera del ' +
-  'repositorio, guarda el parche en reports/propuestas/, dale al dueño los comandos exactos para aplicarlo ' +
-  'y para con [DECISIÓN PENDIENTE]. No le pidas que la edite a mano.';
-
-function mensajeRutaProtegida(relativa: string, entrada: EntradaProtegida): string {
-  const desbloqueo =
-    entrada.desbloqueadaEn === undefined
-      ? ''
-      : ` Solo se edita en una conversación con la fase ${entrada.desbloqueadaEn} (ARNES_FASE=${entrada.desbloqueadaEn}).`;
-  return `«${relativa}» está protegida (regla «${entrada.ruta}» de ${RUTA_PROTEGIDAS}).${desbloqueo} ${COMO_SE_CAMBIA}`;
-}
-
 // ---------------------------------------------------------------------------
 // Bash
 // ---------------------------------------------------------------------------
 
 /**
- * Las rutas protegidas del repositorio no se buscan en el texto del comando: un comando puede
- * nombrarlas para leerlas, y lo que cambie en ellas lo deshace vigilar-huellas.ts. Aquí solo
- * quedan las salidas que no dejan huella en el repositorio: los patrones prohibidos, .git/
- * (donde están los hooks de git y las copias de las huellas) y ~/.claude/.
+ * Un comando se mira por lo que nombra: los patrones prohibidos, ~/.claude/ y los otros carriles.
+ * Una ruta que el comando construya (con variables, por ejemplo) se escapa.
  */
 export function motivoBloqueoBash(comando: string, contexto: ContextoGuardia): string | undefined {
   const prohibido = PATRONES_PROHIBIDOS.find(({ patron }) => patron.test(comando));
   if (prohibido !== undefined) return prohibido.motivo;
-  if (mencionaRuta(comando, '.git')) return MOTIVO_GIT;
-  return mencionaHomeClaude(comando, contexto.home) ? MOTIVO_HOME_CLAUDE : undefined;
+  if (mencionaHomeClaude(comando, contexto.home)) return MOTIVO_HOME_CLAUDE;
+  const nombrado = carrilesAjenos(contexto).find((carril) =>
+    formasDeNombrar(carril, contexto).some((forma) => mencionaRuta(comando, forma)),
+  );
+  return nombrado === undefined ? undefined : motivoOtroCarril(nombrado);
+}
+
+/**
+ * Cómo puede nombrar un comando el carril: por su ruta absoluta, por su ruta desde el padre de la
+ * carpeta principal (aprendizaje-experto-pasos, que mencionaRuta encuentra también dentro de
+ * ../aprendizaje-experto-pasos y de ~/aprendizaje-experto-pasos) y por su ruta desde el checkout de la
+ * conversación (.claude/worktrees/x, para uno dentro de la carpeta principal).
+ */
+function formasDeNombrar(carril: string, contexto: ContextoGuardia): string[] {
+  const padre = path.dirname(resolverReal(contexto.principal));
+  return [carril, path.relative(padre, carril), path.relative(resolverReal(contexto.checkout), carril)];
 }
 
 /**

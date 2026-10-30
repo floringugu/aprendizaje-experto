@@ -81,6 +81,25 @@ export function carpetaPrincipal(raiz: string): string {
   return path.dirname(directorioComun(raiz));
 }
 
+export interface CheckoutsDelRepositorio {
+  /** El directorio principal (carpetaPrincipal). */
+  readonly principal: string;
+  /** Los worktrees: los carriles de «make abrir» y los de EnterWorktree, en .claude/worktrees/. */
+  readonly carriles: readonly string[];
+}
+
+/** Los checkouts del repositorio de `raiz`, según git worktree list. Lanza si git falla. */
+export function checkoutsDelRepositorio(raiz: string): CheckoutsDelRepositorio {
+  const { codigo, salida, errores } = git(raiz, ['worktree', 'list', '--porcelain']);
+  if (codigo !== 0) throw new Error(`git worktree list ha fallado:\n${errores}`);
+  // Cada checkout empieza con una línea «worktree <ruta>», y el directorio principal va primero.
+  const [principal = raiz, ...carriles] = salida
+    .split('\n')
+    .filter((linea) => linea.startsWith('worktree '))
+    .map((linea) => linea.slice('worktree '.length));
+  return { principal, carriles };
+}
+
 /**
  * Nombre del carril del checkout: undefined en el directorio principal (carpetaPrincipal); en un
  * worktree, el nombre de su carpeta sin el prefijo «<principal>-» de «make abrir».

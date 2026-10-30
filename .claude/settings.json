@@ -35,16 +35,6 @@
         ]
       },
       {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/vigilar-huellas.ts\"",
-            "timeout": 30
-          }
-        ]
-      },
-      {
         "matcher": "Agent",
         "hooks": [
           {
@@ -77,11 +67,11 @@
         ]
       },
       {
-        "matcher": "Bash",
+        "matcher": "EnterWorktree",
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/vigilar-huellas.ts\"",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/anunciar-carril.ts\"",
             "timeout": 30
           }
         ]
@@ -92,18 +82,6 @@
           {
             "type": "command",
             "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/vigilar-contexto.ts\"",
-            "timeout": 30
-          }
-        ]
-      }
-    ],
-    "PostToolUseFailure": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/vigilar-huellas.ts\"",
             "timeout": 30
           }
         ]

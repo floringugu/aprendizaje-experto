@@ -6,20 +6,13 @@ import {
   carpetaPrincipal,
   checkoutDeLaEntrada,
   checkoutDelRepositorio,
+  checkoutsDelRepositorio,
   esArea,
   faseYAreaDelCheckout,
   nombreDelCarril,
   raizDelCheckout,
 } from '../../scripts/arnes/comun/checkout.ts';
-import { directorioTemporal, escribirFicheros, gitEn, repositorioConCommit } from './temporal.ts';
-
-/** Repositorio con un worktree en la carpeta `carpeta` (dentro de otro directorio temporal). */
-function repositorioConWorktree(carpeta: (principal: string) => string): { principal: string; worktree: string } {
-  const principal = realpathSync(repositorioConCommit({ 'src/a.ts': '' }));
-  const worktree = path.join(realpathSync(directorioTemporal()), carpeta(principal));
-  gitEn(principal, ['worktree', 'add', '--quiet', '-b', 'carril', worktree]);
-  return { principal, worktree };
-}
+import { directorioTemporal, escribirFicheros, repositorioConCommit, repositorioConWorktree } from './temporal.ts';
 
 function conAjustes(env: Record<string, unknown>): string {
   const raiz = directorioTemporal();
@@ -101,6 +94,23 @@ describe('carpetaPrincipal', () => {
     const { principal, worktree } = repositorioConWorktree(() => 'otro');
     expect(carpetaPrincipal(principal)).toBe(principal);
     expect(carpetaPrincipal(worktree)).toBe(principal);
+  });
+});
+
+describe('checkoutsDelRepositorio', () => {
+  it('da la carpeta principal y los carriles, igual desde la carpeta principal que desde un carril', () => {
+    const { principal, worktree } = repositorioConWorktree(() => 'otro');
+    expect(checkoutsDelRepositorio(principal)).toEqual({ principal, carriles: [worktree] });
+    expect(checkoutsDelRepositorio(worktree)).toEqual({ principal, carriles: [worktree] });
+  });
+
+  it('sin carriles, la lista de carriles está vacía', () => {
+    const principal = realpathSync(repositorioConCommit({ 'src/a.ts': '' }));
+    expect(checkoutsDelRepositorio(principal)).toEqual({ principal, carriles: [] });
+  });
+
+  it('lanza fuera de un repositorio', () => {
+    expect(() => checkoutsDelRepositorio(directorioTemporal())).toThrow(/git worktree list ha fallado/);
   });
 });
 

@@ -5,7 +5,7 @@ import { esFase } from './fases.ts';
 import type { Fase } from './fases.ts';
 import { ficherosVisiblesParaGit } from './git.ts';
 
-export const RUTA_PROTEGIDAS = '.claude/protegidas.txt';
+const RUTA_PROTEGIDAS = '.claude/protegidas.txt';
 
 export interface EntradaProtegida {
   /** Ruta relativa a la raíz. Termina en «/» si protege un directorio entero. */

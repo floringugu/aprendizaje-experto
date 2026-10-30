@@ -1,4 +1,4 @@
-// Hook SessionStart: al empezar cada conversación, dice en qué fase está y qué puede tocar.
+// Hook SessionStart: al empezar cada conversación, dice en qué fase y en qué área está.
 //
 // El dueño lo ve como aviso (systemMessage) y comprueba así que la fase que eligió con
 // «make fase» ha llegado a los hooks. Claude lo recibe como contexto (additionalContext),
@@ -6,10 +6,14 @@
 //
 // La fase y el área en curso son las del checkout del cwd de la conversación (comun/checkout.ts).
 // También dice las áreas cerradas, el modelo y el esfuerzo de la fase (MODELO_POR_FASE en fases.ts),
-// avisa si la conversación usa otro modelo, y señala si el checkout tiene un relevo pendiente
-// (scripts/arnes/comun/relevo.ts).
+// avisa si la conversación usa otro modelo, y señala los checkouts del repositorio (la carpeta
+// principal y los carriles) que tienen un relevo pendiente (scripts/arnes/comun/relevo.ts).
 import { leerAlcance } from '../../scripts/arnes/comun/alcance.ts';
-import { checkoutDeLaEntrada, faseYAreaDelCheckout } from '../../scripts/arnes/comun/checkout.ts';
+import {
+  checkoutDeLaEntrada,
+  checkoutsDelRepositorio,
+  faseYAreaDelCheckout,
+} from '../../scripts/arnes/comun/checkout.ts';
 import { campoTexto, ejecutarHook, leerEntradaHook, responder } from '../../scripts/arnes/comun/entrada-hook.ts';
 import {
   avisoDeModelo,
@@ -17,7 +21,6 @@ import {
   OBJETIVO_POR_FASE,
   PROPOSITO_POR_FASE,
 } from '../../scripts/arnes/comun/fases.ts';
-import { leerProtegidas } from '../../scripts/arnes/comun/protegidas.ts';
 import { RAIZ } from '../../scripts/arnes/comun/raiz.ts';
 import { avisoDeRelevoPendiente, carrilesConRelevo } from '../../scripts/arnes/comun/relevo.ts';
 
@@ -34,10 +37,8 @@ ejecutarHook('anunciar-fase', async () => {
   const objetivo = OBJETIVO_POR_FASE[fase];
   const { modelo, esfuerzo } = MODELO_POR_FASE[fase];
   const otroModelo = avisoDeModelo(fase, campoTexto(entrada, 'model'));
-  const relevos = carrilesConRelevo([checkout]);
-  const desbloqueadas = leerProtegidas(checkout)
-    .filter((protegida) => protegida.desbloqueadaEn === fase)
-    .map((protegida) => protegida.ruta);
+  const { principal, carriles } = checkoutsDelRepositorio(RAIZ);
+  const relevos = carrilesConRelevo([principal, ...carriles]);
   const { cerradas, enCurso } = leerAlcance(checkout);
   const avisos = [
     `Arnés: fase ${fase} (${modelo}, esfuerzo ${esfuerzo})`,
@@ -54,7 +55,6 @@ ejecutarHook('anunciar-fase', async () => {
       additionalContext: [
         `Arnés: esta conversación está en la fase «${fase}» (${PROPOSITO_POR_FASE[fase]}).`,
         `El hook Stop exige «make ${objetivo}» en verde antes de terminar, si hay cambios respecto al último commit.`,
-        `Rutas protegidas que esta fase desbloquea: ${lista(desbloqueadas)}.`,
         `Área en curso de esta conversación (la de su checkout, ${checkout}): ${enCurso ?? 'ninguna'}.`,
         `Áreas cerradas (config/alcance.json): ${lista(cerradas)}.`,
         'La fase la elige el dueño antes de abrir la conversación; no se cambia desde aquí.',

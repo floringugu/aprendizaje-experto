@@ -1,6 +1,6 @@
 // Directorios temporales para los tests del arnés que necesitan ficheros reales.
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, realpathSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -30,4 +30,15 @@ export function repositorioConCommit(ficheros: Readonly<Record<string, string>>)
   gitEn(raiz, ['add', '-A']);
   gitEn(raiz, ['commit', '--quiet', '-m', 'inicial']);
   return raiz;
+}
+
+/** Repositorio con un worktree en la carpeta `carpeta` (dentro de otro directorio temporal). */
+export function repositorioConWorktree(carpeta: (principal: string) => string): {
+  principal: string;
+  worktree: string;
+} {
+  const principal = realpathSync(repositorioConCommit({ 'src/a.ts': '' }));
+  const worktree = path.join(realpathSync(directorioTemporal()), carpeta(principal));
+  gitEn(principal, ['worktree', 'add', '--quiet', '-b', 'carril', worktree]);
+  return { principal, worktree };
 }
