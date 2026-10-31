@@ -234,4 +234,4 @@ Salida de `make bloqueos A=<ÁREA>` al cerrar el área, y una frase sobre el blo
 
 ## Pendiente
 
-Las decisiones B y A del dueño (25-10-2026) y el relevo de etapa 3 del carril `mate-pasos` están en `docs/areas/MATE-pendiente.md`. Se lee solo para hacerlos.
+Lo que queda de MATE está en los tickets `mate-*` de `docs/tickets/`, y `make tickets` dice cuáles están listos: `mate-pasos-reservados` (el relevo de etapa 3 del carril `mate-pasos`), `mate-mesa-y-dominio` (las decisiones B y A del dueño, 25-10-2026), `mate-tarea-a-tare` (la decisión b), `mate-reservados` y `mate-cierre`.
