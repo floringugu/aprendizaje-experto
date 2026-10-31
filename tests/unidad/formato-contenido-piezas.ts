@@ -4,7 +4,7 @@
 import { expect, it } from 'vitest';
 import { validarContenido } from '../../src/aplicacion/formato-contenido.ts';
 
-// Las piezas se construyen como las leería `leerContenido` de un fichero JSON: objetos sin tipar.
+// Las piezas se construyen como las lee `contenidoDeFicheros` (mesa-guardada.ts) de un fichero JSON: objetos sin tipar.
 // Un cambio a `undefined` equivale a que la propiedad falte: la validación no distingue una cosa de la otra.
 export type Pieza = Record<string, unknown>;
 

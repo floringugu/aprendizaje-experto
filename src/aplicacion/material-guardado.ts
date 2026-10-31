@@ -1,4 +1,5 @@
 import type { TextosDelMaterial } from '../dominio/citas.ts';
+import { codificarJson, leerJson } from './mesa-guardada.ts';
 import type { Ficheros } from './puertos.ts';
 
 // El material guardado de un dominio (plan §0, «Material guardado»), a través del puerto `Ficheros`, que
@@ -166,14 +167,9 @@ function conEntrada(indice: readonly EntradaDelIndice[], nueva: EntradaDelIndice
 // no se comprueba campo a campo.
 function leerIndice(ficheros: Ficheros, dominio: string): readonly EntradaDelIndice[] {
   const bytes = ficheros.leer(rutaDelIndice(dominio));
-  return bytes === undefined ? [] : (JSON.parse(new TextDecoder().decode(bytes)) as EntradaDelIndice[]);
+  return bytes === undefined ? [] : (leerJson(bytes) as EntradaDelIndice[]);
 }
 
 function leerPaginas(bytes: Uint8Array): readonly string[] {
-  return JSON.parse(new TextDecoder().decode(bytes)) as string[];
-}
-
-// JSON sangrado con dos espacios, para poder abrirlo y leerlo a mano.
-function codificarJson(valor: unknown): Uint8Array {
-  return new TextEncoder().encode(JSON.stringify(valor, null, '  '));
+  return leerJson(bytes) as string[];
 }
