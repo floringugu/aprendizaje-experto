@@ -5,7 +5,6 @@ import {
   fallarRepaso,
   fallosParaPerderElDominio,
   llevarAcierto,
-  problemasIntercalables,
   progresoCompleto,
   progresoDe,
   responder,
@@ -164,7 +163,8 @@ Given('que {objetivo} es el objetivo actual', (objetivo: string) => {
 Given('que cada uno tiene al menos un intento en sesiones intercaladas', () => {
   const actual = mundo();
   actual.preparar(() => {
-    const problemas = problemasIntercalables(actual);
+    // Los reservados no se practican: no entran en el intento intercalado de cada problema.
+    const problemas = actual.contenido().problemasIntercalables();
     responderItems(actual, { items: problemas, aciertos: problemas.length, contexto: 'intercalado' });
   });
 });
@@ -172,7 +172,7 @@ Given('que cada uno tiene al menos un intento en sesiones intercaladas', () => {
 Given('que en su último intento intercalado acertó {int} de ellos', (aciertos: number) => {
   const actual = mundo();
   actual.preparar(() => {
-    responderItems(actual, { items: problemasIntercalables(actual), aciertos, contexto: 'intercalado' });
+    responderItems(actual, { items: actual.contenido().problemasIntercalables(), aciertos, contexto: 'intercalado' });
   });
 });
 
@@ -236,6 +236,20 @@ Then('{objetivo} no queda dominado', (objetivo: string) => {
   comprobarEstado(objetivo, false);
 });
 
+Then('{objetivo} sigue dominado', (objetivo: string) => {
+  comprobarEstado(objetivo, true);
+});
+
+Then('el acierto sin ayuda de {objetivo} sigue siendo del {fraccion}', (objetivo: string, fraccion: number) => {
+  esperarCasiIgual(progresoDe(mundo(), objetivo).aciertoSinAyuda, fraccion, `Acierto sin ayuda de ${objetivo}`);
+});
+
+Then('la aplicación no indica que falte responder ningún ítem de {objetivo}', (objetivo: string) => {
+  const evaluacion = presente(mundo().evaluacionObjetivo, 'ninguna evaluación de objetivo');
+  assert.equal(evaluacion.itemsSinIntento, 0, `Ítems sin responder según la evaluación de ${objetivo}`);
+  assert.equal(progresoDe(mundo(), objetivo).itemsSinIntento, 0, 'Ítems sin responder según el progreso');
+});
+
 Then('el acierto sin ayuda de {objetivo} es del {fraccion}', (objetivo: string, fraccion: number) => {
   esperarCasiIgual(progresoDe(mundo(), objetivo).aciertoSinAyuda, fraccion, `Acierto sin ayuda de ${objetivo}`);
 });
@@ -274,11 +288,6 @@ Then('{objetivo} sigue abierto y la fase sigue siendo {texto}', (objetivo: strin
 
 Then('la fase sigue siendo {texto}', (fase: string) => {
   assert.equal(progresoCompleto(mundo()).fase, fase);
-});
-
-Then('la fase es {texto}', (fase: string) => {
-  const evaluacion = presente(mundo().evaluacionFase, 'ninguna evaluación de fase');
-  assert.equal(evaluacion.fase, fase);
 });
 
 Then('no hay ninguna opción para darlo por dominado, saltarlo o declarar que ya lo sabe', () => {

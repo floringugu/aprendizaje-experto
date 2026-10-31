@@ -73,3 +73,25 @@ MAST: 27 paradas del hook Stop en 5 conversaciones, desde 2026-10-22T23:38:54.78
 ```
 
 Los cuatro bloqueos son de aceptación: los escenarios de MAST siguieron en rojo mientras se preparaba el refactor de la deuda y el dominio, antes de llegar a la aplicación. Ninguno llegó al freno.
+
+## Transferencia y exploración (etapa 3)
+
+Los pasos de MAST-1.4, 1.5, 6.2, 6.4, 6.7 a 6.14 y 8.1 a 8.6 (ticket `mast-pasos-transferencia`) usan una interfaz que aún no existe. La implementa el ticket `mast-transferencia`; el campo `reservado?: boolean` de `ItemContenido` es el de MATE («### Reservados (etapa 3)» de `docs/areas/MATE.md`, ticket `mate-reservados`).
+
+**Interfaz que piden los pasos:**
+
+- `EvaluacionFase` gana tres campos opcionales (declarados por intersección en `tests/aceptacion/pasos/transferencia.ts`):
+  - `aciertoProblemasReservados?: number`: acierto sobre todos los problemas reservados respondidos, los viejos y los nuevos (MAST-6.12). Si el dominio tiene reservados y la fase llega a `avanzado_experto`, la evaluación lo da: así se ve que el paso a la fase avanzada mide la transferencia (MAST-6.2, 6.4, 6.10 y 6.14).
+  - `faltanCasosNuevos?: boolean`: faltan problemas reservados, por pocos o porque se gastaron todos sin llegar al umbral (MAST-6.9, 6.11, 6.13).
+  - `ofrecePedirMasReservados?: boolean`: se ofrece pedir más reservados (MATE-2.10).
+- `ContextoRespuesta` gana `'exploracion'` (AYUD-5, INST-1.3): la respuesta al intento de exploración se da con ese contexto (`tests/aceptacion/pasos/exploracion.ts`). Una respuesta con ese contexto no cuenta como intento del ítem: no baja `itemsSinIntento` (MAST-1.4, 1.5) ni entra en el acierto de los problemas intercalados (MAST-6.6).
+
+**Decisiones de los pasos:**
+
+- **El intento de exploración (MAST-8.1)** es la primera sesión de práctica del objetivo: AYUD-5 aún no tiene pasos ni código.
+- **MAST-1.4 y 1.5:** I1 es de O1 en el contenido de partida; se le da otro `id` (`liberarId`) y O4 se aprueba con un I1 de tipo «problema» y 19 ítems más. Que el segundo intento «cuenta como el primero» se comprueba antes de responder: `itemsSinIntento` de O4 aún es 20.
+- **MAST-6.6** queda en verde con la aplicación de hoy, porque los problemas de O4 no tienen ningún intento intercalado y la fase no se evalúa. No está en `escenarios_en_rojo`.
+- **MAST-6.2 y 6.4** ya pasaban, pero la spec les añadió reservados: hoy la aplicación los cuenta como problemas normales y 6.2 (fila 16) llega a la fase avanzada. Están en `escenarios_en_rojo`.
+- **MAST-8.1** usa un I5 `problema` de C1 en O4 (se libera el `id` I5 de O1) más 2 hechos de relleno. El repaso responde antes todos los ítems de O4, el reservado en `intercalado`.
+- **MAST-8.4** marca también I18 como reservado y repone ítems hasta 20 no reservados, para que el 85 % siga siendo 17 de 20. O1 se domina el 2026-03-02.
+- **MAST-8.6** modela «cerró la aplicación» con `presentarItem` y `responderItem` sin `declararConfianza`. «La siguiente prueba» es la del 2026-03-09, la que quedó sin completar, y «no tiene ningún intento registrado» es que respuestas.csv no tiene ninguna fila del ítem.

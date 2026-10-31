@@ -1,1 +1,25 @@
-{ "areas_cerradas": ["RECU", "DIAG"] }
+{
+  "areas_cerradas": ["RECU", "DIAG"],
+  "escenarios_en_rojo": {
+    "MAST": [
+      "MAST-1.4",
+      "MAST-1.5",
+      "MAST-6.2",
+      "MAST-6.4",
+      "MAST-6.7",
+      "MAST-6.8",
+      "MAST-6.9",
+      "MAST-6.10",
+      "MAST-6.11",
+      "MAST-6.12",
+      "MAST-6.13",
+      "MAST-6.14",
+      "MAST-8.1",
+      "MAST-8.2",
+      "MAST-8.3",
+      "MAST-8.4",
+      "MAST-8.5",
+      "MAST-8.6"
+    ]
+  }
+}
