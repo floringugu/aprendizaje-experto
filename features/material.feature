@@ -445,7 +445,8 @@ Característica: Material del dominio y borradores
   Regla: Un borrador nunca aparece en una sesión
     Las sesiones solo leen contenido/<dominio>.json. Lo que redacta la IA no llega a la persona sin
     pasar por su aprobación. Es decisión del autor: el informe no revisó la IA generativa como tutor
-    (sección 6) y no trata de dónde sale el contenido.
+    (sección 6) y no trata de dónde sale el contenido. Que una tarea del borrador no se presente se
+    comprueba en TARE-1.6, que comparte el primer paso de los Antecedentes.
 
     Antecedentes:
       Dado que contenido/borradores/ficticio.json tiene, sin aprobar, el objetivo O4, el ejemplo resuelto E9 de O1, la tarea T9 y el ítem I9 de O1
@@ -468,12 +469,6 @@ Característica: Material del dominio y borradores
     Escenario: Un ejemplo resuelto del borrador no se muestra
       Cuando la persona estudia los ejemplos resueltos de O1
       Entonces no se le muestra E9
-
-    @MATE-6.3 @extrapolacion
-    Escenario: Una tarea del borrador no se presenta como tarea de práctica
-      Dado que la persona está en la fase «avanzado_experto»
-      Cuando pide tareas de práctica hasta que no quedan más
-      Entonces ninguna de ellas es T9
 
     @MATE-6.4 @extrapolacion
     Escenario: Un objetivo del borrador no cuenta para la ruta ni para la fase
