@@ -2,8 +2,8 @@
 fase: impl
 area: PANT
 depende: []
-toca: [docs/areas/PANT.md]
-estado: abierto
+toca: [docs/areas/PANT.md, docs/tickets/pant.md, docs/tickets/pant-pasos.md]
+estado: hecho
 ---
 # El «Mecanismo» de PANT
 

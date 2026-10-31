@@ -2,7 +2,7 @@
 fase: aceptacion
 area: PANT
 depende: [pant-mecanismo]
-toca: [tests/aceptacion/pasos/pantallas.ts, tests/aceptacion/soporte/, config/alcance.json, docs/areas/PANT.md]
+toca: [tests/aceptacion/pasos/pantallas.ts, tests/aceptacion/soporte/, src/aplicacion/dependencias.ts, src/aplicacion/aplicacion.ts, src/aplicacion/estado.ts, tests/unidad/ver-fuente.test.ts, tests/unidad/formato-contenido-piezas.ts, config/alcance.json, docs/areas/PANT.md]
 estado: abierto
 ---
 # Pasos de PANT
