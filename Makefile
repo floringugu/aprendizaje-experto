@@ -17,9 +17,10 @@
 #   make retirar N=<carril>    borra el carril y todas sus ramas, ya fusionadas en origin/main
 # Uno para la conversación de un carril, cuando GitHub ha fusionado el PR de su rama:
 #   make rama                  pasa el carril a su rama siguiente, desde origin/main
-# Y uno de consulta: make bloqueos A=<ÁREA> resume lo que anotaron los hooks mientras el área estaba en curso.
+# Y de consulta: make bloqueos A=<ÁREA> resume lo que anotaron los hooks mientras el área estaba en curso;
+# make tickets lista los tickets de docs/tickets/ con su estado, y make tablero los muestra en una página web.
 
-ESTATICOS := tipos lint duplicacion codigo-muerto capas unidad
+ESTATICOS := tipos lint duplicacion codigo-muerto capas unidad tickets
 
 # Ejecuta los pasos en orden y dice cuál falla.
 define ejecutar_pasos
@@ -30,7 +31,7 @@ define ejecutar_pasos
 	printf '\n✓ Todo en verde.\n'
 endef
 
-.PHONY: check check-specs check-aceptacion cerrar-area check-implementador mutacion fase abrir retirar rama bloqueos instalar formatear
+.PHONY: check check-specs check-aceptacion cerrar-area check-implementador mutacion fase abrir retirar rama bloqueos tickets tablero instalar formatear
 
 check:
 	$(call ejecutar_pasos,$(ESTATICOS) specs aceptacion cobertura-ids)
@@ -80,6 +81,14 @@ rama:
 # el implementador y las paradas del Stop), para el archivo del área (docs/areas/<ÁREA>.md).
 bloqueos:
 	@node scripts/arnes/bloqueos-stop.ts $(A)
+
+# Los tickets de docs/tickets/ en origin/main (recién traído) con su estado, calculado con los carriles
+# abiertos (docs/plan.md §6, «Tickets»). tablero escribe reports/tablero.html y, si lo lanza el dueño, lo abre.
+tickets:
+	@node scripts/arnes/tickets.ts listar
+
+tablero:
+	@node scripts/arnes/tickets.ts tablero
 
 instalar:
 	npm ci
