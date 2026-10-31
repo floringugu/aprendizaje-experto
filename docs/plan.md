@@ -525,7 +525,7 @@ Las reglas para Claude, en `CLAUDE.md`:
 
 - En un carril con ticket, el trabajo es el del ticket, y su «Hecho cuando» es el criterio de cierre.
 - Si hay que tocar algo fuera de su `toca`, se añade al `toca` en el mismo PR. Si `make tickets` muestra que eso se solapa con un carril abierto, Claude para con `[DECISIÓN PENDIENTE]`.
-- El trabajo nuevo que aparezca y no sea del ticket no se hace: va a un ticket nuevo en el mismo PR. Sustituye a las notas sueltas como `docs/areas/MATE-pendiente.md`: un impl que encuentra un problema de la spec crea un ticket specs.
+- El trabajo nuevo que aparezca y no sea del ticket no se hace: va a un ticket nuevo en el mismo PR. Sustituye a las notas sueltas de lo pendiente, como la que tuvo MATE: un impl que encuentra un problema de la spec crea un ticket specs.
 - El último PR del ticket le pone `estado: hecho`. Un ticket que se divide pasa a `descartado` o se estrecha, y sus partes heredan sus dependencias.
 - En la carpeta principal, cuando preguntas qué sigue, Claude ejecuta `make tickets` y te da los `make abrir N=<id>` de los listos.
 
