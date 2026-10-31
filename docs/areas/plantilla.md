@@ -28,7 +28,7 @@ Puntuación de `make mutacion` al cerrar el área, y los mutantes supervivientes
 - **Puntuación:** … %
 - **Supervivientes aceptados:** …
 
-## Bloqueos del hook Stop
+## Bloqueos de los hooks
 
 Salida de `make bloqueos A=<ÁREA>` al cerrar el área, y una frase sobre el bloqueo que más costó, si lo hubo.
 
