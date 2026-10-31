@@ -72,7 +72,7 @@ function huellaDelCarril(carril: CarrilAbierto, tickets: readonly Ticket[]): rea
 }
 
 /** Los carriles abiertos, salvo `excepto`, con los que se solapa `huella`. */
-export function solapesCon(huella: readonly string[], situacion: Situacion, excepto: string): Solape[] {
+function solapesCon(huella: readonly string[], situacion: Situacion, excepto: string): Solape[] {
   return situacion.carriles
     .filter((carril) => carril.nombre !== excepto)
     .map((carril) => ({
