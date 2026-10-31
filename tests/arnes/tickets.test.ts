@@ -5,31 +5,11 @@ import {
   situacionDelRepositorio,
   solapesDelCarril,
 } from '../../scripts/arnes/comun/estado-tickets.ts';
-import type { CarrilAbierto, Situacion } from '../../scripts/arnes/comun/estado-tickets.ts';
+import type { Situacion } from '../../scripts/arnes/comun/estado-tickets.ts';
 import { apartado, leerTicket, problemasDeLosTickets, ticketsDe } from '../../scripts/arnes/comun/tickets.ts';
-import type { Ticket } from '../../scripts/arnes/comun/tickets.ts';
 import { commit, gitBien, principalConOrigen } from './origen.ts';
 import { escribirFicheros, repositorioConCommit } from './temporal.ts';
-
-interface Frontmatter {
-  fase?: string;
-  area?: string;
-  depende?: string;
-  toca?: string;
-  estado?: string;
-}
-
-/** El texto de un ticket, con un frontmatter válido salvo lo que cambie `campos`. */
-function texto(campos: Frontmatter = {}, cuerpo = '# Título\n\n**Hecho cuando:** make check\nen verde.\n'): string {
-  const { fase = 'impl', area = 'MATE', depende = '[]', toca = '[]', estado = 'abierto' } = campos;
-  return `---\nfase: ${fase}\narea: ${area}\ndepende: ${depende}\ntoca: ${toca}\nestado: ${estado}\n---\n${cuerpo}`;
-}
-
-function ticket(id: string, campos: Frontmatter = {}): Ticket {
-  const leido = leerTicket(id, texto(campos));
-  if ('problema' in leido) throw new Error(leido.problema);
-  return leido;
-}
+import { carril, situacion, texto, ticket } from './tickets-de-prueba.ts';
 
 function problemaAlLeer(contenido: string): string {
   const leido = leerTicket('uno', contenido);
@@ -147,21 +127,6 @@ describe('seSolapan', () => {
     expect(seSolapan(['src/b/'], ['src/a.ts', 'tests/'], ficheros)).toEqual([]);
   });
 });
-
-function carril(nombre: string, campos: Partial<CarrilAbierto> = {}): CarrilAbierto {
-  return { nombre, rama: `impl/MATE/${nombre}`, commiteados: [], pr: undefined, ...campos };
-}
-
-function situacion(campos: Partial<Situacion>): Situacion {
-  return {
-    tickets: [],
-    problemas: [],
-    cerradas: [],
-    carriles: [],
-    ficheros: ['src/a.ts', 'config/alcance.json'],
-    ...campos,
-  };
-}
 
 function estados(datos: Situacion): Record<string, unknown> {
   return Object.fromEntries(estadoDeLosTickets(datos).map(({ ticket: { id }, estado }) => [id, estado]));
