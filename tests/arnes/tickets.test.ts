@@ -126,6 +126,16 @@ describe('seSolapan', () => {
     expect(seSolapan(['src/nuevo/'], ['src/nuevo/x.ts'], ficheros)).toEqual(['src/nuevo/x.ts']);
     expect(seSolapan(['src/b/'], ['src/a.ts', 'tests/'], ficheros)).toEqual([]);
   });
+
+  it('sin config/alcance.json ni docs/deuda-diseno.md, que escriben casi todos los carriles', () => {
+    const conCompartidos = [...ficheros, 'config/alcance.json', 'config/parametros.json', 'docs/deuda-diseno.md'];
+    expect(seSolapan(['config/alcance.json', 'docs/deuda-diseno.md'], ['config/', 'docs/'], conCompartidos)).toEqual(
+      [],
+    );
+    expect(seSolapan(['config/'], ['config/alcance.json', 'config/parametros.json'], conCompartidos)).toEqual([
+      'config/parametros.json',
+    ]);
+  });
 });
 
 function estados(datos: Situacion): Record<string, unknown> {
@@ -148,15 +158,24 @@ describe('estadoDeLosTickets', () => {
 
   it('bloqueado por solape con el «toca» del ticket de un carril abierto o con lo que commiteó un carril sin ticket', () => {
     const tickets = [
-      ticket('uno', { toca: '[config/alcance.json]' }),
+      ticket('uno', { toca: '[config/parametros.json]' }),
       ticket('dos', { toca: '[config/]' }),
       ticket('tres', { toca: '[src/]' }),
     ];
     const carriles = [carril('uno'), carril('sin-ticket', { commiteados: ['src/nuevo.ts'] })];
     expect(estados(situacion({ tickets, carriles }))).toMatchObject({
-      dos: { tipo: 'bloqueado', faltan: [], solapes: [{ carril: 'uno', ficheros: ['config/alcance.json'] }] },
+      dos: { tipo: 'bloqueado', faltan: [], solapes: [{ carril: 'uno', ficheros: ['config/parametros.json'] }] },
       tres: { tipo: 'bloqueado', solapes: [{ carril: 'sin-ticket', ficheros: ['src/nuevo.ts'] }] },
     });
+  });
+
+  it('listo aunque comparta config/alcance.json y docs/deuda-diseno.md con un carril abierto', () => {
+    const tickets = [
+      ticket('uno', { toca: '[src/a.ts, config/alcance.json, docs/deuda-diseno.md]' }),
+      ticket('dos', { toca: '[src/b.ts, config/alcance.json, docs/deuda-diseno.md]' }),
+    ];
+    const carriles = [carril('uno', { commiteados: ['config/alcance.json'] })];
+    expect(estados(situacion({ tickets, carriles }))).toMatchObject({ dos: { tipo: 'listo' } });
   });
 
   it('en curso con su carril abierto, en revisión con un PR, y hecho con el carril sin retirar', () => {
@@ -175,11 +194,11 @@ describe('solapesDelCarril', () => {
     const datos = situacion({
       tickets: [ticket('uno', { toca: '[src/a.ts]' })],
       carriles: [
-        carril('uno', { commiteados: ['config/alcance.json'] }),
-        carril('otro', { commiteados: ['config/alcance.json'] }),
+        carril('uno', { commiteados: ['config/parametros.json'] }),
+        carril('otro', { commiteados: ['config/parametros.json'] }),
       ],
     });
-    expect(solapesDelCarril('uno', datos)).toEqual([{ carril: 'otro', ficheros: ['config/alcance.json'] }]);
+    expect(solapesDelCarril('uno', datos)).toEqual([{ carril: 'otro', ficheros: ['config/parametros.json'] }]);
     expect(solapesDelCarril('cerrado', datos)).toEqual([]);
   });
 });

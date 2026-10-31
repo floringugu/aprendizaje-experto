@@ -6,7 +6,7 @@
 //   listo: todas sus dependencias están cumplidas y su «toca» no se solapa con ningún carril abierto;
 //   bloqueado: con las dependencias que faltan y los carriles con que se solapa.
 // La huella de un carril abierto es el «toca» de su ticket más lo que ya ha commiteado su rama. Un
-// carril sin ticket solo cuenta por lo commiteado.
+// carril sin ticket solo cuenta por lo commiteado. Los ficheros COMPARTIDOS no cuentan como solape.
 import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
@@ -56,12 +56,21 @@ function casa(ruta: string, entrada: string): boolean {
 }
 
 /**
- * Las rutas que casan con una entrada de cada huella, ordenadas: los ficheros de `ficheros` (el árbol
- * de origin/main) y las rutas sin «*» de las dos huellas, para los ficheros que aún no existen.
+ * Ficheros que escriben casi todos los carriles, cada uno en su parte: su área en config/alcance.json,
+ * y sus partidas y su línea en docs/deuda-diseno.md. Si contaran, un carril abierto bloquearía casi
+ * todos los tickets; el choque en git, si llega, es de pocas líneas y se resuelve en el rebase.
+ */
+const COMPARTIDOS: readonly string[] = ['config/alcance.json', 'docs/deuda-diseno.md'];
+
+/**
+ * Las rutas que casan con una entrada de cada huella, ordenadas y sin las COMPARTIDOS: los ficheros
+ * de `ficheros` (el árbol de origin/main) y las rutas sin «*» de las dos huellas, para los ficheros
+ * que aún no existen.
  */
 export function seSolapan(a: readonly string[], b: readonly string[], ficheros: readonly string[]): string[] {
   const candidatas = new Set([...ficheros, ...[...a, ...b].filter((entrada) => !entrada.includes('*'))]);
   return [...candidatas]
+    .filter((ruta) => !COMPARTIDOS.includes(ruta))
     .filter((ruta) => a.some((entrada) => casa(ruta, entrada)) && b.some((entrada) => casa(ruta, entrada)))
     .toSorted((x, y) => x.localeCompare(y));
 }
