@@ -137,8 +137,9 @@ scripts/arnes/           scripts de make check y de la CI (con dueño)
   settings.local.json    fase y área del checkout, con su modelo y esfuerzo (make fase, make abrir; fuera de git)
   hooks/                 código de los hooks
   agents/                subagentes revisor-evidencia, revisor-codigo e implementador
-  registro-stop.jsonl    una línea por parada del hook Stop, con su carril; también dice si una conversación
-                         ya pasó el relevo (solo en la carpeta principal; fuera de git)
+  registro-stop.jsonl    una línea por parada, por comprobación del push y por bloqueo del implementador, con
+                         su carril; también dice si una conversación ya pasó el relevo (solo en la carpeta
+                         principal; fuera de git)
   registro-contexto.jsonl   una línea por cada tramo de contexto avisado, con su carril (relevo; fuera de git)
 .github/
   CODEOWNERS             qué rutas esperan al visto bueno del dueño y cuáles son la lista blanca (§6)
@@ -210,7 +211,7 @@ En `tests/` no se aplica el límite de longitud por función, porque un `describ
 | `make check` | impl (por defecto) | Los 9 de la tabla |
 | `make check-specs` | specs (etapa 2) | Del 1 al 7 |
 | `make check-aceptacion` | aceptacion (etapa 3) | Del 1 al 7 y `estado-aceptacion` (los escenarios del área en curso deben fallar en rojo: ni pasar, ni quedar pendientes, ni tener pasos sin definir; los de las áreas cerradas deben seguir en verde) |
-| `make check-implementador` | impl, la del subagente `implementador` (§7) | Del 1 al 6 salvo `codigo-muerto`: cuando devuelve su encargo, la aplicación aún no usa las funciones nuevas del dominio. El resto lo exige después el hook Stop a la conversación principal |
+| `make check-implementador` | impl, la del subagente `implementador` (§7) | Del 1 al 6 salvo `codigo-muerto`: cuando devuelve su encargo, la aplicación aún no usa las funciones nuevas del dominio. El resto lo exige después el hook del push a la conversación principal |
 
 Fuera de `make check` hay ocho objetivos más:
 
@@ -219,7 +220,7 @@ Fuera de `make check` hay ocho objetivos más:
 - `make fase F=<fase> [A=<ÁREA>] [N=<carril>]` (§6), que es solo tuyo: fija la fase y el área de la carpeta principal o, con `N=`, del carril `N`;
 - `make abrir` y `make retirar` (§6), también solo tuyos: crean y borran un carril (un worktree con su rama);
 - `make rama` (§6), que lanza la conversación de un carril cuando GitHub ha fusionado el PR de su rama: pasa el carril a su rama siguiente;
-- `make bloqueos A=<ÁREA>` (§5), que resume las paradas del hook Stop de un área para su archivo;
+- `make bloqueos A=<ÁREA>` (§5), que resume las anotaciones de los hooks de un área (paradas, comprobaciones del push y bloqueos del implementador) para su archivo;
 - `make formatear`.
 
 `make fase`, `make abrir` y `make retirar` también se lanzan desde VS Code, con las tareas de `.vscode/tasks.json` (Ctrl+Shift+P → «Tasks: Run Task»).
@@ -250,6 +251,10 @@ Están en `.claude/settings.json`:
         "hooks": [{ "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/bloquear-tras-relevo.ts\"", "timeout": 30 }]
       },
       {
+        "matcher": "Bash",
+        "hooks": [{ "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/exigir-check-push.ts\"", "timeout": 600 }]
+      },
+      {
         "matcher": "Agent",
         "hooks": [{ "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/enrutar-modelo.ts\"", "timeout": 30 }]
       },
@@ -274,7 +279,7 @@ Están en `.claude/settings.json`:
     ],
     "Stop": [
       {
-        "hooks": [{ "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/exigir-check.ts\"", "timeout": 600 }]
+        "hooks": [{ "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/anotar-parada.ts\"", "timeout": 30 }]
       }
     ],
     "SubagentStop": [
@@ -293,18 +298,18 @@ Están en `.claude/settings.json`:
 }
 ```
 
-`bashOutputMaxChars` no es un hook, pero va en el mismo fichero: limita a 8000 caracteres lo que Claude recibe de una orden de Bash (el valor por defecto es 30 000). Si una salida correcta es más larga, Claude Code la guarda en un fichero y Claude recibe un avance de unos 2000 caracteres y la ruta, para leer solo lo que necesite. Medido en 74 conversaciones (30-10-2026), las salidas correctas de entre 8000 y 30 000 caracteres le costaban a cada conversación unos 13 k tokens. Tiene un precio: si una orden falla y saca más de 8000 caracteres, Claude solo ve los primeros 8000, sin el final y sin aviso de recorte. Ve que ha fallado por el código de salida, pero no por qué, y tiene que repetirla con `tail`. En aquellas conversaciones no pasó nunca: ninguna de las 98 salidas fallidas llegaba a 8000 caracteres, porque Claude filtra `make check` con `tail`, `grep` o `head`, o lo manda a un fichero (73 de 74 veces). Al hook Stop no le afecta: lee la salida de make él mismo. La variable `BASH_MAX_OUTPUT_LENGTH` no sirve para esto: solo cambia cuánto se relee del fichero de salida, no lo que llega en línea.
+`bashOutputMaxChars` no es un hook, pero va en el mismo fichero: limita a 8000 caracteres lo que Claude recibe de una orden de Bash (el valor por defecto es 30 000). Si una salida correcta es más larga, Claude Code la guarda en un fichero y Claude recibe un avance de unos 2000 caracteres y la ruta, para leer solo lo que necesite. Medido en 74 conversaciones (30-10-2026), las salidas correctas de entre 8000 y 30 000 caracteres le costaban a cada conversación unos 13 k tokens. Tiene un precio: si una orden falla y saca más de 8000 caracteres, Claude solo ve los primeros 8000, sin el final y sin aviso de recorte. Ve que ha fallado por el código de salida, pero no por qué, y tiene que repetirla con `tail`. En aquellas conversaciones no pasó nunca: ninguna de las 98 salidas fallidas llegaba a 8000 caracteres, porque Claude filtra `make check` con `tail`, `grep` o `head`, o lo manda a un fichero (73 de 74 veces). A los hooks que ejecutan make no les afecta: leen su salida ellos mismos. La variable `BASH_MAX_OUTPUT_LENGTH` no sirve para esto: solo cambia cuánto se relee del fichero de salida, no lo que llega en línea.
 
 ### SessionStart: `anunciar-fase.ts`
 
 Al empezar cada conversación (y al reanudarla, limpiarla o compactarla), dice en qué fase está el checkout de su directorio de trabajo, que es la carpeta principal salvo que la conversación se abra dentro de un carril:
 
-- **A ti**, con un aviso de una línea: la fase con su modelo y su esfuerzo (§6), la comprobación que exigirá el hook Stop, el área en curso, las áreas cerradas y los checkouts (la carpeta principal y los carriles) que tienen un relevo pendiente. Así compruebas que la fase y el área que elegiste con `make fase` o `make abrir` han llegado a los hooks. Si la conversación usa otro modelo que el de la fase, el aviso lo dice y te recuerda `/model`; si Claude Code no envía el modelo, no hay aviso.
+- **A ti**, con un aviso de una línea: la fase con su modelo y su esfuerzo (§6), la comprobación que exigirá `git push`, el área en curso, las áreas cerradas y los checkouts (la carpeta principal y los carriles) que tienen un relevo pendiente. Así compruebas que la fase y el área que elegiste con `make fase` o `make abrir` han llegado a los hooks. Si la conversación usa otro modelo que el de la fase, el aviso lo dice y te recuerda `/model`; si Claude Code no envía el modelo, no hay aviso.
 - **A Claude**, como contexto: además, para qué sirve la fase y, si hay relevos pendientes, la ruta absoluta de cada `reports/relevo.md`: si sigue en ese carril, lo lee antes de nada y lo borra.
 
 ### PostToolUse en EnterWorktree: `anunciar-carril.ts`
 
-Una conversación de carril empieza en la carpeta principal y entra en el carril con `EnterWorktree` (§6). Al entrar, este hook le dice lo mismo que el aviso de inicio, pero del carril: la fase, el área, el objetivo de make que exigirá el hook Stop, el modelo y el esfuerzo de la fase (con el `/model …` que los pone) y el relevo pendiente del carril, si lo hay. A Claude le añade:
+Una conversación de carril empieza en la carpeta principal y entra en el carril con `EnterWorktree` (§6). Al entrar, este hook le dice lo mismo que el aviso de inicio, pero del carril: la fase, el área, el objetivo de make que exigirán `git push` y `gh pr create`, el modelo y el esfuerzo de la fase (con el `/model …` que los pone) y el relevo pendiente del carril, si lo hay. A Claude le añade:
 
 - la lista blanca: las rutas de `.github/CODEOWNERS` sin dueño, las líneas de un solo campo, que se fusionan sin tu visto bueno; lo demás lo espera (§6);
 - que los enlaces a ficheros van con la ruta absoluta del carril, porque VS Code los resuelve desde la carpeta principal;
@@ -329,6 +334,17 @@ Una conversación de carril empieza en la carpeta principal y entra en el carril
 - **Instala o quita dependencias** (`npm|pnpm|yarn install/i/add/uninstall/update/link…`): los carriles comparten `node_modules`, así que lo que instale uno lo ven todos. Las dependencias cambian en un PR (`package-lock.json` tiene dueño) y, tras la fusión, haces tú `npm ci`.
 
 En Bash ya no se niega nombrar `.git`: daba falsos positivos a los subagentes de búsqueda, y los hooks de git ya no forman parte del arnés.
+
+### PreToolUse en Bash: `exigir-check-push.ts`
+
+Es la puerta antes del PR. Si el comando contiene `git push` o `gh pr create`, ejecuta la comprobación de la fase (`check`, `check-specs` o `check-aceptacion`) en el checkout del directorio de trabajo de la conversación: la carpeta principal o el carril donde ha entrado. Si falla, niega el comando y le pasa a Claude el paso que falla y las últimas 150 líneas de la salida. Si pasa, ves el aviso «make check en verde (N s)». El tiempo máximo es de 600 s.
+
+- **Ninguna marca lo salta,** ni `[DECISIÓN PENDIENTE]` ni `[RELEVO]`.
+- **Si el propio hook falla,** niega el comando, como los demás.
+- **Cada comprobación se anota** en `.claude/registro-stop.jsonl` (resultados `push-verde` y `push-bloqueo`), con el paso que falla y los milisegundos que ha tardado make.
+- **Mira el texto del comando** y comprueba el árbol de trabajo, no los commits que se suben (límites en el §11).
+
+Hasta el 31-10-2026 la comprobación la hacía el hook Stop al final de cada turno con cambios, y casi nunca llegaba a ejecutarse. En la evaluación de ese día, de 276 paradas en 94 conversaciones, `make` se ejecutó en 54 (24 en verde y 30 bloqueos), la última el 25-10-2026 a las 13:02. 140 pararon con `[DECISIÓN PENDIENTE]` y 82 con `[RELEVO]`, que se la saltaban; las paradas sin cambios no se anotaban, y el turno que hace commit para con el árbol limpio, así que tampoco comprobaba (dato D1). De los 30 bloqueos, 16 fueron de `aceptacion`, todos con la semántica de alcance anterior al 25-10-2026, 6 de `estado-aceptacion`, 3 de `integridad` (mecanismo ya retirado), 2 de `cobertura-ids`, 2 de `codigo-muerto`, 1 de `lint` y ninguno de `duplicacion` (D2). El push, en cambio, es el paso por el que el trabajo llega a un PR, pare como pare la conversación y esté o no commiteado.
 
 ### PreToolUse en Agent: `enrutar-modelo.ts`
 
@@ -360,37 +376,38 @@ El umbral tiene que quedar por debajo de la autocompactación: con la ventana de
 El relevo es obligatorio. Cuando el hook Stop acepta el primer `[RELEVO]` de una conversación, lo anota en `.claude/registro-stop.jsonl` (resultado `relevo`) y desde entonces:
 
 - **`bloquear-tras-relevo.ts`**, un hook PreToolUse sobre Edit, Write, MultiEdit y NotebookEdit, niega las ediciones de esa conversación y de sus subagentes (comparten `session_id`). Bash no se frena: lo que cambie no llega a `main` sin pasar por la CI y por tu revisión del PR.
-- **El Stop ya no acepta `[RELEVO]`** en esa conversación: vuelven las reglas normales. Si la comprobación falla, Claude no puede arreglarla, y la nota del bloqueo le dice que explique el fallo y pare con `[DECISIÓN PENDIENTE]`; lo arreglas en la conversación nueva.
+- **El Stop ya no acepta `[RELEVO]`** en esa conversación: sus paradas siguientes se anotan como cualquier otra. Claude ya no puede arreglar nada: explica lo que falte y para, y lo arreglas en la conversación nueva.
 
 Los subagentes no cuentan para el umbral: tienen su propio contexto. El último tramo avisado de cada conversación queda en `.claude/registro-contexto.jsonl` de la carpeta principal (fuera de git), con el carril de la conversación, para no repetir el aviso en cada herramienta.
 
-### Stop: `exigir-check.ts`
+### Stop: `anotar-parada.ts`
 
-Ejecuta la comprobación de la fase (`check`, `check-specs` o `check-aceptacion`) en el checkout del directorio de trabajo de la conversación: la carpeta principal o el carril donde ha entrado. Si falla, no deja a Claude terminar el turno y le pasa las últimas 150 líneas de la salida.
+Anota cada parada de la conversación y acepta el relevo. No ejecuta make y nunca bloquea: la comprobación la exige `exigir-check-push.ts` antes de subir el trabajo. Cada parada lleva los tokens de contexto de la última llamada, los mismos que lee el relevo, y el primero de estos resultados que se cumpla:
 
-Hay una excepción: si el último mensaje de Claude contiene `[DECISIÓN PENDIENTE]`, puede parar para preguntarte. Entonces ves el aviso «la comprobación no se ha ejecutado».
+- **`decision`:** el último mensaje de Claude contiene `[DECISIÓN PENDIENTE]`. Ves el aviso «Claude ha parado con [DECISIÓN PENDIENTE]: espera tu decisión».
+- **`espera`:** quedan subagentes trabajando en segundo plano, como el implementador. Ves el aviso «Claude espera a N subagente(s)». Claude Code despierta a Claude cuando terminan, y el hook se ejecuta de nuevo al parar.
+- **`relevo`:** el último mensaje contiene `[RELEVO]`, el contexto pasa de 145 k tokens y la conversación no ha pasado ya un relevo. Ves el aviso «Claude ha parado con [RELEVO]». Va después de la espera: con un subagente aún escribiendo, el relevo saldría a medias. Por debajo del umbral, o con un relevo ya pasado, la marca no cuenta y la parada se anota como cualquier otra.
+- **`sin-cambios` o `con-cambios`:** cualquier otra parada, según el árbol de trabajo del checkout difiera o no del último commit.
 
-El mensaje del bloqueo cambia según el fallo (`scripts/arnes/comun/freno-stop.ts`):
+El freno y el clasificador de errores del entorno se quitaron con la comprobación del Stop, el 31-10-2026. El freno, en el tercer bloqueo seguido del mismo paso, le pedía a Claude el mecanismo del fallo en una frase; saltó en una sola conversación (24-10-2026: 6 bloqueos de `aceptacion` en 4 minutos, y después de saltar en el 3.º hubo 3 más). El clasificador reconocía en la salida `EADDRINUSE`, `EACCES`, `ENOSPC` o «command not found» y le pedía que parara con `[DECISIÓN PENDIENTE]`; no aparece en ningún archivo de área (D3).
 
-- **Error del entorno.** Si la salida contiene `EADDRINUSE` (puerto ocupado), `EACCES` (permisos), `ENOSPC` (disco lleno o límite de ficheros vigilados) o «command not found», le dice que no es su código: que no lo toque, te dé el comando que lo arreglaría y pare con `[DECISIÓN PENDIENTE]`.
-- **Freno.** En el tercer bloqueo seguido del mismo paso en la misma conversación, le pide que deje de probar arreglos y escriba en una frase el mecanismo exacto del fallo. Si la causa está en la especificación, el arnés o el entorno, para con `[DECISIÓN PENDIENTE]`.
-- **Cualquier otro fallo:** que arregle la causa, no la comprobación.
+El registro es `.claude/registro-stop.jsonl` de la carpeta principal (fuera de git), uno solo para todos los checkouts. Lo escriben este hook, `exigir-check-push.ts` y el SubagentStop del implementador, y cada línea dice la conversación (`session_id`), el carril, la fase, el resultado, el paso que falla en los bloqueos, los tokens o los milisegundos, las áreas cerradas y el área en curso en ese momento. De ahí salen el relevo pasado y `make bloqueos A=<ÁREA>`, que resume las anotaciones de la fase impl con esa área en curso, de todas las conversaciones y todos los carriles:
 
-**Espera.** Si quedan subagentes trabajando en segundo plano, como el implementador, no comprueba nada, porque vería sus ficheros a medio escribir; ves el aviso «Claude espera a N subagente(s)». Claude Code despierta a Claude cuando terminan, y el hook se ejecuta de nuevo al parar. Las esperas no se anotan en el registro.
+- de qué carriles son;
+- los push en verde, los bloqueos del push por paso y la mediana de lo que tarda la comprobación;
+- los bloqueos del implementador por paso;
+- cómo pararon las conversaciones;
+- si el área tiene líneas anteriores al 31-10-2026, los verdes y los bloqueos de la comprobación que hacía el Stop.
 
-**Relevo.** Si el último mensaje de Claude contiene `[RELEVO]`, el contexto pasa de 145 k tokens y la conversación no ha pasado ya un relevo, Claude para sin la comprobación y ves el aviso «Claude ha parado con [RELEVO]». Por debajo del umbral, o con un relevo ya pasado, la marca no cuenta: el hook sigue como siempre y, si bloquea, le explica a Claude por qué no ha podido parar.
-
-**Sin cambios.** Si el árbol de trabajo no difiere del último commit (`git status` no muestra nada), no hay trabajo que comprobar: la conversación ha sido una consulta, o ya has commiteado lo que había. Claude para sin ejecutar make y ves el aviso «Sin cambios respecto al último commit». Exigirle la comprobación lo empujaría a trabajar en una etapa que nadie le ha pedido. Estas paradas tampoco se anotan.
-
-Cada parada queda en `.claude/registro-stop.jsonl` de la carpeta principal (fuera de git), un solo registro para todos los checkouts: la conversación (`session_id`), el carril, la fase, el resultado, el paso que falla, las áreas cerradas y el área en curso en ese momento. De ahí salen la cuenta del freno y `make bloqueos A=<ÁREA>`, que resume las paradas de la fase impl con esa área en curso, de todas las conversaciones y todos los carriles, y dice de qué carril es cada una. `make bloqueos` lee el registro del checkout donde se ejecuta, así que se lanza desde la carpeta principal. Las líneas anteriores al área en curso, que solo copiaban las áreas fuera de alcance, se siguen leyendo.
+`make bloqueos` lee el registro del checkout donde se ejecuta, así que se lanza desde la carpeta principal. Las líneas anteriores al área en curso, que solo copiaban las áreas fuera de alcance, se siguen leyendo.
 
 ### SubagentStop: `exigir-check-implementador.ts`
 
-Solo para el subagente `implementador`. Ejecuta `make check-implementador` y, si falla, no le deja devolver el encargo y le pasa las últimas 150 líneas de la salida (`scripts/arnes/comun/freno-stop.ts`):
+Solo para el subagente `implementador`. Ejecuta `make check-implementador` y, si falla, no le deja devolver el encargo y le pasa las últimas 150 líneas de la salida (`scripts/arnes/comun/exigir-check.ts`):
 
 - Si su último mensaje contiene `[DECISIÓN PENDIENTE]`, lo devuelve sin comprobar, y decide la conversación principal.
-- Si el fallo es del entorno, le dice que no toque nada y lo devuelva con `[DECISIÓN PENDIENTE]`.
-- Bloquea una sola vez por encargo: le pide arreglar la causa y escribir en una frase el mecanismo del fallo. Si vuelve a intentar devolverlo y sigue en rojo, el hook lo deja salir (ves el aviso) y la conversación principal lo termina ella o lo reencarga. Que ya es el segundo intento lo dice Claude Code en el campo `stop_hook_active` de la entrada del hook, así que no hace falta un registro de bloqueos. Hasta el 25-10-2026 eran dos bloqueos, contados en `.claude/registro-enrutador.jsonl`.
+- Bloquea una sola vez por encargo: le pide arreglar la causa y escribir en una frase el mecanismo del fallo. Si vuelve a intentar devolverlo y sigue en rojo, el hook lo deja salir (ves el aviso) y la conversación principal lo termina ella o lo reencarga. Que ya es el segundo intento lo dice Claude Code en el campo `stop_hook_active` de la entrada del hook, así que no hace falta leer el registro. Hasta el 25-10-2026 eran dos bloqueos, contados en `.claude/registro-enrutador.jsonl`.
+- Cada bloqueo se anota en `.claude/registro-stop.jsonl` (resultado `implementador-bloqueo`), con el paso que falla.
 
 ### ConfigChange: `bloquear-config.ts`
 
@@ -424,7 +441,7 @@ Así, un PR que solo toca la lista blanca se fusiona solo cuando pasa la CI: Cla
 2. La fase se guarda en `.claude/settings.local.json` del checkout (`env.ARNES_FASE`), que está fuera de git, y el área en curso, en `env.ARNES_AREA`. Claude Code pasa esas variables a los hooks. Con ella se guardan el modelo y el esfuerzo con que empieza la conversación (`model` y `effortLevel`): Sonnet con esfuerzo `high` en specs y aceptacion, que escriben specs y steps, y Opus con esfuerzo `xhigh` en impl, donde están el «Mecanismo» y el diseño (`MODELO_POR_FASE` en `scripts/arnes/comun/fases.ts`). Puedes cambiarlos durante la conversación con `/model` y `/effort`.
 3. Abres una conversación nueva de Claude Code. El aviso de `anunciar-fase.ts` (o el de `anunciar-carril.ts`, al entrar en un carril) te confirma la fase. Las conversaciones que ya estaban abiertas siguen en la suya.
 
-| Fase | Comprobación en Stop |
+| Fase | Comprobación antes del push |
 |---|---|
 | impl (por defecto) | `make check` |
 | specs | `make check-specs` |
@@ -457,7 +474,7 @@ Además, specs y aceptacion escriben rutas con dueño, así que sus PR siempre t
 
 1. **Abrir.** `make abrir N=<carril> F=<fase> A=<ÁREA>`, solo tú y desde cualquier checkout. El área es obligatoria. Hace `git fetch`, crea `../<carpeta principal>-<carril>` con la rama `<fase>/<ÁREA>/<carril>` sacada de `origin/main`, enlaza su `node_modules` al de la carpeta principal y fija la fase, el área, el modelo y el esfuerzo en sus ajustes locales, sin permisos. Imprime «Entra en el carril <carril>.» y no abre ninguna ventana.
 2. **Entrar.** En una conversación nueva de la ventana principal pegas esa frase. Claude llama a `EnterWorktree` con la ruta del carril, y `anunciar-carril.ts` (§5) le dice la fase, el área, la lista blanca, el relevo pendiente y el modelo.
-3. **Trabajar.** El hook Stop ejecuta en el carril el objetivo de su fase si hay cambios sin commitear. La guardia niega las ediciones y los Bash sobre otros carriles y las ediciones de las rutas de otra fase (§5); la carpeta principal solo se frena por la fase.
+3. **Trabajar.** Antes de `git push` y `gh pr create`, el hook del push ejecuta en el carril el objetivo de su fase. La guardia niega las ediciones y los Bash sobre otros carriles y las ediciones de las rutas de otra fase (§5); la carpeta principal solo se frena por la fase.
 4. **Terminar.** Claude hace commits que respetan la regla de mezcla (§10), y después `git push -u origin HEAD` y `gh pr create --fill`. Después, `gh pr merge --auto --rebase` solo si el PR toca únicamente la lista blanca (lo mira con `gh pr diff --name-only`), y `gh pr checks --watch`. Nunca hace push a mitad de la conversación. Si hay relevo, lo escribe en `<carril>/reports/relevo.md` y termina con `[RELEVO]`.
 5. **Fusión.** El PR de la lista blanca se fusiona solo; el resto lo fusionas tú con bypass.
 6. **Después de cada fusión,** tú: `git pull --ff-only` en la carpeta principal, y `npm ci` si cambió `package-lock.json`.
@@ -590,7 +607,7 @@ Hasta el 30-10-2026 lo comprobaba un pre-commit local (`.githooks/pre-commit`), 
 1. **Guardia de ficheros.** Resuelve la ruta real, así que los enlaces simbólicos y los `..` no sirven para colarse en `.git/`, en otro carril, en `~/.claude/` o en una ruta de otra fase.
 2. **Guardia textual de Bash.** Bloquea los atajos para saltarse el arnés, instalar dependencias y los comandos que nombran otro carril o `~/.claude/`.
 3. **ConfigChange:** los hooks no se cambian en caliente.
-4. **Hook Stop:** la comprobación de la fase antes de terminar cada turno.
+4. **Hook del push:** la comprobación de la fase antes de `git push` y `gh pr create`.
 5. **CI obligatoria** (ruleset «main: CI», sin bypass para nadie): el nombre de la rama, la regla de mezcla, las rutas de la fase, `make check`, el objetivo de la fase y `make mutacion`. Un PR en rojo no se fusiona.
 6. **CODEOWNERS y visto bueno** (ruleset «main: visto bueno»): fuera de la lista blanca, nada llega a `main` sin que lo fusiones tú.
 7. **Tu revisión del PR.**
@@ -602,17 +619,15 @@ Hasta el 30-10-2026 lo comprobaba un pre-commit local (`.githooks/pre-commit`), 
 - **`npx <paquete>` puede descargar y ejecutar un paquete** que no está en el lockfile. No cambia `package.json`, pero se ejecuta.
 - **ConfigChange también te bloquea a ti** si cambias la configuración con `/config` durante una conversación. Edita la configuración fuera de Claude Code y abre una conversación nueva. `make fase` también cambia la configuración local, así que las conversaciones abiertas pueden mostrarte ese bloqueo: es lo esperado, y siguen en su fase.
 - **La fase vive en un fichero local** (`.claude/settings.local.json` del checkout), fuera de git, y nada lo vigila: Claude podría cambiarlo con Edit o con Bash. ConfigChange impide que el cambio valga en la conversación en curso, el aviso de inicio (o el del carril) te muestra la fase con la que empieza cada conversación, y la CI no lo lee: saca la fase del nombre de la rama.
-- **Los errores del entorno se reconocen por el texto** de la salida. Un test que imprima `EACCES` a propósito daría un falso aviso; solo le pide a Claude que pare y pregunte.
-- **El freno cuenta bloqueos seguidos del mismo paso.** Si Claude alterna dos pasos que fallan, la racha empieza de cero cada vez. Lo verás en `make bloqueos`.
+- **La puerta del push es textual y mira el árbol de trabajo.** Busca `git push` y `gh pr create` en el texto del comando: `git -C <ruta> push`, un alias o un script que suba el trabajo se le escapan, y un `echo` que los nombre pasa por la comprobación. Y comprueba el árbol de trabajo del checkout, no los commits que se suben: si un cambio sin commitear arregla el fallo, el push de un commit en rojo pasa. Lo frena la CI: su PR no se fusiona.
 - **Los hooks solo vigilan a Claude Code.** A ti no te frenan, a propósito.
 - **Los revisores son un LLM:** su informe orienta, pero no demuestra nada.
-- **El implementador puede tocar ficheros fuera de su encargo.** Nada le limita lo que edita, salvo la guardia de ficheros. Lo frenan sus instrucciones, `make check` en la conversación principal, la CI y, fuera de la lista blanca, tu visto bueno.
+- **El implementador puede tocar ficheros fuera de su encargo.** Nada le limita lo que edita, salvo la guardia de ficheros. Lo frenan sus instrucciones, `make check` antes del push de la conversación principal, la CI y, fuera de la lista blanca, tu visto bueno.
 - **Un implementador cada vez es una instrucción**, no un bloqueo. Dos a la vez podrían pisarse los ficheros, y la comprobación de uno vería los cambios a medias del otro.
 - **Claude podría escribir código con otro subagente** (`general-purpose`, por ejemplo). Va a Sonnet si Claude no le da modelo, pero si se lo da, el enrutador lo respeta. Lo frenan CLAUDE.md y tu revisión.
-- **Los bloqueos del implementador no se registran:** el hook SubagentStop solo sabe si es el segundo intento (`stop_hook_active`). `make bloqueos` no los cuenta.
-- **Un árbol limpio deja parar sin comprobar.** Si Claude commiteara su propio trabajo en rojo, el hook Stop lo dejaría parar. Lo frena la CI: su PR no se fusiona.
+- **Parar no exige la comprobación.** Una conversación puede terminar con el trabajo en rojo, commiteado o no; no llega a un PR sin pasar por el hook del push. Lo ves en el registro (`con-cambios`) y en `make bloqueos`.
 - **El índice de Markdown solo vigila Read.** `cat docs/plan.md` en Bash lee el fichero entero; lo frena la regla de CLAUDE.md. Tampoco cubre los `.md` de fuera del repositorio.
-- **El relevo depende del transcript de Claude Code.** El tamaño sale de su campo `usage`, que puede ir una llamada por detrás y cuyo formato no es una interfaz estable. Si cambia, no hay aviso y `[RELEVO]` no deja parar: el hook Stop exige la comprobación como siempre. Como la marca solo vale por encima del umbral, tampoco sirve para saltarse la comprobación en una conversación corta.
+- **El relevo depende del transcript de Claude Code.** El tamaño sale de su campo `usage`, que puede ir una llamada por detrás y cuyo formato no es una interfaz estable. Si cambia, no hay aviso y `[RELEVO]` no cuenta: la conversación sigue pudiendo editar y la parada se anota como cualquier otra. La marca nunca salta la comprobación, que está en el push.
 - **El relevo es una instrucción hasta que Claude lo pasa.** Claude podría seguir trabajando después del aviso; lo ves tú, porque el aviso se repite cada 20 k tokens. Una vez aceptado el `[RELEVO]`, la conversación ya no edita con las herramientas Edit, Write, MultiEdit y NotebookEdit; con Bash sí podría escribir ficheros, y lo cubren la CI y tu revisión, no este hook.
 - **El relevo pasado se lee del registro del hook Stop.** Si el registro se pierde, la conversación vuelve a poder editar.
 - **Tu cuenta de administrador sigue en el llavero de `gh`.** Claude trabaja con `floringugu757-lgtm` (`GH_TOKEN`, permiso `write`, sin admin), así que GitHub le niega `gh pr merge --admin` y los cambios en rulesets y ajustes. Pero tu cuenta `floringugu` sigue inactiva en el llavero de esta máquina, y Claude podría usarla vaciando `GH_TOKEN` o con `gh auth token --user floringugu`. La guardia de Bash solo niega `env -u` y `env -i`; solo se lo impide `CLAUDE.md`. Es un riesgo aceptado: no hay ningún dato de que Claude haya usado esa cuenta, y en la auditoría de 62 sesiones no hubo ningún intento deliberado de saltarse el arnés (principio 7: no se añade un mecanismo sin un dato). Si aparece un intento, se replantean las credenciales.
@@ -810,8 +825,8 @@ Para cada área:
 3. Escribo el comentario de la interfaz y las firmas de `src/dominio`, y encargo los cuerpos y sus tests unitarios, que citan el `@ID`, al subagente `implementador` (§7). Si lo devuelve en rojo, lo termino yo o lo reencargo con lo que ha aprendido.
 4. Hago lo mismo con la aplicación y la infraestructura necesarias.
 5. Dejo `make check` en verde, que no incluye la aceptación del área en curso.
-6. Cierro el área con `make cerrar-area A=<ÁREA>`: además de lo anterior, exige en verde la aceptación y la cobertura de sus escenarios. Ejecuto los dos revisores, `make mutacion` y `make bloqueos A=<ÁREA>`, este desde la carpeta principal, que tiene el registro del hook Stop (§5).
-7. Completo el archivo del área: mecanismo, interfaces descartadas y por qué, deuda pagada, puntuación de mutación y bloqueos del hook Stop.
+6. Cierro el área con `make cerrar-area A=<ÁREA>`: además de lo anterior, exige en verde la aceptación y la cobertura de sus escenarios. Ejecuto los dos revisores, `make mutacion` y `make bloqueos A=<ÁREA>`, este desde la carpeta principal, que tiene el registro de los hooks (§5).
+7. Completo el archivo del área: mecanismo, interfaces descartadas y por qué, deuda pagada, puntuación de mutación y bloqueos de los hooks.
 8. Apunto en `docs/deuda-diseno.md` las partidas nuevas del revisor, las pagadas y la línea del área. Añado el área a `areas_cerradas` en `config/alcance.json` (§6), en un commit aparte (regla de mezcla, §10), y abro el PR, que espera a tu visto bueno porque `config/` tiene dueño. Te doy un resumen breve y, si la línea de trabajo ha terminado, el comando para retirar el carril (`make retirar`) después de la fusión.
 
 Antes del código de cada fichero nuevo de `src/`, de cualquier capa (`docs/arnes.md`, §6, y skill `codebase-design`):
