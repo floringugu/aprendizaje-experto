@@ -7,7 +7,9 @@
 // La fase y el área en curso son las del checkout del cwd de la conversación (comun/checkout.ts).
 // También dice las áreas cerradas, el modelo y el esfuerzo de la fase (MODELO_POR_FASE en fases.ts),
 // avisa si la conversación usa otro modelo, y señala los checkouts del repositorio (la carpeta
-// principal y los carriles) que tienen un relevo pendiente (scripts/arnes/comun/relevo.ts).
+// principal y los carriles) que tienen un relevo pendiente (scripts/arnes/comun/relevo.ts). En la
+// carpeta principal, también los tickets listos para abrir (scripts/arnes/comun/tablero.ts), con lo
+// último que se trajo de origin: sin fetch, para no depender de la red.
 import { leerAlcance } from '../../scripts/arnes/comun/alcance.ts';
 import {
   checkoutDeLaEntrada,
@@ -15,6 +17,7 @@ import {
   faseYAreaDelCheckout,
 } from '../../scripts/arnes/comun/checkout.ts';
 import { campoTexto, ejecutarHook, leerEntradaHook, responder } from '../../scripts/arnes/comun/entrada-hook.ts';
+import { situacionDelRepositorio } from '../../scripts/arnes/comun/estado-tickets.ts';
 import {
   avisoDeModelo,
   MODELO_POR_FASE,
@@ -23,6 +26,7 @@ import {
 } from '../../scripts/arnes/comun/fases.ts';
 import { RAIZ } from '../../scripts/arnes/comun/raiz.ts';
 import { avisoDeRelevoPendiente, carrilesConRelevo } from '../../scripts/arnes/comun/relevo.ts';
+import { avisoDeListos } from '../../scripts/arnes/comun/tablero.ts';
 
 function lista(elementos: readonly string[]): string {
   return elementos.length === 0 ? 'ninguna' : elementos.join(', ');
@@ -40,12 +44,14 @@ ejecutarHook('anunciar-fase', async () => {
   const { principal, carriles } = checkoutsDelRepositorio(RAIZ);
   const relevos = carrilesConRelevo([principal, ...carriles]);
   const { cerradas, enCurso } = leerAlcance(checkout);
+  const listos = checkout === principal ? avisoDeListos(situacionDelRepositorio(principal, new Map())) : undefined;
   const avisos = [
     `Arnés: fase ${fase} (${modelo}, esfuerzo ${esfuerzo})`,
     `git push exige make ${objetivo}`,
     `área en curso: ${enCurso ?? 'ninguna'}`,
     `áreas cerradas: ${lista(cerradas)}`,
     ...(relevos.length === 0 ? [] : [`relevo pendiente: ${lista(relevos)}`]),
+    ...(listos === undefined ? [] : [listos]),
     ...(otroModelo === undefined ? [] : [`Aviso: ${otroModelo}`]),
   ];
   responder({
@@ -59,6 +65,7 @@ ejecutarHook('anunciar-fase', async () => {
         `Áreas cerradas (config/alcance.json): ${lista(cerradas)}.`,
         'La fase la elige el dueño antes de abrir la conversación; no se cambia desde aquí.',
         ...(relevos.length === 0 ? [] : [avisoDeRelevoPendiente(relevos)]),
+        ...(listos === undefined ? [] : [`${listos}.`]),
       ].join('\n'),
     },
   });

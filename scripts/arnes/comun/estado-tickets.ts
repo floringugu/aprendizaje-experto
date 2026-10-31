@@ -109,7 +109,8 @@ export function estadoDeLosTickets(situacion: Situacion): { ticket: Ticket; esta
   return situacion.tickets.map((ticket) => ({ ticket, estado: estadoDelTicket(ticket, situacion) }));
 }
 
-function textoDeSolape({ carril, ficheros }: Solape): string {
+/** «carril (fichero, fichero)». */
+export function textoDeSolape({ carril, ficheros }: Solape): string {
   return `${carril} (${ficheros.join(', ')})`;
 }
 

@@ -59,6 +59,12 @@ export function tableroEnTexto(situacion: Situacion): string {
   return [...secciones, ...(avisos.length > 0 ? ['Avisos:', ...avisos] : [])].join('\n');
 }
 
+/** La línea del aviso de inicio con los tickets listos para abrir; undefined si no hay ninguno. */
+export function avisoDeListos(situacion: Situacion): string | undefined {
+  const listos = filasDe(estadoDeLosTickets(situacion), 'listo').map(({ ticket }) => ticket.id);
+  return listos.length === 0 ? undefined : `Tickets listos: ${listos.join(', ')} (make tablero)`;
+}
+
 function escapar(texto: string): string {
   return texto.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
 }
