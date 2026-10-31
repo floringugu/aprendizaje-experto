@@ -560,11 +560,17 @@ Las normas:
 
 ## 9. Mutation testing (`make mutacion`)
 
-- **Qué hace:** ejecuta Stryker 10 con Vitest sobre `src/dominio/**`, de forma incremental. El informe sale en `reports/mutacion/index.html`.
+- **Qué hace:** ejecuta Stryker 10 con Vitest sobre `src/dominio/**` y `src/aplicacion/**`, de forma incremental. El informe sale en `reports/mutacion/index.html`.
+- **Qué queda fuera** (los `!` de `mutate` en `stryker.config.json`):
+  - Los ficheros de `src/aplicacion` que solo prueba la aceptación. Stryker solo ejecuta los tests de Vitest (`tests/unidad/`, `tests/arnes/`), así que en ellos sobreviven casi todos los mutantes. El 31-10-2026 eran 14, entre el 0 y el 72 %.
+  - `texto-pdf.ts`, que lanza `pdftotext`: añadía unos 20 s por 38 mutantes.
+  - Un fichero nuevo de `src/aplicacion` entra solo. Si únicamente lo prueba la aceptación, el PR que lo crea lo añade a la lista, y espera tu visto bueno.
+- **Por qué `src/aplicacion` (31-10-2026, dato D6):** `src/dominio` eran 530 de las 4.445 líneas de `src/` (12 %). El resto entraba con fusión automática, sin mutación y sin umbral de cobertura.
 - **Umbrales:**
   - alto, 80 %;
   - bajo, 60 %;
-  - **falla por debajo del 60 %**.
+  - **falla por debajo del 95 %** (hasta el 31-10-2026, del 60 %).
+- **Medida al ampliarla (31-10-2026, 4 procesos como en la CI):** se pasó de 249 mutantes y 12 s a 1.577 mutantes y 1 min 36 s, con un 97,34 %. Con `src/aplicacion` entero salía un 76,06 %.
 - **Por qué no está en `make check`:** es lento.
 
 ---
@@ -662,7 +668,7 @@ Todas aprobadas por el dueño el 18-10-2026, tal como se proponen en la tabla.
 |---|---|---|---|
 | 1 | Límites de ESLint | Complejidad 10, 40 líneas por función, 3 parámetros, 3 niveles de anidamiento, 300 líneas por fichero, 3 callbacks anidados. | Límites más laxos: el código del LLM tiende a funciones largas, y estos límites lo obligan a partirlas en piezas que puedas leer. |
 | 2 | jscpd | Umbral 0: falla cualquier bloque duplicado de 50 tokens y 5 líneas. Aprobado el 28-10-2026; antes era un 1 % del código. | Un porcentaje: con el código creciendo, el 1 % deja pasar cada vez más bloques duplicados. |
-| 3 | Stryker | Umbrales 80 / 60, falla por debajo del 60 %. | Más alto al principio: frenaría sin ayudar; se puede subir cuando el dominio esté estable. |
+| 3 | Stryker | Umbrales 80 / 60, falla por debajo del 95 % sobre `src/dominio` y los ficheros de `src/aplicacion` con tests unitarios (§9). Aprobado el 31-10-2026; antes mutaba solo `src/dominio` y fallaba por debajo del 60 %. | <ul><li>Mutar `src/aplicacion` entero: los ficheros que solo prueba la aceptación bajaban la puntuación al 76 %.</li><li>Seguir en el 60 %: con un 97,34 % medido, un fichero nuevo sin tests unitarios pasaría sin que se notara.</li></ul> |
 | 4 | Capas de `src/` | <ul><li>Las 4 capas del §3.</li><li>`src/dominio/unidades.ts` como único sitio para constantes técnicas.</li></ul> | Menos capas: se perdería la separación entre lo que se puede probar sin base de datos y lo que no. |
 | 5 | Entrada de la interfaz | `src/interfaz/servidor.ts`, declarada en knip. | — |
 | 6 | Prefijos de los IDs | <ul><li>`DIAG`: diagnóstico.</li><li>`PLAN`: planificador de repasos.</li><li>`RECU`: recuperación con feedback.</li><li>`MAST`: criterio de dominio.</li><li>`AYUD`: ayuda adaptativa y su retirada.</li><li>`INTE`: intercalado.</li><li>`CALI`: calibración.</li><li>`TARE`: tareas representativas.</li><li>`BUCL`: bucle semanal.</li><li>`HORA`: registro de horas.</li><li>`INST`: instrumentación y exportación a CSV.</li><li>`MATE`: material del dominio y borradores redactados por IA.</li></ul> | IDs numéricos sin prefijo: son menos legibles en el código. |
