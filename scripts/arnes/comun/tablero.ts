@@ -124,8 +124,9 @@ article { background: #fff; border-left: 4px solid #9e9e9e; border-radius: 4px; 
 article.listo { border-color: #2e7d32; } article.bloqueado { border-color: #c62828; }
 article.curso { border-color: #b28704; } article.revision { border-color: #3949ab; }
 h3 { margin: 0; font-size: 1rem; } .fase { color: #616161; margin: 0; } .nota { color: #c62828; }
-dt { font-weight: 600; } dd { margin: 0 0 .25rem 0; } code { font-size: .8rem; }
-pre { background: #263238; color: #eceff1; padding: .25rem .5rem; border-radius: 4px; }`;
+dt { font-weight: 600; } dd { margin: 0 0 .25rem 0; } code { font-size: .8rem; overflow-wrap: anywhere; }
+article pre { background: #263238; color: #eceff1; padding: .25rem .5rem; border-radius: 4px; white-space: pre-wrap; overflow-wrap: anywhere; }
+pre.mermaid { background: #fff; border-radius: 6px; padding: 1rem; }`;
 
 /** El tablero en una página HTML autónoma. `generado` dice cuándo se generó. */
 export function tableroEnHtml(situacion: Situacion, generado: string): string {
