@@ -3,7 +3,7 @@ fase: specs
 area: MATE
 depende: []
 toca: [features/material.feature, features/tareas.feature]
-estado: abierto
+estado: hecho
 ---
 # MATE-6.3 pasa a las tareas (TARE)
 

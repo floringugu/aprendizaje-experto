@@ -61,6 +61,13 @@ Característica: Tareas representativas y evaluación externa
       Entonces se le presenta el texto profesional «informe-2025.pdf»
       Y el enunciado de T3 nombra «informe-2025.pdf»
 
+    @TARE-1.6 @extrapolacion
+    Escenario: Una tarea del borrador no se presenta como tarea de práctica
+      Dado que contenido/borradores/ficticio.json tiene, sin aprobar, el objetivo O4, el ejemplo resuelto E9 de O1, la tarea T9 y el ítem I9 de O1
+      Y que la persona está en la fase «avanzado_experto»
+      Cuando pide tareas de práctica hasta que no quedan más
+      Entonces ninguna de ellas es T9
+
   @TARE-2 @evidencia-4 @extrapolacion
   Regla: Se registran evaluaciones externas fechadas
 
