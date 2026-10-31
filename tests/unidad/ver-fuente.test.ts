@@ -1,8 +1,10 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { crearAplicacion } from '../../src/aplicacion/aplicacion.ts';
 import type { Dependencias } from '../../src/aplicacion/dependencias.ts';
 import { EstadoDominio, EstadoPersona, type Entorno, type IntentoNuevo } from '../../src/aplicacion/estado.ts';
 import { guardarDocumento } from '../../src/aplicacion/material-guardado.ts';
 import type { Mesa } from '../../src/aplicacion/mesa.ts';
+import { contenidoDeFicheros } from '../../src/aplicacion/mesa-guardada.ts';
 import type { Ficheros } from '../../src/aplicacion/puertos.ts';
 import { declararConfianza, presentarItem, responderItem } from '../../src/aplicacion/respuestas.ts';
 import type { Resultado } from '../../src/aplicacion/resultado.ts';
@@ -56,11 +58,11 @@ const noSeUsa = (): never => {
 };
 
 /** Las dependencias de la aplicación: solo los ficheros y lo que leen las sesiones hacen algo; el resto es relleno. */
-function dependenciasDe(ficheros: Ficheros, contenido: unknown): Dependencias {
+function dependenciasDe(ficheros: Ficheros): Dependencias {
   return {
     reloj: { ahora: () => AHORA },
     leerParametros: () => ({ umbral_dominio: { valor: UMBRAL } }),
-    leerContenido: () => contenido,
+    leerContenido: contenidoDeFicheros(ficheros),
     planificadorFsrs: { programar: noSeUsa, recalcular: noSeUsa },
     ficheros,
     leerIa: () => undefined,
@@ -76,7 +78,7 @@ function preparar(mesa: Mesa = MESA, conMaterial = true) {
   const { ficheros, contenidos } = ficherosEnMemoria();
   escribirMesa(ficheros, mesa, DOMINIO);
   if (conMaterial) guardarApuntes(ficheros);
-  const entorno: Entorno = { dependencias: dependenciasDe(ficheros, mesa.aprobado), persona: new EstadoPersona() };
+  const entorno: Entorno = { dependencias: dependenciasDe(ficheros), persona: new EstadoPersona() };
   return { entorno, contenidos };
 }
 
@@ -223,6 +225,35 @@ describe('verFuente: la mesa no se puede leer', () => {
     const borrador = { items: [item('I9', FUENTE_BUENA), item('I7', FUENTE_BUENA)] };
     const { entorno } = preparar(mesaDe(borrador, { items: [item('I7', FUENTE_BUENA)] }));
     expect(ver(entorno, 'I9')).toMatchObject(rechazo('id_repetido', '«I7»'));
+  });
+});
+
+describe('verFuente: el dominio que sale de la carpeta de datos', () => {
+  it('@MATE-4.3 rechaza con campo dominio antes de leer nada, aunque la pieza no exista', () => {
+    const { ficheros } = ficherosEnMemoria();
+    const leer = vi.fn((ruta: string) => ficheros.leer(ruta));
+    const entorno: Entorno = {
+      dependencias: dependenciasDe({ ...ficheros, leer }),
+      persona: new EstadoPersona(),
+    };
+    const rechazado = verFuente(entorno, { dominio: '../fuera', pieza: 'I9' });
+    expect(rechazado).toMatchObject({ ok: false, campo: 'dominio' });
+    expect(leer).not.toHaveBeenCalled();
+  });
+});
+
+describe('enDominio: el dominio que sale de la carpeta de datos', () => {
+  it('@MATE-6.1 abrirDominio rechaza con campo dominio sin llamar a leerContenido', () => {
+    const { entorno } = preparar();
+    const leerContenido = vi.fn(() => MESA.aprobado);
+    const aplicacion = crearAplicacion({ ...entorno.dependencias, leerContenido });
+    expect(aplicacion.abrirDominio({ dominio: '../fuera' })).toMatchObject({ ok: false, campo: 'dominio' });
+    expect(leerContenido).not.toHaveBeenCalled();
+  });
+
+  it('@MATE-6.1 abrirDominio lee lo aprobado con contenidoDeFicheros: el que escribió la revisión', () => {
+    const { entorno } = preparar();
+    expect(crearAplicacion(entorno.dependencias).abrirDominio({ dominio: DOMINIO })).toMatchObject({ ok: true });
   });
 });
 

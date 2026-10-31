@@ -4,6 +4,7 @@ import type { RecorridoDeRuta } from '../dominio/ruta.ts';
 import { recorrerRuta } from '../dominio/ruta.ts';
 import type { ContenidoValidado } from './contenido.ts';
 import type { Dependencias } from './dependencias.ts';
+import { dominioValido } from './dominio-valido.ts';
 import { lugarDelFallo, validarContenido } from './formato-contenido.ts';
 import type { Resultado } from './resultado.ts';
 import { aceptar, rechazar } from './resultado.ts';
@@ -229,14 +230,19 @@ export function recorridoDeRuta(situacion: Situacion): RecorridoDeRuta {
 }
 
 /**
- * Ejecuta el caso de uso con el dominio pedido. Si el dominio no existe, o su contenido no cumple el
- * formato (D16), rechaza la petición en vez de lanzar un error (ver `contenidoValidado`).
+ * Ejecuta el caso de uso con el dominio pedido. Antes de leer nada, rechaza con `dominioValido` el dominio
+ * que no se puede poner en una ruta. Si el dominio no existe, o su contenido no cumple el formato (D16),
+ * rechaza la petición en vez de lanzar un error (ver `contenidoValidado`).
  */
 export function enDominio<T>(
   entorno: Entorno,
   dominio: string,
   caso: (situacion: Situacion) => Resultado<T>,
 ): Resultado<T> {
+  const valido = dominioValido(dominio);
+  if (!valido.ok) {
+    return valido;
+  }
   const contenido = contenidoValidado(dominio, entorno.dependencias.leerContenido(dominio));
   return contenido.ok ? caso({ contenido: contenido.valor, estado: entorno.persona.estadoDe(dominio) }) : contenido;
 }
@@ -244,8 +250,8 @@ export function enDominio<T>(
 /**
  * El contenido aprobado del dominio, tal como se leyó (`undefined` si no existe), ya validado. Si no
  * existe, o no cumple el formato (D16), rechaza: un contenido mal escrito no tumba el servidor, y el
- * rechazo dice qué pieza hay que arreglar. Lo usan `enDominio` y la revisión del material, que lee
- * `contenido/<dominio>.json` con el puerto `Ficheros` porque también lo escribe.
+ * rechazo dice qué pieza hay que arreglar. Lo usan `enDominio` y `leerMesa` y `leerAprobado`
+ * (mesa-guardada.ts), que lo leen con el puerto `Ficheros` porque la revisión también lo escribe.
  */
 export function contenidoValidado(dominio: string, leido: unknown): Resultado<ContenidoValidado> {
   if (leido === undefined) {

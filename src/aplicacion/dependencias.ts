@@ -21,7 +21,8 @@ export interface Dependencias {
   readonly leerParametros: () => ParametrosJson;
   /**
    * Lo que hay en `contenido/<dominio>.json`, tal cual, o `undefined` si no existe. Puede no cumplir el
-   * formato: lo valida `enDominio`. También se lee en cada uso.
+   * formato: lo valida `enDominio`. También se lee en cada uso. Quien arranca la aplicación da
+   * `contenidoDeFicheros(ficheros)` (mesa-guardada.ts), que lo lee de los mismos ficheros que la revisión.
    */
   readonly leerContenido: (dominio: string) => unknown;
   readonly planificadorFsrs: PlanificadorFsrs;

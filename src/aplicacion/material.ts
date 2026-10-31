@@ -1,4 +1,5 @@
 import type { Dependencias } from './dependencias.ts';
+import { dominioValido } from './dominio-valido.ts';
 import { documentosDelMaterial, guardarDocumento } from './material-guardado.ts';
 import type { PeticionDominio } from './peticiones.ts';
 import type { Ficheros, LibreOffice, PaginaDescargada } from './puertos.ts';
@@ -31,10 +32,14 @@ export interface CasosDeMaterial extends CasosDeRevision {
    * Añade un fichero o una URL al material. PPTX y DOCX se guardan también en PDF, convertidos con
    * LibreOffice; de una URL se guarda una copia (MATE-1). Rechaza con `causa` `tipo_no_admitido`,
    * `falta_libreoffice`, `conversion_fallida`, `url_no_disponible`, `falta_poppler` o `pdf_ilegible`, y con
-   * `campo` `nombre` si el nombre del fichero lleva carpetas.
+   * `campo` `nombre` si el nombre del fichero lleva carpetas. Antes de leer o escribir nada, y antes de
+   * cualquier otro rechazo, rechaza con `campo` `dominio` si el dominio no pasa `dominioValido`.
    */
   anadirMaterial(peticion: PeticionMaterial): Promise<Resultado<null>>;
-  /** El material del dominio: los nombres de los ficheros y las URL, tal como se añadieron. */
+  /**
+   * El material del dominio: los nombres de los ficheros y las URL, tal como se añadieron. Rechaza con
+   * `campo` `dominio` si el dominio no pasa `dominioValido`.
+   */
   listarMaterial(peticion: PeticionDominio): Resultado<readonly string[]>;
   /** La IA configurada redacta piezas a partir de un documento del material (MATE-2). Sin IA, `causa` `sin_ia`. */
   redactarBorrador(peticion: {
@@ -51,6 +56,8 @@ export interface CasosDeMaterial extends CasosDeRevision {
 /**
  * Lee el material que añade la persona y lo guarda con `guardarDocumento` («Mecanismo» 1 a 3). Nada se
  * guarda hasta tener el texto, así que un rechazo no deja ficheros a medias.
+ * - **Dominio.** Antes de nada, y antes de cualquier otro rechazo, rechaza con `campo` `dominio` si no pasa
+ *   `dominioValido`: va dentro de las rutas del material.
  * - **Fichero.** Si el nombre lleva `/` o `\`, rechaza con `campo` `nombre`: el nombre va dentro de una ruta.
  *   El tipo sale de la extensión, sin distinguir mayúsculas: `.pdf`, `.pptx` o `.docx`; cualquier otra, o
  *   ninguna, rechaza con `tipo_no_admitido` (@MATE-1.4). Un PPTX o un DOCX pregunta antes
@@ -68,11 +75,22 @@ export function anadirMaterial(
   externos: Pick<Dependencias, 'ficheros' | 'libreOffice' | 'web'>,
   peticion: PeticionMaterial,
 ): Promise<Resultado<null>> {
+  const dominio = dominioValido(peticion.dominio);
+  if (!dominio.ok) {
+    return Promise.resolve(dominio);
+  }
   return 'url' in peticion ? anadirUrl(externos, peticion) : anadirFichero(externos, peticion);
 }
 
-/** Los documentos de `documentosDelMaterial`. Nunca rechaza: sin material, la lista está vacía (@MATE-1.1). */
+/**
+ * Los documentos de `documentosDelMaterial`: sin material, la lista está vacía (@MATE-1.1). Solo rechaza,
+ * con `campo` `dominio`, si el dominio no pasa `dominioValido`.
+ */
 export function listarMaterial(ficheros: Ficheros, peticion: PeticionDominio): Resultado<readonly string[]> {
+  const dominio = dominioValido(peticion.dominio);
+  if (!dominio.ok) {
+    return dominio;
+  }
   return aceptar(documentosDelMaterial(ficheros, peticion.dominio));
 }
 

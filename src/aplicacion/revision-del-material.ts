@@ -1,16 +1,18 @@
 import { contextoDeLaCita, marcadorDelMaterial, type Marcador } from '../dominio/citas.ts';
-import type { ContenidoValidado, Fuente } from './contenido.ts';
-import { contenidoValidado, type Entorno } from './estado.ts';
+import type { Fuente } from './contenido.ts';
+import { dominioValido } from './dominio-valido.ts';
+import type { Entorno } from './estado.ts';
 import { textosDelMaterial } from './material-guardado.ts';
-import { buscarPieza, idRepetido, type BorradorDominio, type Mesa, type PiezaDeLaMesa } from './mesa.ts';
+import { buscarPieza, type BorradorDominio, type PiezaDeLaMesa } from './mesa.ts';
+import { bytesDeLaMesa, escribirPar, leerAprobado, leerMesa, mismaMesa, type ParDeBytes } from './mesa-guardada.ts';
 import type { PeticionDominio } from './peticiones.ts';
 import type { Ficheros } from './puertos.ts';
-import { aceptar, rechazar, rechazarPorCausa, type Resultado } from './resultado.ts';
+import { aceptar, rechazarPorCausa, type Resultado } from './resultado.ts';
 import { aplicar, revisar, type Accion, type FiltroRevision, type Revision } from './revision.ts';
 
 // Los casos de uso de la pantalla «Revisión del material» (MATE-4, MATE-5) sobre los dos ficheros del
-// dominio, con «Deshacer». Cómo pasa cada pieza del borrador al aprobado es cosa de revision.ts; aquí se
-// leen y se escriben los ficheros y se guarda lo que había para deshacer («Mecanismo» 6 y 8 de MATE).
+// dominio, con «Deshacer». Cómo pasa cada pieza del borrador al aprobado es cosa de revision.ts; dónde están
+// los ficheros y cómo se leen, de mesa-guardada.ts; aquí se guarda lo que había para deshacer («Mecanismo» 6 y 8 de MATE).
 // También «Ver fuente», desde la revisión y desde las sesiones («Mecanismo» 7), que lee primero el aprobado.
 
 export interface PeticionPieza {
@@ -47,14 +49,10 @@ export interface CasosDeRevision {
  * llamada tiene sus propios huecos; la aplicación crea uno por persona. Devuelve un objeto de funciones,
  * no una instancia de clase: `crearAplicacion` lo reparte con `...`, que no copia los métodos de una clase.
  *
- * **La mesa.** Cada caso lee `contenido/borradores/<dominio>.json` (el borrador) y
- * `contenido/<dominio>.json` (el aprobado) con `ficheros`:
- * - el aprobado puede estar escrito a mano. Si no existe, o no cumple el formato del contenido, rechaza
- *   con `contenidoValidado` (estado.ts). Si no es JSON, rechaza diciendo que no se puede leer;
- * - sin borrador, el borrador está vacío, con el `dominio` de la petición. Solo lo escribe la aplicación,
- *   así que no se valida;
- * - si `idRepetido` da un id, rechaza con `causa` `id_repetido` y el id en el motivo: la revisión nombra
- *   cada pieza solo por su id, y cualquier acción sería ambigua.
+ * **La mesa.** Cada caso la lee con `leerMesa` (mesa-guardada.ts), y rechaza como ella si no sirve para revisar.
+ *
+ * **El dominio.** Antes de leer o escribir nada, y antes de cualquier otro rechazo, todos los casos
+ * rechazan con `campo` `dominio` el que no pasa `dominioValido`.
  *
  * **Los casos.**
  * - `abrirRevision` da `revisar`, con el filtro `pendientes` si no viene, y no escribe nada. Las marcas
@@ -74,19 +72,29 @@ export function crearRevisionDelMaterial(ficheros: Ficheros): CasosDeRevision {
   // El hueco de cada dominio vive en este cierre: dos llamadas a la función no comparten nada.
   const almacen: Almacen = { ficheros, huecos: new Map() };
   return {
-    abrirRevision: ({ dominio, filtro }) => abrir(ficheros, dominio, filtro ?? 'pendientes'),
-    aprobarPieza: ({ dominio, pieza }) => ejecutar(almacen, dominio, { tipo: 'aprobar', pieza }),
-    descartarPieza: ({ dominio, pieza }) => ejecutar(almacen, dominio, { tipo: 'descartar', pieza }),
+    abrirRevision: ({ dominio, filtro }) =>
+      conDominioValido(dominio, () => abrir(ficheros, dominio, filtro ?? 'pendientes')),
+    aprobarPieza: ({ dominio, pieza }) =>
+      conDominioValido(dominio, () => ejecutar(almacen, dominio, { tipo: 'aprobar', pieza })),
+    descartarPieza: ({ dominio, pieza }) =>
+      conDominioValido(dominio, () => ejecutar(almacen, dominio, { tipo: 'descartar', pieza })),
     corregirPieza: ({ dominio, pieza, corregida }) =>
-      ejecutar(almacen, dominio, { tipo: 'corregir', pieza, corregida }),
-    deshacer: ({ dominio }) => deshacerLaUltima(almacen, dominio),
+      conDominioValido(dominio, () => ejecutar(almacen, dominio, { tipo: 'corregir', pieza, corregida })),
+    deshacer: ({ dominio }) => conDominioValido(dominio, () => deshacerLaUltima(almacen, dominio)),
   };
+}
+
+/** Ejecuta el caso solo si el dominio pasa `dominioValido`: si no, devuelve su rechazo sin leer ni escribir nada. */
+function conDominioValido<T>(dominio: string, caso: () => Resultado<T>): Resultado<T> {
+  const valido = dominioValido(dominio);
+  return valido.ok ? caso() : valido;
 }
 
 /**
  * «Ver fuente» de una pieza, desde la revisión o desde una sesión (MATE-4.3, MATE-7): su fuente, con el
- * texto que da `contextoDeLaCita(fuente, textosDelMaterial(…))`. Busca la pieza con `piezaDeVerFuente`, que
- * rechaza como la revisión si no puede leer lo que necesita. Después rechaza, por este orden, con `causa`:
+ * texto que da `contextoDeLaCita(fuente, textosDelMaterial(…))`. Antes de leer nada, rechaza con `campo`
+ * `dominio` el dominio que no pasa `dominioValido`. Busca la pieza con `piezaDeVerFuente`, que rechaza como
+ * la revisión si no puede leer lo que necesita. Después rechaza, por este orden, con `causa`:
  * - `pieza_no_encontrada` si la pieza no está en la mesa;
  * - `antes_de_responder` si es un ítem aprobado que la persona tiene en curso (`enCurso`): la fuente va
  *   con el feedback, y antes adelantaría la respuesta o cambiaría la confianza que declara (@MATE-7.1).
@@ -97,6 +105,10 @@ export function crearRevisionDelMaterial(ficheros: Ficheros): CasosDeRevision {
  * - `cita_no_encontrada` si `contextoDeLaCita` da `undefined`.
  */
 export function verFuente(entorno: Entorno, peticion: PeticionPieza): Resultado<FuenteAbierta> {
+  const valido = dominioValido(peticion.dominio);
+  if (!valido.ok) {
+    return valido;
+  }
   const { ficheros } = entorno.dependencias;
   const pieza = piezaDeVerFuente(ficheros, peticion);
   if (!pieza.ok) {
@@ -133,7 +145,7 @@ function piezaDeVerFuente(ficheros: Ficheros, peticion: PeticionPieza): Resultad
   }
   // Una mesa con el borrador vacío: `buscarPieza` solo puede dar entonces una pieza del aprobado (`aprobada: true`).
   const borradorVacio: BorradorDominio = { dominio, objetivos: [], categorias: [], items: [], tareas: [] };
-  const delAprobado = buscarPieza({ borrador: borradorVacio, aprobado: aprobado.valor.contenido }, pieza);
+  const delAprobado = buscarPieza({ borrador: borradorVacio, aprobado: aprobado.valor }, pieza);
   if (delAprobado !== undefined) {
     return aceptar(delAprobado);
   }
@@ -180,12 +192,6 @@ function esItemEnCurso(entorno: Entorno, peticion: PeticionPieza, pieza: PiezaDe
 
 // --- Qué se guarda para deshacer ---
 
-/** Los bytes de los dos ficheros de un dominio. */
-interface ParDeBytes {
-  readonly borrador: Uint8Array;
-  readonly aprobado: Uint8Array;
-}
-
 /**
  * Lo que guarda el hueco de un dominio: los ficheros antes de la última acción y los que esa acción acaba
  * de escribir. Se guardan bytes, no objetos: «lo que escribió la acción» se compara con lo que hay ahora
@@ -200,102 +206,6 @@ interface Hueco {
 interface Almacen {
   readonly ficheros: Ficheros;
   readonly huecos: Map<string, Hueco>;
-}
-
-// --- Rutas y bytes ---
-
-const rutaDelBorrador = (dominio: string): string => `contenido/borradores/${dominio}.json`;
-const rutaDelAprobado = (dominio: string): string => `contenido/${dominio}.json`;
-
-// JSON sangrado con dos espacios, como el resto de ficheros de la aplicación, para poder abrirlo y leerlo a mano.
-function codificarJson(valor: unknown): Uint8Array {
-  return new TextEncoder().encode(JSON.stringify(valor, null, '  '));
-}
-
-function leerJson(bytes: Uint8Array): unknown {
-  return JSON.parse(new TextDecoder().decode(bytes)) as unknown;
-}
-
-/** Los mismos bytes, uno a uno; `undefined` (el fichero ya no existe) no es igual a nada. */
-function mismosBytes(actuales: Uint8Array | undefined, esperados: Uint8Array): boolean {
-  return actuales?.length === esperados.length && actuales.every((byte, posicion) => byte === esperados[posicion]);
-}
-
-// --- Leer la mesa ---
-
-/** Un fichero leído: su contenido ya interpretado y los bytes de los que sale. */
-interface Leido<Contenido> {
-  readonly contenido: Contenido;
-  readonly bytes: Uint8Array;
-}
-
-/** La mesa de un dominio con los bytes de los dos ficheros de los que sale. */
-interface Lectura {
-  readonly mesa: Mesa;
-  readonly bytes: ParDeBytes;
-}
-
-/**
- * Lee el borrador y el aprobado, y rechaza si alguno no sirve para revisar (ver «La mesa» arriba): el
- * aprobado que no existe, no es JSON o no cumple el formato, y los ids repetidos.
- */
-function leerMesa(ficheros: Ficheros, dominio: string): Resultado<Lectura> {
-  const aprobado = leerAprobado(ficheros, dominio);
-  if (!aprobado.ok) {
-    return aprobado;
-  }
-  const borrador = leerBorrador(ficheros, dominio);
-  const mesa: Mesa = { borrador: borrador.contenido, aprobado: aprobado.valor.contenido };
-  const repetido = idRepetido(mesa);
-  if (repetido !== undefined) {
-    return rechazarPorCausa(
-      'id_repetido',
-      `No se puede revisar «${dominio}»: el id «${repetido}» lo usan varias piezas y la revisión las nombra por su id.`,
-    );
-  }
-  return aceptar({ mesa, bytes: { borrador: borrador.bytes, aprobado: aprobado.valor.bytes } });
-}
-
-/**
- * El contenido aprobado, que puede estar escrito a mano: lo valida `contenidoValidado` (estado.ts), con los
- * mismos rechazos que ven los demás casos de uso. El de «no existe» se repite aquí porque, sin fichero, no
- * hay bytes que guardar para deshacer, y TypeScript no sabe que `contenidoValidado` rechaza `undefined`.
- */
-function leerAprobado(ficheros: Ficheros, dominio: string): Resultado<Leido<ContenidoValidado>> {
-  const bytes = ficheros.leer(rutaDelAprobado(dominio));
-  if (bytes === undefined) {
-    return rechazar(`No existe el dominio «${dominio}».`);
-  }
-  const json = leerJsonDelAprobado(dominio, bytes);
-  const contenido = json.ok ? contenidoValidado(dominio, json.valor) : json;
-  return contenido.ok ? aceptar({ contenido: contenido.valor, bytes }) : contenido;
-}
-
-function leerJsonDelAprobado(dominio: string, bytes: Uint8Array): Resultado<unknown> {
-  try {
-    return aceptar(leerJson(bytes));
-  } catch (error) {
-    // `JSON.parse` solo lanza `SyntaxError` con un texto que no es JSON; cualquier otro error no es de esto.
-    if (!(error instanceof SyntaxError)) {
-      throw error;
-    }
-    return rechazar(`No se puede leer ${rutaDelAprobado(dominio)}: no es JSON.`);
-  }
-}
-
-/**
- * El borrador solo lo escribe la aplicación, así que no se valida. Sin fichero, es un borrador vacío, y
- * sus bytes son los de ese borrador vacío: así `ParDeBytes` nunca tiene un hueco, y restaurar un borrador
- * que no existía lo dejaría vacío, que para la revisión es lo mismo (en la práctica no ocurre: una acción
- * que cambia la mesa necesita una pieza en el borrador, que por tanto existe).
- */
-function leerBorrador(ficheros: Ficheros, dominio: string): Leido<BorradorDominio> {
-  const bytes = ficheros.leer(rutaDelBorrador(dominio));
-  if (bytes !== undefined) {
-    return { contenido: leerJson(bytes) as BorradorDominio, bytes };
-  }
-  const vacio: BorradorDominio = { dominio, objetivos: [], categorias: [], items: [], tareas: [] };
-  return { contenido: vacio, bytes: codificarJson(vacio) };
 }
 
 /** Las marcas se calculan con el material de ahora, cada vez, y no se guardan (@MATE-4.7). */
@@ -327,18 +237,10 @@ function ejecutar(almacen: Almacen, dominio: string, accion: Accion): Resultado<
   if (!nueva.ok) {
     return nueva;
   }
-  const escritos: ParDeBytes = {
-    borrador: codificarJson(nueva.valor.borrador),
-    aprobado: codificarJson(nueva.valor.aprobado),
-  };
+  const escritos = bytesDeLaMesa(nueva.valor);
   escribirPar(almacen.ficheros, dominio, escritos);
   almacen.huecos.set(dominio, { antes: bytes, despues: escritos });
   return aceptar(null);
-}
-
-function escribirPar(ficheros: Ficheros, dominio: string, bytes: ParDeBytes): void {
-  ficheros.escribir(rutaDelBorrador(dominio), bytes.borrador);
-  ficheros.escribir(rutaDelAprobado(dominio), bytes.aprobado);
 }
 
 /**
@@ -351,10 +253,7 @@ function deshacerLaUltima(almacen: Almacen, dominio: string): Resultado<null> {
     return rechazarPorCausa('nada_que_deshacer', 'No hay ninguna acción que deshacer.');
   }
   const { ficheros } = almacen;
-  const sigueIgual =
-    mismosBytes(ficheros.leer(rutaDelBorrador(dominio)), hueco.despues.borrador) &&
-    mismosBytes(ficheros.leer(rutaDelAprobado(dominio)), hueco.despues.aprobado);
-  if (!sigueIgual) {
+  if (!mismaMesa(ficheros, dominio, hueco.despues)) {
     return rechazarPorCausa(
       'nada_que_deshacer',
       'No se puede deshacer: los ficheros han cambiado después de la última acción y se perdería ese cambio.',

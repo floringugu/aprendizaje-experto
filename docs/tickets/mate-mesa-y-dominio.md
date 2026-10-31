@@ -3,7 +3,7 @@ fase: impl
 area: MATE
 depende: []
 toca: [src/aplicacion/mesa-guardada.ts, src/aplicacion/material-guardado.ts, src/aplicacion/revision-del-material.ts, src/aplicacion/material.ts, src/aplicacion/dependencias.ts, src/aplicacion/estado.ts, src/aplicacion/dominio-valido.ts, tests/unidad/material*.test.ts, tests/unidad/revision-del-material*.test.ts, tests/unidad/ver-fuente.test.ts, tests/unidad/formato-contenido-piezas.ts, tests/unidad/dominio-valido.test.ts]
-estado: abierto
+estado: hecho
 ---
 # Las rutas de la mesa en un solo sitio, y el dominio validado al entrar
 
