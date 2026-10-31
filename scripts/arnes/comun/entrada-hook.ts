@@ -18,7 +18,8 @@ export function campoTexto(objeto: unknown, nombre: string): string | undefined 
 
 /**
  * Subagentes que siguen trabajando en segundo plano, según el campo background_tasks de la
- * entrada del hook Stop. Mientras haya alguno, make check vería sus ficheros a medio escribir.
+ * entrada del hook Stop. Mientras haya alguno, la conversación no ha terminado: el hook Stop anota
+ * la parada como espera.
  */
 export function subagentesEnCurso(tareasDeFondo: unknown): number {
   if (!Array.isArray(tareasDeFondo)) return 0;

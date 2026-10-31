@@ -16,15 +16,15 @@ function entrarEn(principal: string, ruta: string, cwd = principal): unknown {
 }
 
 describe('anuncioDelCarril', () => {
-  it('anuncia el carril, su ruta absoluta, la fase, el área, el make del Stop y el modelo', () => {
+  it('anuncia el carril, su ruta absoluta, la fase, el área, el make del push y el modelo', () => {
     const { principal, carril } = carrilPasos();
     const anuncio = anuncioDelCarril(principal, entrarEn(principal, carril));
     expect(anuncio?.paraElDueno).toBe(
-      'Carril pasos: fase specs (sonnet, esfuerzo high) · área en curso: MATE · Stop exige make check-specs.',
+      'Carril pasos: fase specs (sonnet, esfuerzo high) · área en curso: MATE · git push exige make check-specs.',
     );
     expect(anuncio?.paraClaude).toContain(`en el carril «pasos» (${carril}), en la fase «specs»`);
     expect(anuncio?.paraClaude).toContain('Área en curso: MATE.');
-    expect(anuncio?.paraClaude).toContain('«make check-specs»');
+    expect(anuncio?.paraClaude).toContain('gh pr create exigen «make check-specs» en verde en este carril');
     expect(anuncio?.paraClaude).toContain('«/model sonnet»');
     expect(anuncio?.paraClaude).toContain(`van con ruta absoluta (${carril}/…)`);
     expect(anuncio?.paraClaude).not.toMatch(/Relevo pendiente/);

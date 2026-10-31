@@ -42,7 +42,7 @@ ejecutarHook('anunciar-fase', async () => {
   const { cerradas, enCurso } = leerAlcance(checkout);
   const avisos = [
     `Arnés: fase ${fase} (${modelo}, esfuerzo ${esfuerzo})`,
-    `Stop exige make ${objetivo}`,
+    `git push exige make ${objetivo}`,
     `área en curso: ${enCurso ?? 'ninguna'}`,
     `áreas cerradas: ${lista(cerradas)}`,
     ...(relevos.length === 0 ? [] : [`relevo pendiente: ${lista(relevos)}`]),
@@ -54,7 +54,7 @@ ejecutarHook('anunciar-fase', async () => {
       hookEventName: 'SessionStart',
       additionalContext: [
         `Arnés: esta conversación está en la fase «${fase}» (${PROPOSITO_POR_FASE[fase]}).`,
-        `El hook Stop exige «make ${objetivo}» en verde antes de terminar, si hay cambios respecto al último commit.`,
+        `git push y gh pr create exigen «make ${objetivo}» en verde: el hook exigir-check-push los niega mientras falle.`,
         `Área en curso de esta conversación (la de su checkout, ${checkout}): ${enCurso ?? 'ninguna'}.`,
         `Áreas cerradas (config/alcance.json): ${lista(cerradas)}.`,
         'La fase la elige el dueño antes de abrir la conversación; no se cambia desde aquí.',

@@ -1,4 +1,5 @@
-// Qué significa cada fase para Claude: qué comprobación exige el hook Stop y para qué sirve la fase.
+// Qué significa cada fase para Claude: qué comprobación exige antes de git push y gh pr create
+// (.claude/hooks/exigir-check-push.ts) y para qué sirve la fase.
 // La fase la elige el dueño antes de abrir la conversación (make fase o la tarea de VS Code).
 
 /**
@@ -16,7 +17,7 @@ export function esFase(valor: string): valor is Fase {
   return (FASES as readonly string[]).includes(valor);
 }
 
-/** Objetivo de make que el hook Stop exige en cada fase. */
+/** Objetivo de make que el hook exigir-check-push.ts exige en cada fase antes de git push y gh pr create. */
 export const OBJETIVO_POR_FASE: Readonly<Record<Fase, string>> = {
   specs: 'check-specs',
   aceptacion: 'check-aceptacion',

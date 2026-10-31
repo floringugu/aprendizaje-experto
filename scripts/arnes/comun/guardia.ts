@@ -12,7 +12,7 @@ import { motivoRutaDeOtraFase } from '../rutas-fase.ts';
 import type { CheckoutsDelRepositorio } from './checkout.ts';
 import { campo, campoTexto } from './entrada-hook.ts';
 import type { Fase } from './fases.ts';
-import { MARCA_DECISION_PENDIENTE } from './freno-stop.ts';
+import { MARCA_DECISION_PENDIENTE } from './exigir-check.ts';
 
 export interface ContextoGuardia extends CheckoutsDelRepositorio {
   /** El checkout de la conversación: la carpeta principal o uno de los carriles. */

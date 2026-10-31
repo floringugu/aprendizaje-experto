@@ -3,8 +3,8 @@
 // y lo que esta cambiara ahora no estaría en el relevo. La regla está en scripts/arnes/comun/relevo.ts.
 //
 // Que la conversación ya pasó el relevo se lee de .claude/registro-stop.jsonl, donde el hook Stop
-// anota cada parada con [RELEVO] aceptado. Los subagentes comparten el session_id de la conversación
-// que los lanza, así que tampoco editan.
+// (anotar-parada.ts) anota cada parada con [RELEVO] aceptado. Los subagentes comparten el session_id
+// de la conversación que los lanza, así que tampoco editan.
 import { campoTexto, ejecutarHook, leerEntradaHook, responder } from '../../scripts/arnes/comun/entrada-hook.ts';
 import { RAIZ } from '../../scripts/arnes/comun/raiz.ts';
 import { leerRegistro, relevoPasado } from '../../scripts/arnes/comun/registro-stop.ts';

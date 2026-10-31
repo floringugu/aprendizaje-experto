@@ -1,4 +1,5 @@
-# Comprobaciones del proyecto. El hook Stop (.claude/hooks/exigir-check.ts) ejecuta la de la fase:
+# Comprobaciones del proyecto. El hook PreToolUse .claude/hooks/exigir-check-push.ts ejecuta la de la
+# fase antes de git push y gh pr create:
 #   make check             fase impl (por defecto): los pasos estáticos, la unidad con su cobertura de src/,
 #                          features/ y parámetros válidos, la aceptación de las áreas cerradas (regresión; no la
 #                          del área en curso) y la cobertura de los IDs
@@ -16,7 +17,7 @@
 #   make retirar N=<carril>    borra el carril y todas sus ramas, ya fusionadas en origin/main
 # Uno para la conversación de un carril, cuando GitHub ha fusionado el PR de su rama:
 #   make rama                  pasa el carril a su rama siguiente, desde origin/main
-# Y uno de consulta: make bloqueos A=<ÁREA> resume las paradas del hook Stop de un área.
+# Y uno de consulta: make bloqueos A=<ÁREA> resume lo que anotaron los hooks mientras el área estaba en curso.
 
 ESTATICOS := tipos lint duplicacion codigo-muerto capas unidad
 
@@ -48,8 +49,8 @@ cerrar-area:
 	$(call ejecutar_pasos,$(ESTATICOS) aceptacion-area cobertura-ids-area)
 
 # Sin codigo-muerto: cuando el implementador devuelve su encargo, la aplicación aún no usa las
-# funciones nuevas del dominio. Ese paso y la aceptación los exige después el hook Stop a la
-# conversación principal (make check).
+# funciones nuevas del dominio. Ese paso y la aceptación se los exige después a la conversación
+# principal el hook exigir-check-push.ts (make check, antes de git push y gh pr create).
 check-implementador:
 	$(call ejecutar_pasos,$(filter-out codigo-muerto,$(ESTATICOS)))
 
@@ -75,8 +76,8 @@ retirar:
 rama:
 	@node scripts/arnes/worktrees.ts rama
 
-# Paradas del hook Stop (.claude/registro-stop.jsonl) mientras el área estaba en curso,
-# para el archivo del área (docs/areas/<ÁREA>.md).
+# Lo que anotaron los hooks en .claude/registro-stop.jsonl mientras el área estaba en curso (el push,
+# el implementador y las paradas del Stop), para el archivo del área (docs/areas/<ÁREA>.md).
 bloqueos:
 	@node scripts/arnes/bloqueos-stop.ts $(A)
 
