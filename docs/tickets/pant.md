@@ -2,7 +2,7 @@
 fase: impl
 area: PANT
 depende: [pant-pasos, MAST, MATE, PLAN]
-toca: [src/interfaz/, src/aplicacion/dependencias.ts, src/aplicacion/estado.ts, src/aplicacion/aplicacion.ts, tests/unidad/interfaz/, package.json, package-lock.json, config/alcance.json, docs/areas/PANT.md, docs/deuda-diseno.md]
+toca: [src/, tests/unidad/, tsconfig.json, knip.json, .dependency-cruiser.cjs, eslint.config.js, stryker.config.json, package.json, package-lock.json, config/alcance.json, docs/areas/PANT.md, docs/deuda-diseno.md]
 estado: abierto
 ---
 # PANT: servidor y pantallas
