@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { RUTA_AJUSTES_LOCALES } from '../../scripts/arnes/comun/ajustes-locales.ts';
 import {
   carpetaPrincipal,
+  carrilesConRama,
   checkoutDeLaEntrada,
   checkoutDelRepositorio,
   checkoutsDelRepositorio,
@@ -12,7 +13,7 @@ import {
   nombreDelCarril,
   raizDelCheckout,
 } from '../../scripts/arnes/comun/checkout.ts';
-import { directorioTemporal, escribirFicheros, repositorioConCommit, repositorioConWorktree } from './temporal.ts';
+import { directorioTemporal, escribirFicheros, gitEn, repositorioConCommit, repositorioConWorktree } from './temporal.ts';
 
 function conAjustes(env: Record<string, unknown>): string {
   const raiz = directorioTemporal();
@@ -111,6 +112,19 @@ describe('checkoutsDelRepositorio', () => {
 
   it('lanza fuera de un repositorio', () => {
     expect(() => checkoutsDelRepositorio(directorioTemporal())).toThrow(/git worktree list ha fallado/);
+  });
+});
+
+describe('carrilesConRama', () => {
+  it('da cada carril con su rama, sin la carpeta principal', () => {
+    const { principal, worktree } = repositorioConWorktree(() => 'otro');
+    expect(carrilesConRama(principal)).toEqual([{ ruta: worktree, rama: 'carril' }]);
+  });
+
+  it('un carril en un HEAD suelto no tiene rama', () => {
+    const { principal, worktree } = repositorioConWorktree(() => 'otro');
+    gitEn(worktree, ['switch', '--quiet', '--detach']);
+    expect(carrilesConRama(principal)).toEqual([{ ruta: worktree, rama: undefined }]);
   });
 });
 

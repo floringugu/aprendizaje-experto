@@ -90,14 +90,35 @@ export interface CheckoutsDelRepositorio {
 
 /** Los checkouts del repositorio de `raiz`, según git worktree list. Lanza si git falla. */
 export function checkoutsDelRepositorio(raiz: string): CheckoutsDelRepositorio {
+  const [principal = raiz, ...carriles] = listarCheckouts(raiz).map(({ ruta }) => ruta);
+  return { principal, carriles };
+}
+
+export interface CarrilConRama {
+  readonly ruta: string;
+  /** La rama local del carril; undefined si está en un HEAD suelto. */
+  readonly rama: string | undefined;
+}
+
+/** Los carriles (checkoutsDelRepositorio) con su rama, leída de los refs sin entrar en ellos. Lanza si git falla. */
+export function carrilesConRama(raiz: string): CarrilConRama[] {
+  return listarCheckouts(raiz).slice(1);
+}
+
+function listarCheckouts(raiz: string): CarrilConRama[] {
   const { codigo, salida, errores } = git(raiz, ['worktree', 'list', '--porcelain']);
   if (codigo !== 0) throw new Error(`git worktree list ha fallado:\n${errores}`);
   // Cada checkout empieza con una línea «worktree <ruta>», y el directorio principal va primero.
-  const [principal = raiz, ...carriles] = salida
-    .split('\n')
-    .filter((linea) => linea.startsWith('worktree '))
-    .map((linea) => linea.slice('worktree '.length));
-  return { principal, carriles };
+  // Si no está en un HEAD suelto, lleva después una línea «branch refs/heads/<rama>».
+  const checkouts: { ruta: string; rama: string | undefined }[] = [];
+  for (const linea of salida.split('\n')) {
+    if (linea.startsWith('worktree ')) checkouts.push({ ruta: linea.slice('worktree '.length), rama: undefined });
+    const ultimo = checkouts.at(-1);
+    if (ultimo !== undefined && linea.startsWith('branch refs/heads/')) {
+      ultimo.rama = linea.slice('branch refs/heads/'.length);
+    }
+  }
+  return checkouts;
 }
 
 /**
