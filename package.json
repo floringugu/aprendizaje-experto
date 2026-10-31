@@ -20,6 +20,7 @@
     "cobertura-ids-area": "node scripts/arnes/cobertura-ids.ts --con-area-en-curso",
     "specs": "node scripts/arnes/cobertura-ids.ts --solo-specs",
     "estado-aceptacion": "node scripts/arnes/estado-aceptacion.ts",
+    "tickets": "node scripts/arnes/tickets.ts comprobar",
     "mutacion": "stryker run"
   },
   "devDependencies": {
