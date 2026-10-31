@@ -235,6 +235,9 @@ Están en `.claude/settings.json`:
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "bashOutputMaxChars": 8000,
+  "permissions": {
+    "deny": ["Artifact", "Workflow", "ScheduleWakeup", "ShareOnboardingGuide", "ReportFindings", "ListAgents"]
+  },
   "hooks": {
     "SessionStart": [
       {
@@ -299,6 +302,8 @@ Están en `.claude/settings.json`:
 ```
 
 `bashOutputMaxChars` no es un hook, pero va en el mismo fichero: limita a 8000 caracteres lo que Claude recibe de una orden de Bash (el valor por defecto es 30 000). Si una salida correcta es más larga, Claude Code la guarda en un fichero y Claude recibe un avance de unos 2000 caracteres y la ruta, para leer solo lo que necesite. Medido en 74 conversaciones (30-10-2026), las salidas correctas de entre 8000 y 30 000 caracteres le costaban a cada conversación unos 13 k tokens. Tiene un precio: si una orden falla y saca más de 8000 caracteres, Claude solo ve los primeros 8000, sin el final y sin aviso de recorte. Ve que ha fallado por el código de salida, pero no por qué, y tiene que repetirla con `tail`. En aquellas conversaciones no pasó nunca: ninguna de las 98 salidas fallidas llegaba a 8000 caracteres, porque Claude filtra `make check` con `tail`, `grep` o `head`, o lo manda a un fichero (73 de 74 veces). A los hooks que ejecutan make no les afecta: leen su salida ellos mismos. La variable `BASH_MAX_OUTPUT_LENGTH` no sirve para esto: solo cambia cuánto se relee del fichero de salida, no lo que llega en línea.
+
+`permissions.deny` tampoco es un hook. Niega seis herramientas de Claude Code que el proyecto no usa: Artifact, Workflow, ScheduleWakeup, ShareOnboardingGuide, ReportFindings y ListAgents (cambio 5, dato D7: el contexto se llena pronto). Una herramienta negada no entra en la lista de herramientas, y con Artifact se va también un párrafo del system prompt. Medido con `claude -p` en un directorio vacío (sesión `87539ab7`), la primera llamada baja 17 165 tokens, y el margen hasta el relevo de 145 k pasa de unos 55 k a unos 72 k. En los 91 transcripts del proyecto (31-10-2026), Artifact se usó 4 veces, el 22-10, para leer el diseño `Revision.dc.html` de claude.ai; ScheduleWakeup, 2, para esperar a un subagente, que ya avisa al terminar; ListAgents, 1, y las otras tres, ninguna. Tiene un precio: un diseño de claude.ai tiene que entrar como fichero del repositorio, y el skill `/code-review` se queda sin ReportFindings, con el que da sus hallazgos. Las skills no se pueden sacar así: negarlas con `Skill(nombre)` no las quita de la lista que recibe Claude.
 
 ### SessionStart: `anunciar-fase.ts`
 
