@@ -24,14 +24,14 @@ Característica: Criterio de dominio
 const CALIBRACION =
   '@CALI @evidencia-2.5\nCaracterística: Calibración\n\n  @CALI-1.1 @evidencia-2.5\n  Escenario: E\n    Dado algo\n';
 
-function cita(id: string, zona: Cita['zona']): Cita {
-  return { id, fichero: `${zona}.ts`, linea: 3, zona };
+function cita(id: string, fichero: string): Cita {
+  return { id, fichero, linea: 3 };
 }
 
 function datos(cambios: Partial<DatosCobertura> = {}): DatosCobertura {
   return {
     elementos: [...elementosDeFeature(FEATURES, 'a.feature'), ...elementosDeFeature(CALIBRACION, 'b.feature')],
-    citas: [cita('MAST-1.1', 'codigo'), cita('MAST-1.2', 'aceptacion'), cita('CALI-1.1', 'unidad')],
+    citas: [cita('MAST-1.1', 'codigo.ts'), cita('MAST-1.2', 'aceptacion.ts'), cita('CALI-1.1', 'unidad.ts')],
     estados: new Map<string, Estado>([
       ['MAST-1.1', 'PASSED'],
       ['MAST-1.2', 'FAILED'],
@@ -55,15 +55,21 @@ describe('construirInforme', () => {
     ]);
   });
 
-  it('falla si un escenario no pasa o no tiene implementación (solo citarlo en los steps no cuenta)', () => {
-    expect(construirInforme(datos()).errores).toEqual([
-      '@MAST-1.2 no pasa (estado: FAILED).',
-      '@MAST-1.2 no tiene implementación: nadie lo cita en src/ ni en tests/unidad/.',
+  it('falla si un escenario en alcance no pasa', () => {
+    expect(construirInforme(datos()).errores).toEqual(['@MAST-1.2 no pasa (estado: FAILED).']);
+  });
+
+  it('no exige que el código cite los escenarios que pasan', () => {
+    const estados = new Map<string, Estado>([
+      ['MAST-1.1', 'PASSED'],
+      ['MAST-1.2', 'PASSED'],
+      ['CALI-1.1', 'PASSED'],
     ]);
+    expect(construirInforme(datos({ citas: [], estados })).errores).toEqual([]);
   });
 
   it('falla si el código cita un ID que no está en features/', () => {
-    const informe = construirInforme(datos({ citas: [...datos().citas, cita('MAST-9.9', 'codigo')] }));
+    const informe = construirInforme(datos({ citas: [...datos().citas, cita('MAST-9.9', 'codigo.ts')] }));
     expect(informe.errores).toContain('codigo.ts:3 cita @MAST-9.9, que no existe en features/.');
   });
 

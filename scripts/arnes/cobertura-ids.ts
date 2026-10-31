@@ -4,8 +4,9 @@
 //   - un Feature, Rule o Scenario no tiene un ID válido o no dice su procedencia;
 //   - un paso Entonces usa una frase vaga («correctamente», «funciona»…; comun/frases-vagas.ts);
 //   - config/parametros.json tiene un parámetro sin sección, nivel de evidencia o marca de extrapolación;
-//   - un escenario en alcance no pasa en Cucumber o nadie lo cita en src/ ni en tests/unidad/;
+//   - un escenario en alcance no pasa en Cucumber;
 //   - el código o los tests citan un ID que no existe en features/.
+// Las citas no son obligatorias: la tabla las muestra para encontrar el código de cada escenario.
 //
 // Con --solo-specs solo valida features/ y los parámetros (etapas 2 y 3: aún no hay código).
 // «En alcance» son las áreas cerradas; con --con-area-en-curso, también el área en curso del

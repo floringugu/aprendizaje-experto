@@ -68,13 +68,8 @@ function erroresDeCitas(citas: readonly Cita[], idsConocidos: ReadonlySet<string
 }
 
 function erroresDeEscenario(fila: FilaCobertura): string[] {
-  if (fila.tipo !== 'Scenario' || fila.estado === FUERA_DE_ALCANCE) return [];
-  const errores: string[] = [];
-  if (fila.estado !== 'PASSED') errores.push(`@${fila.id} no pasa (estado: ${fila.estado}).`);
-  if (!fila.citas.some((cita) => cita.zona === 'codigo' || cita.zona === 'unidad')) {
-    errores.push(`@${fila.id} no tiene implementación: nadie lo cita en src/ ni en tests/unidad/.`);
-  }
-  return errores;
+  if (fila.tipo !== 'Scenario' || fila.estado === FUERA_DE_ALCANCE || fila.estado === 'PASSED') return [];
+  return [`@${fila.id} no pasa (estado: ${fila.estado}).`];
 }
 
 export function formatearInforme(informe: InformeCobertura): string {
