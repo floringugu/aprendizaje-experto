@@ -1,9 +1,10 @@
 # La puerta del arnés: los checks que el ruleset «main: CI» exige para fusionar un PR en main.
 #   rama    el nombre de la rama del PR sigue el formato de los carriles y su área existe (scripts/arnes/ci.ts)
 #   mezcla  ningún commit del PR mezcla rutas de fases distintas (scripts/arnes/regla-commits.ts)
+#   rutas   el PR no toca las rutas que la fase de su rama no puede tocar (scripts/arnes/rutas-fase.ts)
 #   check   make check con la fase y el área de la rama, el objetivo de esa fase si es otro, y make mutacion
-# Usa el arnés de la rama del PR. Los valores del evento llegan a los scripts por env, nunca con ${{ }}
-# dentro de run.
+# Usa el arnés de la rama del PR, salvo rutas, que ejecuta el script de la base. Los valores del evento
+# llegan a los scripts por env, nunca con ${{ }} dentro de run.
 name: puerta
 
 on:
@@ -41,6 +42,32 @@ jobs:
         with:
           node-version: 26
       - run: node scripts/arnes/regla-commits.ts --rango "$BASE..$CABEZA"
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          CABEZA: ${{ github.event.pull_request.head.sha }}
+
+  rutas:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      # La cabeza del PR con toda la historia, para comparar desde el punto en que sale de la base.
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+      # El script de la base, copiado fuera del checkout: un PR no puede relajarlo. Solo importa módulos
+      # de Node, así que no hace falta npm ci.
+      - run: |
+          if git cat-file -e "$BASE:scripts/arnes/rutas-fase.ts" 2>/dev/null; then
+            git show "$BASE:scripts/arnes/rutas-fase.ts" > "$RUNNER_TEMP/rutas-fase.ts"
+          else
+            echo "La base aún no tiene scripts/arnes/rutas-fase.ts: se usa el de la cabeza."
+            cp scripts/arnes/rutas-fase.ts "$RUNNER_TEMP/rutas-fase.ts"
+          fi
+          node "$RUNNER_TEMP/rutas-fase.ts" "$GITHUB_HEAD_REF" "$BASE" "$CABEZA"
         env:
           BASE: ${{ github.event.pull_request.base.sha }}
           CABEZA: ${{ github.event.pull_request.head.sha }}

@@ -3,16 +3,22 @@
 //
 // Cada conversación trabaja en su checkout (checkout.ts), la carpeta principal o un carril, y puede
 // tocar el suyo y la carpeta principal, que no se frena aquí porque main la protege GitHub. Los demás
-// carriles son de otras conversaciones. Además se niegan el .git/ de cada checkout, ~/.claude/ y
-// unos pocos comandos que se salen del arnés.
+// carriles son de otras conversaciones. En los dos que puede tocar, su fase le niega las rutas de las
+// otras (rutas-fase.ts, la tabla que aplica también la CI). Además se niegan el .git/ de cada
+// checkout, ~/.claude/ y unos pocos comandos que se salen del arnés.
 import { lstatSync, readlinkSync, realpathSync } from 'node:fs';
 import path from 'node:path';
+import { motivoRutaDeOtraFase } from '../rutas-fase.ts';
 import type { CheckoutsDelRepositorio } from './checkout.ts';
+import { campo, campoTexto } from './entrada-hook.ts';
+import type { Fase } from './fases.ts';
 import { MARCA_DECISION_PENDIENTE } from './freno-stop.ts';
 
 export interface ContextoGuardia extends CheckoutsDelRepositorio {
   /** El checkout de la conversación: la carpeta principal o uno de los carriles. */
   readonly checkout: string;
+  /** La fase del checkout de la conversación (faseYAreaDelCheckout). */
+  readonly fase: Fase;
   readonly home: string;
 }
 
@@ -33,6 +39,16 @@ function motivoOtroCarril(carril: string): string {
   );
 }
 
+/** Por qué la fase de la conversación no puede tocar `relativa` (relativa al checkout), o undefined si puede. */
+function motivoDeFase(fase: Fase, relativa: string): string | undefined {
+  const motivo = motivoRutaDeOtraFase(fase, relativa);
+  if (motivo === undefined) return undefined;
+  return (
+    `La fase ${fase} no puede tocar ${relativa}: ${motivo}. Si crees que hace falta cambiarlo (una spec ` +
+    `mal escrita, por ejemplo), no lo cambies: explica por qué en tu mensaje y para con ${MARCA_DECISION_PENDIENTE}.`
+  );
+}
+
 /** Comandos prohibidos sea cual sea la ruta. No es una lista exhaustiva: un comando ofuscado puede escaparse. */
 const PATRONES_PROHIBIDOS: readonly { readonly patron: RegExp; readonly motivo: string }[] = [
   {
@@ -48,6 +64,21 @@ const PATRONES_PROHIBIDOS: readonly { readonly patron: RegExp; readonly motivo: 
   },
 ];
 
+/**
+ * Por qué se niega la herramienta de la entrada del hook PreToolUse, o undefined si pasa. La entrada
+ * de un subagente (con agent_type) se mira igual: el implementador tampoco toca las rutas de otra fase.
+ */
+export function motivoBloqueoDeLaEntrada(entrada: unknown, contexto: ContextoGuardia): string | undefined {
+  const herramienta = campoTexto(entrada, 'tool_name') ?? '';
+  const entradaHerramienta = campo(entrada, 'tool_input');
+  if (herramienta === 'Bash') return motivoBloqueoBash(campoTexto(entradaHerramienta, 'command') ?? '', contexto);
+  const ruta = campoTexto(entradaHerramienta, 'file_path') ?? campoTexto(entradaHerramienta, 'notebook_path');
+  // Sin ruta no se sabe qué se va a tocar: se bloquea por seguridad.
+  if (ruta === undefined) return `No se puede saber qué fichero toca ${herramienta}; se bloquea por seguridad.`;
+  // Una ruta relativa lo es al checkout de la conversación.
+  return motivoBloqueoFichero(path.resolve(contexto.checkout, ruta), contexto);
+}
+
 // ---------------------------------------------------------------------------
 // Edit / Write / MultiEdit / NotebookEdit
 // ---------------------------------------------------------------------------
@@ -60,7 +91,8 @@ export function motivoBloqueoFichero(rutaAbsoluta: string, contexto: ContextoGua
     const relativa = relativaSiDentro(real, checkout);
     if (relativa === undefined) continue;
     if (relativa === '.git' || relativa.startsWith('.git/')) return MOTIVO_GIT;
-    return carrilesAjenos(contexto).includes(checkout) ? motivoOtroCarril(checkout) : undefined;
+    if (carrilesAjenos(contexto).includes(checkout)) return motivoOtroCarril(checkout);
+    return motivoDeFase(contexto.fase, relativa);
   }
   return motivoFueraDelRepositorio(real, contexto.home);
 }
