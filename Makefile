@@ -13,7 +13,8 @@
 #
 # Objetivos solo para el dueño, desde su terminal o las tareas de VS Code (.vscode/tasks.json):
 #   make fase F=<fase> [A=<ÁREA>] [N=<carril>]  fija la fase y el área de la carpeta principal o del carril N
-#   make abrir N=<carril> F=<fase> A=<ÁREA>  crea un carril, con su primera rama desde origin/main
+#   make abrir N=<carril> F=<fase> A=<ÁREA>  crea un carril, con su primera rama desde origin/main; si tiene
+#                              ticket, sin F ni A (salen de él) y, si no está listo, solo con FORZAR=1
 #   make retirar N=<carril>    borra el carril y todas sus ramas, ya fusionadas en origin/main
 # Uno para la conversación de un carril, cuando GitHub ha fusionado el PR de su rama:
 #   make rama                  pasa el carril a su rama siguiente, desde origin/main
@@ -67,8 +68,10 @@ fase:
 	@node scripts/arnes/fijar-fase.ts '$(F)' '$(A)' '$(N)'
 
 # Solo el dueño, desde cualquier checkout: los carriles van al lado de la carpeta principal (docs/plan.md §6).
+# Con ticket (docs/tickets/<N>.md en origin/main), la fase y el área salen de él, y se niega si no está
+# listo salvo con FORZAR=1 (nunca si está hecho o descartado).
 abrir:
-	@node scripts/arnes/worktrees.ts abrir '$(N)' '$(F)' '$(A)'
+	@node scripts/arnes/worktrees.ts abrir '$(N)' '$(F)' '$(A)' '$(FORZAR)'
 
 retirar:
 	@node scripts/arnes/worktrees.ts retirar '$(N)'
