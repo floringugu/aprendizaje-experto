@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { tableroEnHtml, tableroEnTexto } from '../../scripts/arnes/comun/tablero.ts';
+import { avisoDeListos, tableroEnHtml, tableroEnTexto } from '../../scripts/arnes/comun/tablero.ts';
 import { carril, situacion, ticket } from './tickets-de-prueba.ts';
 
 /** Un ticket por estado: listo, bloqueado (por dependencia y por solape), en curso, en revisión, hecho con el carril abierto y descartado. */
@@ -35,6 +35,17 @@ describe('tableroEnTexto', () => {
 
   it('sin tickets ni avisos, queda vacío', () => {
     expect(tableroEnTexto(situacion({}))).toBe('');
+  });
+});
+
+describe('avisoDeListos', () => {
+  it('nombra solo los tickets listos', () => {
+    const conDosListos = situacion({ ...DE_CADA_ESTADO, tickets: [...DE_CADA_ESTADO.tickets, ticket('otro')] });
+    expect(avisoDeListos(conDosListos)).toBe('Tickets listos: listo, otro (make tablero)');
+  });
+
+  it('sin tickets listos, no dice nada', () => {
+    expect(avisoDeListos(situacion({ tickets: [ticket('curso')], carriles: [carril('curso')] }))).toBeUndefined();
   });
 });
 

@@ -2,7 +2,9 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { fijarFase } from '../../scripts/arnes/comun/ajustes-locales.ts';
 import { anuncioDelCarril } from '../../scripts/arnes/comun/anuncio-carril.ts';
+import { commit, gitBien, principalConOrigen } from './origen.ts';
 import { escribirFicheros, repositorioConCommit, repositorioConWorktree } from './temporal.ts';
+import { texto } from './tickets-de-prueba.ts';
 
 /** La carpeta principal y el carril «pasos», en la fase specs del área MATE. */
 function carrilPasos(): { principal: string; carril: string } {
@@ -28,6 +30,31 @@ describe('anuncioDelCarril', () => {
     expect(anuncio?.paraClaude).toContain('«/model sonnet»');
     expect(anuncio?.paraClaude).toContain(`van con ruta absoluta (${carril}/…)`);
     expect(anuncio?.paraClaude).not.toMatch(/Relevo pendiente/);
+    expect(anuncio?.paraClaude).not.toContain('Ticket del carril');
+  });
+
+  it('con ticket en el carril, dice su título, «Hecho cuando», «Leer primero» y «toca»', () => {
+    const { principal, carril } = carrilPasos();
+    const cuerpo =
+      '# Pasos reservados\n\n**Qué:** algo.\n**Hecho cuando:** make check\nen verde.\n**Leer primero:** MATE.md.\n';
+    escribirFicheros(carril, { 'docs/tickets/pasos.md': texto({ toca: '[src/a.ts, tests/unidad/]' }, cuerpo) });
+    const paraClaude = anuncioDelCarril(principal, entrarEn(principal, carril))?.paraClaude;
+    expect(paraClaude).toContain('Ticket del carril (docs/tickets/pasos.md): «Pasos reservados».');
+    expect(paraClaude).toContain(
+      'Hecho cuando: make check en verde.\nLeer primero: MATE.md.\nToca: src/a.ts, tests/unidad/.',
+    );
+    expect(paraClaude).not.toContain('Se solapa');
+  });
+
+  it('con ticket, dice con qué carriles abiertos se solapa su huella', () => {
+    const principal = principalConOrigen({ 'src/a.ts': '', 'docs/tickets/pasos.md': texto({ toca: '[src/a.ts]' }) });
+    gitBien(principal, ['fetch', '--quiet', 'origin']);
+    gitBien(principal, ['worktree', 'add', '--quiet', '-b', 'impl/MATE/pasos', `${principal}-pasos`, 'origin/main']);
+    gitBien(principal, ['worktree', 'add', '--quiet', '-b', 'impl/MATE/otro', `${principal}-otro`, 'origin/main']);
+    commit(`${principal}-otro`, 'trabajo', { 'src/a.ts': 'cambio' });
+    expect(anuncioDelCarril(principal, entrarEn(principal, `${principal}-pasos`))?.paraClaude).toContain(
+      'Se solapa con los carriles abiertos otro (src/a.ts).',
+    );
   });
 
   it('sin .github/CODEOWNERS, avisa de que no hay lista blanca', () => {
