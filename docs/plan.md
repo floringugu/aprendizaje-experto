@@ -142,7 +142,7 @@ scripts/arnes/           scripts de make check y de la CI (con dueño)
   registro-contexto.jsonl   una línea por cada tramo de contexto avisado, con su carril (relevo; fuera de git)
 .github/
   CODEOWNERS             qué rutas esperan al visto bueno del dueño y cuáles son la lista blanca (§6)
-  workflows/puerta.yml   la CI: los checks rama, mezcla y check (§14, decisión 16)
+  workflows/puerta.yml   la CI: los checks rama, mezcla, rutas y check (§14, decisión 16)
 .vscode/
   tasks.json             tareas del dueño: fase, abrir y retirar un carril
   settings.json          muestra los carriles en el control de código fuente
@@ -315,10 +315,11 @@ Una conversación de carril empieza en la carpeta principal y entra en el carril
 **En Edit, Write, MultiEdit y NotebookEdit,** resuelve la ruta real del fichero (siguiendo los enlaces simbólicos, también a directorios, y los `..`) y la bloquea si cae en:
 
 - el `.git/` de cualquier checkout del repositorio;
-- un carril que no es el checkout de la conversación (se compara con `path.relative`). La carpeta principal no se frena: `main` lo protege GitHub (§6), y lo que no pase por un PR no llega allí;
+- un carril que no es el checkout de la conversación (se compara con `path.relative`). La carpeta principal no se frena por ser otro checkout: `main` lo protege GitHub (§6), y lo que no pase por un PR no llega allí;
+- una ruta que la fase de la conversación no puede tocar («Rutas de cada fase», §6), en su checkout o en la carpeta principal. La fase es la del checkout de la conversación, y vale también para el subagente implementador. El mensaje dice la ruta, qué es, qué fase la escribe y que, si Claude cree que hay que cambiarla (una spec mal escrita, por ejemplo), pare con `[DECISIÓN PENDIENTE]`. `config/alcance.json` no se frena aquí: lo escriben varias fases, y su contenido lo mira el job `rutas` de la CI;
 - `~/.claude/`, salvo la memoria de un proyecto y los planes del modo plan (`~/.claude/plans/`).
 
-**En Bash,** no mira qué ficheros cambia el comando: lo que llegue a `main` pasa por la CI y, fuera de la lista blanca, por tu revisión del PR. Solo bloquea el comando si:
+**En Bash,** no mira qué ficheros cambia el comando, tampoco las rutas de otra fase: lo que llegue a `main` pasa por la CI, que tiene el job `rutas`, y, fuera de la lista blanca, por tu revisión del PR. Solo bloquea el comando si:
 
 - **Nombra `~/.claude/`** (como `~`, `$HOME`, `${HOME}` o la ruta absoluta), salvo `projects/` y `plans/`.
 - **Nombra otro carril,** con su ruta absoluta o relativa a la carpeta que contiene la principal o al checkout de la conversación.
@@ -412,7 +413,7 @@ Dentro de ellas vuelve a tener dueño la configuración: `package.json`, `tsconf
 
 `main` lo protegen dos rulesets de GitHub:
 
-- **«main: CI»,** sin bypass para nadie: no se borra ni se reescribe `main`, la historia es lineal, todo entra por un PR que se fusiona con rebase (0 aprobaciones), y los checks `rama`, `mezcla` y `check` de la CI (§14, fila 16) tienen que estar en verde. No se exige la rama al día con `main`.
+- **«main: CI»,** sin bypass para nadie: no se borra ni se reescribe `main`, la historia es lineal, todo entra por un PR que se fusiona con rebase (0 aprobaciones), y los checks `rama`, `mezcla`, `rutas` y `check` de la CI (§14, fila 16) tienen que estar en verde. No se exige la rama al día con `main`.
 - **«main: visto bueno»,** con la revisión del code owner obligatoria. Su bypass es tuyo, como administrador, y solo en un PR.
 
 Así, un PR que solo toca la lista blanca se fusiona solo cuando pasa la CI: Claude lo deja con auto-merge. Uno que toca una ruta con dueño espera, y Claude no le activa el auto-merge: con tu cuenta, el bypass del ruleset lo fusionaría sin tu revisión (pasó con el PR #1, el 30-10-2026). Lo revisas y lo fusionas con bypass, con la casilla «bypass rules» de la web o con `gh pr merge <n> --rebase --admin`. Una CI en rojo no se fusiona ni con bypass. Claude trabaja con tu cuenta de `gh`, así que lo único que le impide usar `--admin`, aprobar un PR o tocar los rulesets y los ajustes del repositorio es `CLAUDE.md` (§11).
@@ -429,7 +430,22 @@ Así, un PR que solo toca la lista blanca se fusiona solo cuando pasa la CI: Cla
 | specs | `make check-specs` |
 | aceptacion | `make check-aceptacion` |
 
-La fase ya no desbloquea rutas: lo que escribe cada una lo decide tu visto bueno. specs escribe `features/` y `config/parametros.json`, y aceptacion, `tests/aceptacion/`; las dos tienen dueño, así que sus PR siempre te esperan. En la CI, la fase sale del nombre de la rama, y el job `check` ejecuta su objetivo además de `make check`.
+En la CI, la fase sale del nombre de la rama, y el job `check` ejecuta su objetivo además de `make check`.
+
+**Rutas de cada fase** (`scripts/arnes/rutas-fase.ts`). Cada fase escribe lo suyo y no toca lo que escriben las otras:
+
+| Fase | No puede tocar |
+|---|---|
+| impl | `features/`, `tests/aceptacion/`, `config/parametros.json` y `config/peticion-ia.md`. En `config/alcance.json`, solo puede añadir áreas a `areas_cerradas` y quitar entradas de `escenarios_en_rojo` |
+| aceptacion | `features/`, `config/parametros.json` y `config/peticion-ia.md` |
+| specs | `src/`, `tests/unidad/` y `tests/aceptacion/` |
+
+Hasta el 31-10-2026 nada lo impedía (dato D4): ni la guardia ni la CI frenaban que impl editara la spec o los steps, CODEOWNERS tampoco, porque no revisas esos diffs, y la regla de mezcla (§10) mira cada commit por separado, así que dos commits en el mismo PR la esquivan. En los transcripts no hubo ningún caso: ninguna de 64 conversaciones impl editó esas rutas. La tabla la aplican dos capas:
+
+- **En la conversación,** `proteger-rutas.ts` (§5) niega Edit, Write, MultiEdit y NotebookEdit sobre esas rutas, según la fase del checkout.
+- **En el PR,** el job `rutas` de la CI saca la fase del nombre de la rama (`^(impl|specs|aceptacion)/`) y aplica la tabla a los ficheros que cambia el PR desde el punto en que su rama sale de `main` (`git merge-base`; un renombrado cuenta por sus dos rutas). En impl compara el JSON de `config/alcance.json` de ese punto con el de la cabeza: el formato y el orden de las claves no cuentan. Ejecuta el script de la base, copiado fuera del checkout, para que un PR no pueda relajarlo; el script solo importa módulos de Node.
+
+Además, specs y aceptacion escriben rutas con dueño, así que sus PR siempre te esperan.
 
 **Área en curso y áreas cerradas.** Lo que se comprueba depende de ellas, no de una lista de áreas pendientes:
 
@@ -441,7 +457,7 @@ La fase ya no desbloquea rutas: lo que escribe cada una lo decide tu visto bueno
 
 1. **Abrir.** `make abrir N=<carril> F=<fase> A=<ÁREA>`, solo tú y desde cualquier checkout. El área es obligatoria. Hace `git fetch`, crea `../<carpeta principal>-<carril>` con la rama `<fase>/<ÁREA>/<carril>` sacada de `origin/main`, enlaza su `node_modules` al de la carpeta principal y fija la fase, el área, el modelo y el esfuerzo en sus ajustes locales, sin permisos. Imprime «Entra en el carril <carril>.» y no abre ninguna ventana.
 2. **Entrar.** En una conversación nueva de la ventana principal pegas esa frase. Claude llama a `EnterWorktree` con la ruta del carril, y `anunciar-carril.ts` (§5) le dice la fase, el área, la lista blanca, el relevo pendiente y el modelo.
-3. **Trabajar.** El hook Stop ejecuta en el carril el objetivo de su fase si hay cambios sin commitear. La guardia niega las ediciones y los Bash sobre otros carriles (§5); la carpeta principal no se frena.
+3. **Trabajar.** El hook Stop ejecuta en el carril el objetivo de su fase si hay cambios sin commitear. La guardia niega las ediciones y los Bash sobre otros carriles y las ediciones de las rutas de otra fase (§5); la carpeta principal solo se frena por la fase.
 4. **Terminar.** Claude hace commits que respetan la regla de mezcla (§10), y después `git push -u origin HEAD` y `gh pr create --fill`. Después, `gh pr merge --auto --rebase` solo si el PR toca únicamente la lista blanca (lo mira con `gh pr diff --name-only`), y `gh pr checks --watch`. Nunca hace push a mitad de la conversación. Si hay relevo, lo escribe en `<carril>/reports/relevo.md` y termina con `[RELEVO]`.
 5. **Fusión.** El PR de la lista blanca se fusiona solo; el resto lo fusionas tú con bypass.
 6. **Después de cada fusión,** tú: `git pull --ff-only` en la carpeta principal, y `npm ci` si cambió `package-lock.json`.
@@ -555,7 +571,7 @@ Las normas:
 
 ## 10. Regla de mezcla (CI, job `mezcla`)
 
-En cada PR, el job `mezcla` de la CI ejecuta `node scripts/arnes/regla-commits.ts --rango <base>..<cabeza>` y rechaza el PR si un commit **mezcla especificación y código**. Especificación es `features/`, `tests/aceptacion/` y `config/`; código es `src/` y `tests/unidad/`. El resto (docs, arnés) puede ir con cualquiera de los dos.
+En cada PR, el job `mezcla` de la CI ejecuta `node scripts/arnes/regla-commits.ts --rango <base>..<cabeza>` y rechaza el PR si un commit **mezcla especificación y código**. Especificación es `features/`, `tests/aceptacion/` y `config/`; código es `src/` y `tests/unidad/`. El resto (docs, arnés) puede ir con cualquiera de los dos. Mira cada commit por separado: que el PR entero solo toque lo de su fase lo comprueba el job `rutas` (§6).
 
 Hasta el 30-10-2026 lo comprobaba un pre-commit local (`.githooks/pre-commit`), que además rechazaba que Claude Code commiteara un fichero protegido. Esa regla de autoría la sustituye el visto bueno de CODEOWNERS (§6).
 
@@ -565,17 +581,18 @@ Hasta el 30-10-2026 lo comprobaba un pre-commit local (`.githooks/pre-commit`), 
 
 **Capas, de la primera a la última:**
 
-1. **Guardia de ficheros.** Resuelve la ruta real, así que los enlaces simbólicos y los `..` no sirven para colarse en `.git/`, en otro carril o en `~/.claude/`.
+1. **Guardia de ficheros.** Resuelve la ruta real, así que los enlaces simbólicos y los `..` no sirven para colarse en `.git/`, en otro carril, en `~/.claude/` o en una ruta de otra fase.
 2. **Guardia textual de Bash.** Bloquea los atajos para saltarse el arnés, instalar dependencias y los comandos que nombran otro carril o `~/.claude/`.
 3. **ConfigChange:** los hooks no se cambian en caliente.
 4. **Hook Stop:** la comprobación de la fase antes de terminar cada turno.
-5. **CI obligatoria** (ruleset «main: CI», sin bypass para nadie): el nombre de la rama, la regla de mezcla, `make check`, el objetivo de la fase y `make mutacion`. Un PR en rojo no se fusiona.
+5. **CI obligatoria** (ruleset «main: CI», sin bypass para nadie): el nombre de la rama, la regla de mezcla, las rutas de la fase, `make check`, el objetivo de la fase y `make mutacion`. Un PR en rojo no se fusiona.
 6. **CODEOWNERS y visto bueno** (ruleset «main: visto bueno»): fuera de la lista blanca, nada llega a `main` sin que lo fusiones tú.
 7. **Tu revisión del PR.**
 
 **Límites que conviene conocer:**
 
 - **La guardia de Bash es textual.** Un comando ofuscado (una ruta construida por partes, en base64 o en variables) puede llegar a `~/.claude/` o a otro carril. Lo que cambie en el repositorio no llega a `main` sin la CI y, fuera de la lista blanca, sin tu visto bueno.
+- **Con Bash, Claude sí puede escribir en las rutas de otra fase.** La guardia de las rutas de cada fase solo mira las herramientas de edición. Lo para el job `rutas` de la CI, que mira todo lo que cambia el PR.
 - **`npx <paquete>` puede descargar y ejecutar un paquete** que no está en el lockfile. No cambia `package.json`, pero se ejecuta.
 - **ConfigChange también te bloquea a ti** si cambias la configuración con `/config` durante una conversación. Edita la configuración fuera de Claude Code y abre una conversación nueva. `make fase` también cambia la configuración local, así que las conversaciones abiertas pueden mostrarte ese bloqueo: es lo esperado, y siguen en su fase.
 - **La fase vive en un fichero local** (`.claude/settings.local.json` del checkout), fuera de git, y nada lo vigila: Claude podría cambiarlo con Edit o con Bash. ConfigChange impide que el cambio valga en la conversación en curso, el aviso de inicio (o el del carril) te muestra la fase con la que empieza cada conversación, y la CI no lo lee: saca la fase del nombre de la rama.
@@ -593,8 +610,8 @@ Hasta el 30-10-2026 lo comprobaba un pre-commit local (`.githooks/pre-commit`), 
 - **El relevo es una instrucción hasta que Claude lo pasa.** Claude podría seguir trabajando después del aviso; lo ves tú, porque el aviso se repite cada 20 k tokens. Una vez aceptado el `[RELEVO]`, la conversación ya no edita con las herramientas Edit, Write, MultiEdit y NotebookEdit; con Bash sí podría escribir ficheros, y lo cubren la CI y tu revisión, no este hook.
 - **El relevo pasado se lee del registro del hook Stop.** Si el registro se pierde, la conversación vuelve a poder editar.
 - **Claude trabaja con tu cuenta de GitHub.** Podría fusionar con `gh pr merge --admin`, aprobar un PR o cambiar los rulesets y los ajustes del repositorio; solo se lo impide `CLAUDE.md`. Es un riesgo aceptado: en la auditoría de 62 sesiones no hubo ningún intento deliberado de saltarse el arnés. Si aparece uno, se replantean las credenciales.
-- **Desde un carril no se frena la carpeta principal.** Claude podría editarla, pero lo que no pase por un PR no llega a GitHub. Lo ves en `git status` antes del `git pull --ff-only`.
-- **La CI usa el arnés de la rama.** Un PR que relaja una comprobación se comprueba con ella relajada. Por eso la configuración y el arnés tienen dueño, también dentro de la lista blanca: ese PR te espera.
+- **Desde un carril no se frena la carpeta principal,** salvo las rutas de otra fase. Claude podría editarla, pero lo que no pase por un PR no llega a GitHub. Lo ves en `git status` antes del `git pull --ff-only`.
+- **La CI usa el arnés de la rama,** salvo el job `rutas`, que ejecuta el script de la base. Un PR que relaja otra comprobación se comprueba con ella relajada. Por eso la configuración y el arnés tienen dueño, también dentro de la lista blanca: ese PR te espera.
 - **La lista blanca se fusiona sin que la veas.** Un PR que solo toca `src/`, `tests/unidad/`, `docs/areas/` o `docs/deuda-diseno.md` entra con la CI en verde. Lo que no mide la CI (diseño, nombres, comentarios) lo señala `revisor-codigo` y lo ves después en `main`.
 - **Que pasen los tests no demuestra eficacia pedagógica.** Lo dirá el README de la etapa 5.
 
@@ -658,7 +675,7 @@ Todas aprobadas por el dueño el 18-10-2026, tal como se proponen en la tabla.
 | 13 | FSRS | <ul><li>Usar `ts-fsrs` en `src/infraestructura`, detrás de una interfaz definida en el dominio.</li><li>En la etapa 2 evalúo su licencia, su mantenimiento y su tamaño, y te los presento antes de instalarlo.</li></ul> | Escribir FSRS desde cero: lo descartaste tú. |
 | 14 | Enfoque de la etapa 3 | <ul><li>Crear en `src/aplicacion/` los casos de uso como funciones vacías que lanzan «Sin implementar».</li><li>Los steps las importan de forma estática, así que los escenarios fallan en rojo de verdad (FAILED, no indefinidos), los tipos se comprueban y las reglas de capas y de knip siguen funcionando.</li><li>Van en un commit de código aparte del de los steps (regla de mezcla, §10).</li></ul> | Un contrato tipado en `tests/aceptacion/` con import dinámico: tipado más débil, y knip y dependency-cruiser no siguen los imports dinámicos. |
 | 15 | Proteger `docs/plan.md` | Tiene dueño en `.github/CODEOWNERS`, para que el plan no se reescriba para encajar con el código: un cambio espera a tu visto bueno. | Dejarlo libre: más cómodo, pero el plan perdería su papel de contrato. |
-| 16 | Integración continua | <ul><li>GitHub Actions, `.github/workflows/puerta.yml`, en cada PR y en cada push a `main`, con el arnés de la rama.</li><li>Tres jobs: `rama` (el nombre `<fase>/<ÁREA>/<carril>` y que el área exista) y `mezcla` (§10), solo en los PR; y `check`: `npm ci`, la fase y el área de la rama en los ajustes locales, `make check`, el objetivo de la fase en un PR y `make mutacion`.</li><li>Los tres son obligatorios en el ruleset «main: CI», sin bypass (§6). Aprobado el 28-10-2026.</li></ul> | Seguir sin repositorio remoto, con el hook Stop, el pre-commit y tu `make check` antes de cada commit: dependía de que nada se saltara la puerta local, y obligaba a las propuestas para cada ruta protegida. |
+| 16 | Integración continua | <ul><li>GitHub Actions, `.github/workflows/puerta.yml`, en cada PR y en cada push a `main`, con el arnés de la rama (salvo `rutas`, que usa el script de la base).</li><li>Cuatro jobs: `rama` (el nombre `<fase>/<ÁREA>/<carril>` y que el área exista), `mezcla` (§10) y `rutas` (las rutas de la fase, §6), solo en los PR; y `check`: `npm ci`, la fase y el área de la rama en los ajustes locales, `make check`, el objetivo de la fase en un PR y `make mutacion`.</li><li>Los cuatro son obligatorios en el ruleset «main: CI», sin bypass (§6). Aprobado el 28-10-2026; `rutas`, el 31-10-2026.</li></ul> | Seguir sin repositorio remoto, con el hook Stop, el pre-commit y tu `make check` antes de cada commit: dependía de que nada se saltara la puerta local, y obligaba a las propuestas para cada ruta protegida. |
 | 17 | Base de datos e interfaz | `node:sqlite` y `node:http`, como en el §2. | — |
 | 18 | `npm audit` | <ul><li>Hay 2 avisos moderados de `qs` (≤ 6.15.3, denegación de servicio), que llega a través de `typed-rest-client`, una dependencia de `@stryker-mutator/core`.</li><li>Solo afecta al desarrollo, no a la aplicación.</li><li>Se ignoran por ahora y se revisan cuando salga una versión nueva de Stryker. `npm audit fix` cambiaría `package-lock.json`, que tiene dueño, así que el cambio esperaría a su visto bueno.</li></ul> | — |
 
