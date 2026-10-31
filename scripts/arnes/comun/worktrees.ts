@@ -2,7 +2,8 @@
 // Cada conversación trabaja en un carril, en una rama que acaba en un PR (ramas.ts). Cuando GitHub
 // lo fusiona, la conversación siguiente del carril sigue en la rama siguiente. Cuatro operaciones,
 // que lanzan los objetivos de make (scripts/arnes/worktrees.ts y fijar-fase.ts):
-//   abrir (make abrir, el dueño): crea el carril y su primera rama desde origin/main, con su fase y su área;
+//   abrir (make abrir, el dueño): crea el carril y su primera rama desde origin/main, con su fase y su área,
+//     que salen de su ticket (docs/tickets/<carril>.md) si lo tiene;
 //   rama (make rama, la conversación): pasa el carril a la rama siguiente, fusionada la actual;
 //   fase (make fase N=, el dueño): cambia la fase y el área del carril, fusionada su rama;
 //   retirar (make retirar, el dueño): al acabar la línea de trabajo, borra el carril y todas sus ramas.
@@ -14,6 +15,8 @@ import path from 'node:path';
 import { fijarFase } from './ajustes-locales.ts';
 import { problemaDeFaseYArea } from './alcance.ts';
 import { faseYAreaDelCheckout, nombreDelCarril } from './checkout.ts';
+import { detalle, estadoDelTicket, situacionDelRepositorio } from './estado-tickets.ts';
+import type { Situacion } from './estado-tickets.ts';
 import type { Fase } from './fases.ts';
 import { git, hayCambiosSinCommitear } from './git.ts';
 import {
@@ -26,6 +29,8 @@ import {
   traerOrigen,
 } from './ramas.ts';
 import { rutaDelRelevo } from './relevo.ts';
+import { rutaDelTicket } from './tickets.ts';
+import type { Ticket } from './tickets.ts';
 
 const SIN_AREA = 'Un carril necesita área, porque su rama la lleva en el nombre (<fase>/<ÁREA>/<carril>): A=<ÁREA>.';
 
@@ -59,19 +64,30 @@ export interface PeticionDeWorktree {
   readonly area: string | undefined;
 }
 
+export interface PeticionDeCarril {
+  readonly nombre: string;
+  /** Con ticket, salen de él y, si se dan, tienen que coincidir. Sin ticket, hacen falta las dos. */
+  readonly fase: Fase | undefined;
+  readonly area: string | undefined;
+  /** FORZAR=1: abre aunque el ticket no esté listo. Nunca uno hecho o descartado. */
+  readonly forzar?: boolean;
+}
+
 /**
  * Trae origin, crea el carril y su primera rama desde origin/main, enlaza node_modules y le fija la
- * fase y el área. Sus ajustes locales empiezan sin los permisos del directorio principal.
+ * fase y el área. Si origin/main tiene el ticket del carril (docs/tickets/<nombre>.md), la fase y el
+ * área salen de él, y se niega si no está listo. Sus ajustes locales empiezan sin los permisos del
+ * directorio principal.
  */
-export function abrirWorktree(raiz: string, peticion: PeticionDeWorktree): Resultado {
-  const { nombre, fase, area } = peticion;
-  if (area === undefined) return falla(SIN_AREA);
+export function abrirWorktree(raiz: string, peticion: PeticionDeCarril): Resultado {
+  const { nombre } = peticion;
+  const previo = problemaDeNombre(nombre) ?? traerOrigen(raiz);
+  if (previo !== undefined) return falla(previo);
+  const delCarril = faseYAreaDelCarril(raiz, peticion);
+  if ('problema' in delCarril) return falla(delCarril.problema);
+  const { fase, area, avisos } = delCarril;
   const directorio = directorioDeWorktree(raiz, nombre);
-  const problema =
-    problemaDeNombre(nombre) ??
-    problemaDeFaseYArea(raiz, fase, area) ??
-    problemaDeCarrilNuevo(raiz, nombre) ??
-    traerOrigen(raiz);
+  const problema = problemaDeFaseYArea(raiz, fase, area) ?? problemaDeCarrilNuevo(raiz, nombre);
   if (problema !== undefined) return falla(problema);
   const rama = nombreDeRama({ fase, area, carril: nombre, numero: 1 });
   const crear = git(raiz, ['worktree', 'add', '--quiet', '--no-track', '-b', rama, directorio, RAMA_DE_ORIGEN]);
@@ -84,11 +100,52 @@ export function abrirWorktree(raiz: string, peticion: PeticionDeWorktree): Resul
   return {
     ok: true,
     mensajes: [
+      ...avisos,
       `Carril ${directorio}, en la rama ${rama} (desde ${RAMA_DE_ORIGEN}), con la fase ${fase} y el área ${area}.`,
       'Pega esto en una conversación nueva de Claude Code en la ventana principal:',
       `Entra en el carril ${nombre}.`,
     ],
   };
+}
+
+interface FaseYAreaDelCarril {
+  readonly fase: Fase;
+  readonly area: string;
+  /** Lo que hay que decir antes de abrir: qué ticket se abre, o que no lo hay. */
+  readonly avisos: readonly string[];
+}
+
+/** La fase y el área del carril, del ticket de origin/main si lo hay o de la petición; o por qué no se abre. */
+function faseYAreaDelCarril(raiz: string, peticion: PeticionDeCarril): FaseYAreaDelCarril | { problema: string } {
+  const { nombre, fase, area } = peticion;
+  const situacion = situacionDelRepositorio(raiz, new Map());
+  const ticket = situacion.tickets.find(({ id }) => id === nombre);
+  if (ticket !== undefined) {
+    const problema = problemaDelTicket(ticket, situacion, peticion);
+    if (problema !== undefined) return { problema };
+    const forzado = peticion.forzar === true && estadoDelTicket(ticket, situacion).tipo !== 'listo';
+    const avisos = [`Ticket ${rutaDelTicket(nombre)}: ${ticket.titulo}`, ...(forzado ? ['Abierto con FORZAR=1.'] : [])];
+    return { fase: ticket.fase, area: ticket.area, avisos };
+  }
+  if (area === undefined) return { problema: SIN_AREA };
+  if (fase === undefined)
+    return { problema: `Sin ticket ${rutaDelTicket(nombre)} en ${RAMA_DE_ORIGEN}: hace falta F=<fase>.` };
+  const sinTicket = `Sin ticket ${rutaDelTicket(nombre)} en ${RAMA_DE_ORIGEN}: para los solapes, el carril solo cuenta por lo que commitee.`;
+  return { fase, area, avisos: [sinTicket] };
+}
+
+/** Por qué no se abre el carril del ticket: F o A no coinciden, ya está hecho o descartado, o no está listo sin FORZAR. */
+function problemaDelTicket(ticket: Ticket, situacion: Situacion, peticion: PeticionDeCarril): string | undefined {
+  const ruta = rutaDelTicket(ticket.id);
+  const { fase = ticket.fase, area = ticket.area } = peticion;
+  if (fase !== ticket.fase || area !== ticket.area) {
+    return `${ruta} es de ${ticket.fase}/${ticket.area}, no de ${fase}/${area}. Quita F y A: salen del ticket.`;
+  }
+  const estado = estadoDelTicket(ticket, situacion);
+  if (estado.tipo === 'hecho' || estado.tipo === 'descartado') return `${ruta} está ${estado.tipo}: no se abre.`;
+  if (estado.tipo === 'listo' || peticion.forzar === true) return undefined;
+  const motivo = estado.tipo === 'bloqueado' ? detalle(estado) : 'su carril ya está abierto';
+  return `${ruta} no está listo: ${motivo}. Si aun así hay que abrirlo: FORZAR=1.`;
 }
 
 function problemaDeCarrilNuevo(raiz: string, nombre: string): string | undefined {

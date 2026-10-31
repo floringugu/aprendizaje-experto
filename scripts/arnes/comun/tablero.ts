@@ -2,8 +2,8 @@
 // HTML autónomo para «make tablero», con una columna por estado y el grafo de dependencias en Mermaid.
 // Mermaid se carga de jsdelivr con la versión fijada: sin red se ven las columnas, pero no el grafo.
 import { esArea } from './checkout.ts';
-import { estadoDeLosTickets } from './estado-tickets.ts';
-import type { Estado, Situacion, Solape } from './estado-tickets.ts';
+import { detalle, estadoDeLosTickets } from './estado-tickets.ts';
+import type { Estado, Situacion } from './estado-tickets.ts';
 import type { Ticket } from './tickets.ts';
 
 const MERMAID = 'https://cdn.jsdelivr.net/npm/mermaid@12.2.0/dist/mermaid.esm.min.mjs';
@@ -26,19 +26,6 @@ interface Fila {
 
 function filasDe(filas: readonly Fila[], tipo: Tipo): Fila[] {
   return filas.filter(({ estado }) => estado.tipo === tipo);
-}
-
-function textoDeSolape({ carril, ficheros }: Solape): string {
-  return `${carril} (${ficheros.join(', ')})`;
-}
-
-/** Por qué espera un ticket bloqueado, o qué hace uno en revisión; vacío en los demás estados. */
-function detalle(estado: Estado): string {
-  if (estado.tipo === 'revision') return `PR #${String(estado.pr)}`;
-  if (estado.tipo !== 'bloqueado') return '';
-  const faltan = estado.faltan.length > 0 ? [`falta ${estado.faltan.join(', ')}`] : [];
-  const solapes = estado.solapes.length > 0 ? [`se solapa con ${estado.solapes.map(textoDeSolape).join('; ')}`] : [];
-  return [...faltan, ...solapes].join('; ');
 }
 
 /** Lo que el dueño tiene que saber además de las columnas: lo que no se ha leído y los carriles que sobran o no cuentan. */

@@ -109,6 +109,19 @@ export function estadoDeLosTickets(situacion: Situacion): { ticket: Ticket; esta
   return situacion.tickets.map((ticket) => ({ ticket, estado: estadoDelTicket(ticket, situacion) }));
 }
 
+function textoDeSolape({ carril, ficheros }: Solape): string {
+  return `${carril} (${ficheros.join(', ')})`;
+}
+
+/** Por qué espera un ticket bloqueado, o qué hace uno en revisión; vacío en los demás estados. */
+export function detalle(estado: Estado): string {
+  if (estado.tipo === 'revision') return `PR #${String(estado.pr)}`;
+  if (estado.tipo !== 'bloqueado') return '';
+  const faltan = estado.faltan.length > 0 ? [`falta ${estado.faltan.join(', ')}`] : [];
+  const solapes = estado.solapes.length > 0 ? [`se solapa con ${estado.solapes.map(textoDeSolape).join('; ')}`] : [];
+  return [...faltan, ...solapes].join('; ');
+}
+
 /**
  * Lo que hay ahora, con lo último que trajo git fetch: tickets, areas_cerradas y árbol de origin/main,
  * y los carriles abiertos de `raiz`, con lo que ha commiteado cada rama sin fusionar. `prs` son los PR

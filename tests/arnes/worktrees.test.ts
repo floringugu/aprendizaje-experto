@@ -15,6 +15,8 @@ import {
 import type { PeticionDeWorktree, Resultado } from '../../scripts/arnes/comun/worktrees.ts';
 import { commit, fusionarComoGitHub, gitBien, otroPrFusionado, principalConOrigen } from './origen.ts';
 import { escribirFicheros } from './temporal.ts';
+import { texto } from './tickets-de-prueba.ts';
+import type { Frontmatter } from './tickets-de-prueba.ts';
 
 const PASOS: PeticionDeWorktree = { nombre: 'pasos', fase: 'impl', area: 'MATE' };
 
@@ -118,6 +120,54 @@ describe('abrirWorktree', () => {
     gitBien(raiz, ['remote', 'remove', 'origin']);
     expect(negativa(abrirWorktree(raiz, PASOS))).toMatch(/git fetch origin ha fallado/);
     expect(ramasDelCarril(raiz, 'pasos')).toEqual([]);
+  });
+});
+
+/** Carpeta principal con los tickets `tickets` (id → frontmatter) ya en origin/main. */
+function conTickets(tickets: Readonly<Record<string, Frontmatter>>): string {
+  const raiz = principal();
+  commit(
+    raiz,
+    'tickets',
+    Object.fromEntries(Object.entries(tickets).map(([id, f]) => [`docs/tickets/${id}.md`, texto(f)])),
+  );
+  gitBien(raiz, ['push', '--quiet', 'origin', 'main']);
+  return raiz;
+}
+
+const SOLO_NOMBRE = { nombre: 'pasos', fase: undefined, area: undefined };
+
+describe('abrirWorktree con ticket', () => {
+  it('saca la fase y el área del ticket listo de origin/main, y lo dice', () => {
+    const raiz = conTickets({ pasos: { fase: 'aceptacion' } });
+    const resultado = abrirWorktree(raiz, SOLO_NOMBRE);
+    expect(resultado.mensajes[0]).toBe('Ticket docs/tickets/pasos.md: Título');
+    expect(ramaDe(directorioDeWorktree(raiz, 'pasos'))).toBe('aceptacion/MATE/pasos');
+  });
+
+  it('se niega si F o A no coinciden con el ticket', () => {
+    const raiz = conTickets({ pasos: { fase: 'aceptacion' } });
+    expect(negativa(abrirWorktree(raiz, PASOS))).toMatch(/es de aceptacion\/MATE, no de impl\/MATE\. Quita F y A/);
+    expect(ramasDelCarril(raiz, 'pasos')).toEqual([]);
+  });
+
+  it('se niega si no está listo, y lo abre con FORZAR=1', () => {
+    const raiz = conTickets({ pasos: { depende: '[antes]' }, antes: {} });
+    expect(negativa(abrirWorktree(raiz, SOLO_NOMBRE))).toMatch(/no está listo: falta antes\. .*FORZAR=1/);
+    const forzado = abrirWorktree(raiz, { ...SOLO_NOMBRE, forzar: true });
+    expect(forzado.mensajes[1]).toBe('Abierto con FORZAR=1.');
+    expect(ramaDe(directorioDeWorktree(raiz, 'pasos'))).toBe('impl/MATE/pasos');
+  });
+
+  it('no abre un ticket hecho, ni con FORZAR=1', () => {
+    const raiz = conTickets({ pasos: { estado: 'hecho' } });
+    expect(negativa(abrirWorktree(raiz, { ...SOLO_NOMBRE, forzar: true }))).toMatch(/pasos\.md está hecho/);
+  });
+
+  it('sin ticket, hacen falta F y A, y avisa de que el carril solo cuenta por lo que commitee', () => {
+    const raiz = principal();
+    expect(negativa(abrirWorktree(raiz, { ...PASOS, fase: undefined }))).toMatch(/hace falta F=<fase>/);
+    expect(abrirWorktree(raiz, PASOS).mensajes[0]).toMatch(/^Sin ticket docs\/tickets\/pasos\.md .*lo que commitee/);
   });
 });
 
