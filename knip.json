@@ -1,5 +1,6 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "entry": ["scripts/arnes/*.ts", ".claude/hooks/*.ts", "src/interfaz/servidor.ts", "tests/aceptacion/**/*.ts"],
-  "project": ["src/**/*.ts", "scripts/**/*.ts", "tests/**/*.ts", ".claude/hooks/**/*.ts"]
+  "project": ["src/**/*.ts", "scripts/**/*.ts", "tests/**/*.ts", ".claude/hooks/**/*.ts"],
+  "ignoreBinaries": ["xdg-open"]
 }
