@@ -516,6 +516,8 @@ El cuerpo empieza por el título (`# …`) y lleva «Qué», «Hecho cuando» y 
 
 La huella de un carril abierto es el `toca` de su ticket más lo que ya ha commiteado. Un carril sin ticket solo cuenta por lo commiteado, y el tablero lo avisa. Dos huellas se solapan si algún fichero del árbol de `origin/main`, o alguna ruta sin `*` de las dos, casa con una entrada de cada una.
 
+No cuentan `config/alcance.json` ni `docs/deuda-diseno.md`. Casi todos los carriles los escriben, cada uno en su parte: su área en `areas_cerradas` y `escenarios_en_rojo`, y sus partidas y su línea de la deuda. Si contaran, un carril abierto bloquearía casi todos los tickets. El 31-10-2026, con `mast-pasos-transferencia` abierto, `make tickets` daba 15 bloqueados y ningún listo, todos por `config/alcance.json`, y `mate-pasos-reservados` no tenía ninguna dependencia pendiente. Si dos PR chocan en git en esos ficheros, el conflicto es de pocas líneas y se resuelve en el rebase.
+
 - **`make tickets`** hace `git fetch` y lista los tickets por estado, con el `make abrir N=<id>` de los listos.
 - **`make tablero`** escribe `reports/tablero.html`, con una columna por estado y el grafo de dependencias en Mermaid, y, si lo lanzas tú, lo abre en el navegador. Mermaid se carga de jsdelivr con la versión fijada: sin red se ven las columnas, pero no el grafo.
 - **`npm run tickets`**, un paso de las comprobaciones (§4), mira que los tickets del árbol de trabajo estén bien escritos, que sus áreas tengan feature, que sus dependencias existan y que no haya ciclos. Así, un ticket mal escrito no llega a `main`.
