@@ -129,7 +129,7 @@ src/
   interfaz/              interfaz web local (punto de entrada: servidor.ts)
 tests/
   aceptacion/            steps de Cucumber (etapa 3; con dueño, fase aceptacion)
-  unidad/                tests del dominio; cada uno cita el @ID que cubre (lista blanca)
+  unidad/                tests del dominio; conviene que citen el @ID que cubren (lista blanca)
   arnes/                 tests del propio arnés (con dueño)
 scripts/arnes/           scripts de make check y de la CI (con dueño)
 .claude/
@@ -143,7 +143,7 @@ scripts/arnes/           scripts de make check y de la CI (con dueño)
   registro-contexto.jsonl   una línea por cada tramo de contexto avisado, con su carril (relevo; fuera de git)
 .github/
   CODEOWNERS             qué rutas esperan al visto bueno del dueño y cuáles son la lista blanca (§6)
-  workflows/puerta.yml   la CI: los checks rama, mezcla, rutas y check (§14, decisión 16)
+  workflows/puerta.yml   la CI: los checks rama, rutas y check (§14, decisión 16)
 .vscode/
   tasks.json             tareas del dueño: fase, abrir y retirar un carril
   settings.json          muestra los carriles en el control de código fuente
@@ -435,7 +435,7 @@ Dentro de ellas vuelve a tener dueño la configuración: `package.json`, `tsconf
 
 `main` lo protegen dos rulesets de GitHub:
 
-- **«main: CI»,** sin bypass para nadie: no se borra ni se reescribe `main`, la historia es lineal, todo entra por un PR que se fusiona con rebase (0 aprobaciones), y los checks `rama`, `mezcla`, `rutas` y `check` de la CI (§14, fila 16) tienen que estar en verde. No se exige la rama al día con `main`.
+- **«main: CI»,** sin bypass para nadie: no se borra ni se reescribe `main`, la historia es lineal, todo entra por un PR que se fusiona con rebase (0 aprobaciones), y los checks `rama`, `rutas` y `check` de la CI (§14, fila 16) tienen que estar en verde. No se exige la rama al día con `main`.
 - **«main: visto bueno»,** con la revisión del code owner obligatoria. Su bypass es tuyo, como administrador, y solo en un PR.
 
 Así, un PR que solo toca la lista blanca se fusiona solo cuando pasa la CI: Claude lo deja con auto-merge. Uno que toca una ruta con dueño espera, y Claude no le activa el auto-merge. El PR #1 se fusionó el 30-10-2026 sin tu visto bueno (dato D5: `mergedBy` `floringugu`, sin ninguna revisión), porque entonces `gh` usaba tu cuenta de administrador y su bypass del ruleset fusionó el PR. Desde el 31-10-2026 `gh` usa la cuenta `floringugu757-lgtm`, con permiso `write` y sin admin: no está en el bypass, y GitHub le niega `gh pr merge --admin` y los cambios en los rulesets y los ajustes del repositorio. Lo revisas y lo fusionas tú con bypass, con la casilla «bypass rules» de la web o con `gh pr merge <n> --rebase --admin`. Una CI en rojo no se fusiona ni con bypass. Aprobar un PR sigue prohibido por `CLAUDE.md` (§11).
@@ -462,7 +462,7 @@ En la CI, la fase sale del nombre de la rama, y el job `check` ejecuta su objeti
 | aceptacion | `features/`, `config/parametros.json` y `config/peticion-ia.md` |
 | specs | `src/`, `tests/unidad/` y `tests/aceptacion/` |
 
-Hasta el 31-10-2026 nada lo impedía (dato D4): ni la guardia ni la CI frenaban que impl editara la spec o los steps, CODEOWNERS tampoco, porque no revisas esos diffs, y la regla de mezcla (§10) mira cada commit por separado, así que dos commits en el mismo PR la esquivan. En los transcripts no hubo ningún caso: ninguna de 64 conversaciones impl editó esas rutas. La tabla la aplican dos capas:
+Hasta el 31-10-2026 nada lo impedía (dato D4): ni la guardia ni la CI frenaban que impl editara la spec o los steps, CODEOWNERS tampoco, porque no revisas esos diffs, y la regla de mezcla (§10, retirada) miraba cada commit por separado, así que dos commits en el mismo PR la esquivaban. En los transcripts no hubo ningún caso: ninguna de 64 conversaciones impl editó esas rutas. La tabla la aplican dos capas:
 
 - **En la conversación,** `proteger-rutas.ts` (§5) niega Edit, Write, MultiEdit y NotebookEdit sobre esas rutas, según la fase del checkout.
 - **En el PR,** el job `rutas` de la CI saca la fase del nombre de la rama (`^(impl|specs|aceptacion)/`) y aplica la tabla a los ficheros que cambia el PR desde el punto en que su rama sale de `main` (`git merge-base`; un renombrado cuenta por sus dos rutas). En impl compara el JSON de `config/alcance.json` de ese punto con el de la cabeza: el formato y el orden de las claves no cuentan. Ejecuta el script de la base, copiado fuera del checkout, para que un PR no pueda relajarlo; el script solo importa módulos de Node.
@@ -480,7 +480,7 @@ Además, specs y aceptacion escriben rutas con dueño, así que sus PR siempre t
 1. **Abrir.** `make abrir N=<carril> F=<fase> A=<ÁREA>`, solo tú y desde cualquier checkout. El área es obligatoria. Hace `git fetch`, crea `../<carpeta principal>-<carril>` con la rama `<fase>/<ÁREA>/<carril>` sacada de `origin/main`, enlaza su `node_modules` al de la carpeta principal y fija la fase, el área, el modelo y el esfuerzo en sus ajustes locales, sin permisos. Imprime «Entra en el carril <carril>.» y no abre ninguna ventana.
 2. **Entrar.** En una conversación nueva de la ventana principal pegas esa frase. Claude llama a `EnterWorktree` con la ruta del carril, y `anunciar-carril.ts` (§5) le dice la fase, el área, la lista blanca, el relevo pendiente y el modelo.
 3. **Trabajar.** Antes de `git push` y `gh pr create`, el hook del push ejecuta en el carril el objetivo de su fase. La guardia niega las ediciones y los Bash sobre otros carriles y las ediciones de las rutas de otra fase (§5); la carpeta principal solo se frena por la fase.
-4. **Terminar.** Claude hace commits que respetan la regla de mezcla (§10), y después `git push -u origin HEAD` y `gh pr create --fill`. Después, `gh pr merge --auto --rebase` solo si el PR toca únicamente la lista blanca (lo mira con `gh pr diff --name-only`), y `gh pr checks --watch`. Nunca hace push a mitad de la conversación. Si hay relevo, lo escribe en `<carril>/reports/relevo.md` y termina con `[RELEVO]`.
+4. **Terminar.** Claude hace los commits y después `git push -u origin HEAD` y `gh pr create --fill`. Después, `gh pr merge --auto --rebase` solo si el PR toca únicamente la lista blanca (lo mira con `gh pr diff --name-only`), y `gh pr checks --watch`. Nunca hace push a mitad de la conversación. Si hay relevo, lo escribe en `<carril>/reports/relevo.md` y termina con `[RELEVO]`.
 5. **Fusión.** El PR de la lista blanca se fusiona solo; el resto lo fusionas tú con bypass.
 6. **Después de cada fusión,** tú: `git pull --ff-only` en la carpeta principal, y `npm ci` si cambió `package-lock.json`.
 7. **Conversación siguiente del carril.** Si el PR está fusionado, Claude ejecuta `make rama`, que pasa el carril a la rama `<fase>/<ÁREA>/<carril>-2` (y después `-3`…) sacada de `origin/main`. Si no lo está, sigue en la misma rama.
@@ -554,15 +554,13 @@ Las normas:
 
 **Procedencia.** Cada elemento lleva `@evidencia-<sección>` o `@extrapolacion`. La sección tiene que existir en el informe: 2.1 a 2.6, 3, 4, 5 o 6.
 
-**Citas.** El código cita un escenario escribiendo su ID (`@MAST-1.1`) en un comentario o en el nombre de un test:
+**Citas.** El código cita un escenario escribiendo su ID (`@MAST-1.1`) en un comentario o en el nombre de un test. Se recomienda en las reglas no obvias y en los tests unitarios, porque la columna `CITAS` dice dónde está el código de cada escenario, pero no es obligatorio.
 
-- **Cuentan como implementación:** las citas en `src/` y en `tests/unidad/`.
-- **No cuentan:** las citas en `tests/aceptacion/`.
+Hasta el 31-10-2026 también fallaba si nadie citaba en `src/` ni en `tests/unidad/` un escenario en alcance. Se quitó por el dato D8: de los 2 bloqueos de `cobertura-ids` del registro, el de esa regla fue de contabilidad, con los escenarios de RECU ya en verde y sin citar (22-10, `docs/areas/RECU.md`). El otro (DIAG, 25-10) fue por IDs citados que ya no existían, y eso se sigue comprobando.
 
 **Falla si…**
 
 - un escenario en alcance no pasa en Cucumber; lo lee de `reports/cucumber.ndjson`, un Scenario Outline toma el peor estado de sus ejemplos y los reintentos se ignoran;
-- un escenario en alcance no tiene implementación;
 - el código o los tests citan un ID que no existe;
 - `config/parametros.json` no es válido: falta la sección, el nivel de evidencia o la marca `extrapolacion`, o hay un campo desconocido;
 - un paso de resultado (`Entonces`, y los `Y` o `Pero` que lo siguen) usa una frase vaga: «correctamente», «funciona», «como se espera», «adecuado», «sin errores», «rápido», «etc.», «y/o», «los datos»… La lista, con el porqué de cada una, está en `scripts/arnes/comun/frases-vagas.ts`. Los `Dado` y los `Cuando` no se miran, porque ahí la misma palabra describe la situación, no lo que se comprueba. Esta norma también la aplica el paso `specs`.
@@ -597,11 +595,9 @@ Las normas:
 
 ---
 
-## 10. Regla de mezcla (CI, job `mezcla`)
+## 10. Regla de mezcla (retirada el 31-10-2026)
 
-En cada PR, el job `mezcla` de la CI ejecuta `node scripts/arnes/regla-commits.ts --rango <base>..<cabeza>` y rechaza el PR si un commit **mezcla especificación y código**. Especificación es `features/`, `tests/aceptacion/` y `config/`; código es `src/` y `tests/unidad/`. El resto (docs, arnés) puede ir con cualquiera de los dos. Mira cada commit por separado: que el PR entero solo toque lo de su fase lo comprueba el job `rutas` (§6).
-
-Hasta el 30-10-2026 lo comprobaba un pre-commit local (`.githooks/pre-commit`), que además rechazaba que Claude Code commiteara un fichero protegido. Esa regla de autoría la sustituye el visto bueno de CODEOWNERS (§6).
+El job `mezcla` de la CI (`scripts/arnes/regla-commits.ts`) rechazaba un PR si alguno de sus commits mezclaba especificación (`features/`, `tests/aceptacion/`, `config/`) y código (`src/`, `tests/unidad/`). Se retiró por el dato D4: miraba cada commit por separado, así que dos commits en el mismo PR la esquivaban. Que cada fase solo toque lo suyo lo comprueba ahora el job `rutas` (§6), sobre el PR entero. Los commits ya no tienen que separar especificación y código.
 
 ---
 
@@ -613,7 +609,7 @@ Hasta el 30-10-2026 lo comprobaba un pre-commit local (`.githooks/pre-commit`), 
 2. **Guardia textual de Bash.** Bloquea los atajos para saltarse el arnés, instalar dependencias y los comandos que nombran otro carril o `~/.claude/`.
 3. **ConfigChange:** los hooks no se cambian en caliente.
 4. **Hook del push:** la comprobación de la fase antes de `git push` y `gh pr create`.
-5. **CI obligatoria** (ruleset «main: CI», sin bypass para nadie): el nombre de la rama, la regla de mezcla, las rutas de la fase, `make check`, el objetivo de la fase y `make mutacion`. Un PR en rojo no se fusiona.
+5. **CI obligatoria** (ruleset «main: CI», sin bypass para nadie): el nombre de la rama, las rutas de la fase, `make check`, el objetivo de la fase y `make mutacion`. Un PR en rojo no se fusiona.
 6. **CODEOWNERS y visto bueno** (ruleset «main: visto bueno»): fuera de la lista blanca, nada llega a `main` sin que lo fusiones tú.
 7. **Tu revisión del PR.**
 
@@ -699,9 +695,9 @@ Todas aprobadas por el dueño el 18-10-2026, tal como se proponen en la tabla.
 | 11 | `umbral_retirada_ayuda` | Igual al umbral de dominio (0,85), marcado como extrapolación. Es mi lectura de «reducción de la guía cuando el rendimiento sin ayuda supera el umbral» (§4, fase 2). | Un número distinto: el informe no da ninguno. |
 | 12 | Uso de `percentil_experto` (80–90) | <ul><li>La aplicación no calcula percentiles, porque no tiene una muestra de profesionales.</li><li>Guarda el percentil que da el evaluador externo en cada evaluación fechada y lo compara con el mínimo configurado (80).</li><li>Se exigen 2 evaluaciones separadas al menos 3 meses (§4).</li></ul> | Estimar el percentil dentro de la aplicación: el informe no da forma de hacerlo. |
 | 13 | FSRS | <ul><li>Usar `ts-fsrs` en `src/infraestructura`, detrás de una interfaz definida en el dominio.</li><li>En la etapa 2 evalúo su licencia, su mantenimiento y su tamaño, y te los presento antes de instalarlo.</li></ul> | Escribir FSRS desde cero: lo descartaste tú. |
-| 14 | Enfoque de la etapa 3 | <ul><li>Crear en `src/aplicacion/` los casos de uso como funciones vacías que lanzan «Sin implementar».</li><li>Los steps las importan de forma estática, así que los escenarios fallan en rojo de verdad (FAILED, no indefinidos), los tipos se comprueban y las reglas de capas y de knip siguen funcionando.</li><li>Van en un commit de código aparte del de los steps (regla de mezcla, §10).</li></ul> | Un contrato tipado en `tests/aceptacion/` con import dinámico: tipado más débil, y knip y dependency-cruiser no siguen los imports dinámicos. |
+| 14 | Enfoque de la etapa 3 | <ul><li>Crear en `src/aplicacion/` los casos de uso como funciones vacías que lanzan «Sin implementar».</li><li>Los steps las importan de forma estática, así que los escenarios fallan en rojo de verdad (FAILED, no indefinidos), los tipos se comprueban y las reglas de capas y de knip siguen funcionando.</li></ul> | Un contrato tipado en `tests/aceptacion/` con import dinámico: tipado más débil, y knip y dependency-cruiser no siguen los imports dinámicos. |
 | 15 | Proteger `docs/plan.md` | Tiene dueño en `.github/CODEOWNERS`, para que el plan no se reescriba para encajar con el código: un cambio espera a tu visto bueno. | Dejarlo libre: más cómodo, pero el plan perdería su papel de contrato. |
-| 16 | Integración continua | <ul><li>GitHub Actions, `.github/workflows/puerta.yml`, en cada PR y en cada push a `main`, con el arnés de la rama (salvo `rutas`, que usa el script de la base).</li><li>Cuatro jobs: `rama` (el nombre `<fase>/<ÁREA>/<carril>` y que el área exista), `mezcla` (§10) y `rutas` (las rutas de la fase, §6), solo en los PR; y `check`: `npm ci`, la fase y el área de la rama en los ajustes locales, `make check`, el objetivo de la fase en un PR y `make mutacion`.</li><li>Los cuatro son obligatorios en el ruleset «main: CI», sin bypass (§6). Aprobado el 28-10-2026; `rutas`, el 31-10-2026.</li></ul> | Seguir sin repositorio remoto, con el hook Stop, el pre-commit y tu `make check` antes de cada commit: dependía de que nada se saltara la puerta local, y obligaba a las propuestas para cada ruta protegida. |
+| 16 | Integración continua | <ul><li>GitHub Actions, `.github/workflows/puerta.yml`, en cada PR y en cada push a `main`, con el arnés de la rama (salvo `rutas`, que usa el script de la base).</li><li>Tres jobs: `rama` (el nombre `<fase>/<ÁREA>/<carril>` y que el área exista) y `rutas` (las rutas de la fase, §6), solo en los PR; y `check`: `npm ci`, la fase y el área de la rama en los ajustes locales, `make check`, el objetivo de la fase en un PR y `make mutacion`.</li><li>Los tres son obligatorios en el ruleset «main: CI», sin bypass (§6). Aprobado el 28-10-2026; `rutas`, el 31-10-2026, cuando salió `mezcla` (§10).</li></ul> | Seguir sin repositorio remoto, con el hook Stop, el pre-commit y tu `make check` antes de cada commit: dependía de que nada se saltara la puerta local, y obligaba a las propuestas para cada ruta protegida. |
 | 17 | Base de datos e interfaz | `node:sqlite` y `node:http`, como en el §2. | — |
 | 18 | `npm audit` | <ul><li>Hay 2 avisos moderados de `qs` (≤ 6.15.3, denegación de servicio), que llega a través de `typed-rest-client`, una dependencia de `@stryker-mutator/core`.</li><li>Solo afecta al desarrollo, no a la aplicación.</li><li>Se ignoran por ahora y se revisan cuando salga una versión nueva de Stryker. `npm audit fix` cambiaría `package-lock.json`, que tiene dueño, así que el cambio esperaría a su visto bueno.</li></ul> | — |
 
@@ -805,7 +801,7 @@ Conversación nueva en la fase `aceptacion`.
 
 - **Steps.** En `tests/aceptacion/`, contra `src/aplicacion` y con las funciones vacías de la decisión 14.
 - **Estado.** Todo en rojo, sin skip, pending ni xfail. `make check-aceptacion` en verde.
-- **Commits.** Dos, los steps y las funciones vacías por separado (regla de mezcla, §10). El PR espera a tu visto bueno: `tests/aceptacion/` tiene dueño.
+- **PR.** Los steps y las funciones vacías van juntos, y el PR espera a tu visto bueno: `tests/aceptacion/` tiene dueño.
 - **Cierre.** **PARA.**
 
 ### Etapa 4: implementación
@@ -827,12 +823,12 @@ Para cada área:
    - lo dejo en la sección «Mecanismo» del archivo del área y paro con `[DECISIÓN PENDIENTE]` hasta que lo apruebes.
 
    Las áreas de dominio puro se saltan este paso y lo dicen en su archivo.
-3. Escribo el comentario de la interfaz y las firmas de `src/dominio`, y encargo los cuerpos y sus tests unitarios, que citan el `@ID`, al subagente `implementador` (§7). Si lo devuelve en rojo, lo termino yo o lo reencargo con lo que ha aprendido.
+3. Escribo el comentario de la interfaz y las firmas de `src/dominio`, y encargo los cuerpos y sus tests unitarios al subagente `implementador` (§7), que cita el `@ID` donde ayuda a encontrar el código (§8). Si lo devuelve en rojo, lo termino yo o lo reencargo con lo que ha aprendido.
 4. Hago lo mismo con la aplicación y la infraestructura necesarias.
 5. Dejo `make check` en verde, que no incluye la aceptación del área en curso.
 6. Cierro el área con `make cerrar-area A=<ÁREA>`: además de lo anterior, exige en verde la aceptación y la cobertura de sus escenarios. Ejecuto los dos revisores, `make mutacion` y `make bloqueos A=<ÁREA>`, este desde la carpeta principal, que tiene el registro de los hooks (§5).
 7. Completo el archivo del área: mecanismo, interfaces descartadas y por qué, deuda pagada, puntuación de mutación y bloqueos de los hooks.
-8. Apunto en `docs/deuda-diseno.md` las partidas nuevas del revisor, las pagadas y la línea del área. Añado el área a `areas_cerradas` en `config/alcance.json` (§6), en un commit aparte (regla de mezcla, §10), y abro el PR, que espera a tu visto bueno porque `config/` tiene dueño. Te doy un resumen breve y, si la línea de trabajo ha terminado, el comando para retirar el carril (`make retirar`) después de la fusión.
+8. Apunto en `docs/deuda-diseno.md` las partidas nuevas del revisor, las pagadas y la línea del área. Añado el área a `areas_cerradas` en `config/alcance.json` (§6) y abro el PR, que espera a tu visto bueno porque `config/` tiene dueño. Te doy un resumen breve y, si la línea de trabajo ha terminado, el comando para retirar el carril (`make retirar`) después de la fusión.
 
 Antes del código de cada fichero nuevo de `src/`, de cualquier capa (`docs/arnes.md`, §6, y skill `codebase-design`):
 
@@ -840,7 +836,7 @@ Antes del código de cada fichero nuevo de `src/`, de cualquier capa (`docs/arne
 - esbozo al menos otra interfaz radicalmente distinta, solo con sus métodos principales, y me quedo con la más profunda;
 - anoto la descartada y por qué en el archivo del área.
 
-Sin dependencias nuevas sin tu aprobación. Si un escenario o un parámetro parece mal, paro con `[DECISIÓN PENDIENTE]`. Si te convence el cambio, va en un commit que solo toca la especificación (§10), y su PR espera a tu visto bueno.
+Sin dependencias nuevas sin tu aprobación. Si un escenario o un parámetro parece mal, paro con `[DECISIÓN PENDIENTE]`. Si te convence el cambio, lo hace una conversación de la fase specs, porque impl no toca la especificación (§6), y su PR espera a tu visto bueno.
 
 ### Etapa 5: README
 
