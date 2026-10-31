@@ -5,11 +5,11 @@
 // paso en curso, apunta el estado en el reports/relevo.md de su checkout (fuera de git) y para con
 // [RELEVO]. El dueño sigue en una conversación nueva, que lee el fichero y lo borra. El relevo es
 // obligatorio: la conversación que lo ha pasado ya no edita (MOTIVO_EDICION_TRAS_RELEVO) y no puede
-// pasar otro (NOTA_TRAS_RELEVO); solo le queda explicar y parar con la comprobación o con una decisión.
+// pasar otro; solo le queda explicar y parar.
 //
 // Lo usan cinco hooks:
 //   - vigilar-contexto (PostToolUse): avisa al pasar el umbral, y otra vez cada PASO_DE_AVISO tokens;
-//   - exigir-check (Stop): deja parar con [RELEVO] sin la comprobación, si el contexto pasa del umbral
+//   - anotar-parada (Stop): anota la parada con [RELEVO] como relevo, si el contexto pasa del umbral
 //     y la conversación no ha pasado ya el relevo;
 //   - bloquear-tras-relevo (PreToolUse): niega Edit, Write, MultiEdit y NotebookEdit a la conversación
 //     que ya ha pasado el relevo;
@@ -18,7 +18,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { campo } from './entrada-hook.ts';
-import { MARCA_DECISION_PENDIENTE } from './freno-stop.ts';
+import { MARCA_DECISION_PENDIENTE } from './exigir-check.ts';
 import { anotarLinea, leerLineas, parsearLineas } from './jsonl.ts';
 
 export const MARCA_RELEVO = '[RELEVO]';
@@ -80,7 +80,10 @@ export function tramoDeContexto(tokens: number): number {
   return tokens < UMBRAL_DE_RELEVO ? 0 : 1 + Math.floor((tokens - UMBRAL_DE_RELEVO) / PASO_DE_AVISO);
 }
 
-/** [RELEVO] solo deja parar por encima del umbral: así la marca no sirve para saltarse la comprobación. */
+/**
+ * [RELEVO] solo cuenta por encima del umbral: por debajo, nombrar la marca en un mensaje no deja a la
+ * conversación sin poder editar.
+ */
 export function puedePasarElRelevo(tokens: number): boolean {
   return tokens >= UMBRAL_DE_RELEVO;
 }
@@ -133,8 +136,8 @@ export function avisoParaClaude(tokens: number, checkout: string): string {
     `en ${rutaDelRelevo(checkout)}: qué está hecho, qué falta, el paso siguiente y qué hay que leer primero, ` +
     'en rangos fichero:líneas y no en ficheros enteros. Apunta también las búsquedas que ya has hecho y lo que ' +
     `dieron: así la conversación nueva no repite tu lectura. Termina el mensaje con ${MARCA_RELEVO}: el hook ` +
-    'Stop te deja parar así sin la comprobación, y el dueño seguirá en una conversación nueva. Después de ese ' +
-    'relevo esta conversación ya no podrá editar ficheros.'
+    'Stop lo anota, y el dueño seguirá en una conversación nueva. Después de ese relevo esta conversación ya no ' +
+    'podrá editar ficheros.'
   );
 }
 
@@ -148,25 +151,15 @@ export function avisoParaElDueno(tokens: number): string {
 export function avisoDeRelevoPasado(tokens: number): string {
   return (
     `Claude ha parado con ${MARCA_RELEVO} (contexto: ${miles(tokens)} tokens). Sigue en una conversación nueva: ` +
-    'el aviso de inicio te dirá qué carril tiene el relevo. La comprobación no se ha ejecutado.'
+    'el aviso de inicio te dirá qué carril tiene el relevo.'
   );
 }
-
-export const NOTA_DE_RELEVO_ANTES_DE_TIEMPO =
-  `Has terminado con ${MARCA_RELEVO}, pero el contexto no llega al umbral de relevo ` +
-  `(${miles(UMBRAL_DE_RELEVO)} tokens). Sigue con el trabajo de la fase.`;
 
 /** Lo que ve Claude si intenta editar después de pasar el relevo (hook bloquear-tras-relevo). */
 export const MOTIVO_EDICION_TRAS_RELEVO =
   `Esta conversación ya ha pasado el relevo (${MARCA_RELEVO}) y no edita más ficheros: el dueño sigue en una ` +
   `conversación nueva, que lee el relevo (${RUTA_DEL_RELEVO}). Si falta algo, dilo en tu mensaje y para; si necesitas ` +
   `una decisión, termina con ${MARCA_DECISION_PENDIENTE}.`;
-
-/** Lo que ve Claude si el Stop falla en una conversación que ya ha pasado el relevo: no puede arreglarlo. */
-export const NOTA_TRAS_RELEVO =
-  `Esta conversación ya ha pasado el relevo, así que ${MARCA_RELEVO} no vale otra vez y ya no puede editar ` +
-  `ficheros. No intentes arreglar el fallo: explica en el mensaje qué falla y termina con ${MARCA_DECISION_PENDIENTE}; ` +
-  'el dueño lo arregla en la conversación nueva.';
 
 // ---------------------------------------------------------------------------
 // Relevos pendientes

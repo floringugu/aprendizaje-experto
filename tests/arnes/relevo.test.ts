@@ -8,7 +8,6 @@ import {
   leerRegistroContexto,
   MARCA_RELEVO,
   MOTIVO_EDICION_TRAS_RELEVO,
-  NOTA_TRAS_RELEVO,
   puedePasarElRelevo,
   tokensDeContexto,
   tramoDeContexto,
@@ -147,10 +146,5 @@ describe('después del relevo', () => {
   it('al editar, Claude ve que el relevo está pasado y cómo acabar', () => {
     expect(MOTIVO_EDICION_TRAS_RELEVO).toContain(MARCA_RELEVO);
     expect(MOTIVO_EDICION_TRAS_RELEVO).toContain('[DECISIÓN PENDIENTE]');
-  });
-
-  it('con el Stop en rojo, la nota dice que la marca no vale otra vez y que pare con una decisión', () => {
-    expect(NOTA_TRAS_RELEVO).toMatch(/no vale otra vez/);
-    expect(NOTA_TRAS_RELEVO).toContain('[DECISIÓN PENDIENTE]');
   });
 });

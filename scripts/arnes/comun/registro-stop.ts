@@ -1,39 +1,58 @@
-// Registro de las paradas del hook Stop: .claude/registro-stop.jsonl, una línea JSON por parada.
+// Registro de los hooks del arnés que paran o comprueban: .claude/registro-stop.jsonl, una línea JSON
+// por anotación. Anotan en él:
+//   - el hook Stop (anotar-parada.ts), cada parada de la conversación;
+//   - el hook PreToolUse exigir-check-push.ts, cada comprobación antes de git push o gh pr create;
+//   - el hook SubagentStop del implementador (exigir-check-implementador.ts), cada bloqueo.
 //
-// Sirve para tres cosas:
-//   - el freno: contar cuántas veces seguidas ha bloqueado el mismo paso en una conversación;
+// Sirve para dos cosas:
 //   - el relevo: saber si la conversación ya ha pasado el suyo (relevoPasado);
-//   - el archivo de cada área (docs/areas/<ÁREA>.md): cuántas veces bloqueó el hook mientras
-//     se implementaba el área («make bloqueos A=<ÁREA>»).
+//   - el archivo de cada área (docs/areas/<ÁREA>.md): cuántas veces bloquearon los hooks y cómo
+//     pararon las conversaciones mientras se implementaba el área («make bloqueos A=<ÁREA>»).
 // El fichero está en .gitignore: es local, como reports/.
 import path from 'node:path';
-import { BLOQUEOS_PARA_FRENAR } from './freno-stop.ts';
+import { leerAlcance } from './alcance.ts';
+import { faseYAreaDelCheckout, nombreDelCarril } from './checkout.ts';
+import { campoTexto } from './entrada-hook.ts';
 import { anotarLinea, leerLineas, parsearLineas } from './jsonl.ts';
 import type { Fase } from './fases.ts';
 
 // Fuera de git (.gitignore): cada copia del repositorio lleva su propio registro.
 const RUTA_REGISTRO_STOP = '.claude/registro-stop.jsonl';
 
-const RESULTADOS = ['verde', 'bloqueo', 'decision', 'relevo'] as const;
+const RESULTADOS = [
+  'decision',
+  'relevo',
+  'espera',
+  'sin-cambios',
+  'con-cambios',
+  'push-verde',
+  'push-bloqueo',
+  'implementador-bloqueo',
+  'verde',
+  'bloqueo',
+] as const;
 /**
- * verde: la comprobación pasa; bloqueo: falla y no deja parar; decision: Claude para con
- * [DECISIÓN PENDIENTE]; relevo: Claude para con [RELEVO] porque el contexto ha pasado del umbral.
+ * Del hook Stop: decision, Claude para con [DECISIÓN PENDIENTE]; relevo, para con [RELEVO] porque el
+ * contexto ha pasado del umbral; espera, quedan subagentes en segundo plano; sin-cambios y con-cambios,
+ * cualquier otra parada, según el árbol de trabajo del checkout difiera o no del último commit.
+ * Del hook del push: push-verde y push-bloqueo. Del SubagentStop: implementador-bloqueo.
+ * verde y bloqueo, solo en las líneas antiguas: la comprobación que hacía el hook Stop hasta el 31-10-2026.
  */
 type ResultadoParada = (typeof RESULTADOS)[number];
 
 export interface ParadaStop {
   /** Fecha y hora ISO 8601. */
   readonly fecha: string;
-  /** session_id de Claude Code: identifica la conversación. */
+  /** session_id de Claude Code: identifica la conversación. Los subagentes llevan el de la suya. */
   readonly sesion: string;
   readonly fase: Fase;
   readonly resultado: ResultadoParada;
   /** Solo en los bloqueos: el paso de make que falla. */
   readonly paso?: string;
-  /** Solo en los bloqueos: cuántos bloqueos seguidos del mismo paso lleva la conversación, contando este. */
-  readonly seguidos?: number;
-  /** Solo si el fallo es del entorno: su código (EADDRINUSE, EACCES, ENOSPC o COMANDO). */
-  readonly entorno?: string;
+  /** Solo en las paradas del hook Stop: los tokens de contexto de la última llamada al modelo. */
+  readonly tokens?: number;
+  /** Solo en las comprobaciones del push: lo que ha tardado make. */
+  readonly milisegundos?: number;
   /** Áreas cerradas (config/alcance.json) en ese momento. */
   readonly areasCerradas?: readonly string[];
   /** El área en curso del checkout de la conversación, si tenía una. */
@@ -48,6 +67,23 @@ export interface ParadaStop {
    * fuera de alcance, de la que se deducía qué área estaba en curso.
    */
   readonly areasFueraDeAlcance?: readonly string[];
+}
+
+/** Lo que llevan todas las anotaciones, sea cual sea el hook. */
+export type DatosDeParada = Pick<ParadaStop, 'fecha' | 'sesion' | 'fase' | 'areasCerradas' | 'areaEnCurso' | 'carril'>;
+
+/** Los datos comunes de una anotación, de la entrada del hook y del checkout de la conversación. */
+export function datosDeLaEntrada(entrada: unknown, checkout: string): DatosDeParada {
+  const { cerradas, enCurso } = leerAlcance(checkout);
+  const carril = nombreDelCarril(checkout);
+  return {
+    fecha: new Date().toISOString(),
+    sesion: campoTexto(entrada, 'session_id') ?? 'desconocida',
+    fase: faseYAreaDelCheckout(checkout).fase,
+    areasCerradas: cerradas,
+    ...(enCurso === undefined ? {} : { areaEnCurso: enCurso }),
+    ...(carril === undefined ? {} : { carril }),
+  };
 }
 
 export function anotarParada(raiz: string, parada: ParadaStop): void {
@@ -74,48 +110,41 @@ function esParada(valor: unknown): valor is ParadaStop {
 
 /**
  * ¿La conversación ya ha parado con [RELEVO] aceptado? Desde entonces no edita más y el Stop no acepta
- * otro relevo (docs/plan.md §5, «Relevo»): el hook PreToolUse bloquear-tras-relevo.ts y exigir-check.ts
+ * otro relevo (docs/plan.md §5, «Relevo»): el hook PreToolUse bloquear-tras-relevo.ts y anotar-parada.ts
  * lo leen de aquí, y así no hace falta otro registro.
  */
 export function relevoPasado(registro: readonly ParadaStop[], sesion: string): boolean {
   return registro.some((parada) => parada.sesion === sesion && parada.resultado === 'relevo');
 }
 
-/** Bloqueos seguidos de ese paso al final del registro de la conversación. Otra conversación no corta la racha. */
-export function bloqueosSeguidos(registro: readonly ParadaStop[], sesion: string, paso: string): number {
-  let seguidos = 0;
-  for (const parada of registro.filter((candidata) => candidata.sesion === sesion).toReversed()) {
-    if (parada.resultado !== 'bloqueo' || parada.paso !== paso) break;
-    seguidos += 1;
-  }
-  return seguidos;
-}
-
 // ---------------------------------------------------------------------------
 // Resumen por área (make bloqueos A=<ÁREA>)
 // ---------------------------------------------------------------------------
 
+/** Los resultados que niegan algo: el push, la devolución del implementador y el antiguo Stop. */
+type ResultadoDeBloqueo = Extract<ResultadoParada, 'push-bloqueo' | 'implementador-bloqueo' | 'bloqueo'>;
+
 export interface ResumenDeArea {
   readonly area: string;
-  /** Fecha de la primera parada con el área en curso, si la hay. */
+  /** Fecha de la primera anotación con el área en curso, si la hay. */
   readonly desde: string | undefined;
   readonly sesiones: number;
-  /** Carriles de esas paradas, ordenados; «principal» es el directorio principal. */
+  /** Carriles de esas anotaciones, ordenados; «principal» es el directorio principal. */
   readonly carriles: readonly string[];
-  readonly paradas: number;
-  /** Bloqueos por paso de make, de más a menos. */
-  readonly bloqueosPorPaso: readonly (readonly [string, number])[];
-  /** Códigos de los errores del entorno, uno por bloqueo. */
-  readonly erroresDeEntorno: readonly string[];
-  /** Bloqueos en los que saltó el freno (tercero seguido o más). */
-  readonly frenos: number;
-  readonly decisiones: number;
-  readonly relevos: number;
+  readonly anotaciones: number;
+  /** Cuántas anotaciones tiene cada resultado. */
+  readonly porResultado: Readonly<Record<ResultadoParada, number>>;
+  /** Los bloqueos de cada hook por paso de make, de más a menos. */
+  readonly pasos: Readonly<Record<ResultadoDeBloqueo, readonly (readonly [string, number])[]>>;
+  /** Mediana de lo que tarda la comprobación del push, en milisegundos; undefined si no hay ninguna. */
+  readonly medianaDelPush: number | undefined;
 }
 
 export function resumirArea(registro: readonly ParadaStop[], area: string): ResumenDeArea {
   const paradas = paradasDelArea(registro, area);
-  const bloqueos = paradas.filter((parada) => parada.resultado === 'bloqueo');
+  const deResultado = (resultado: ResultadoParada): ParadaStop[] =>
+    paradas.filter((parada) => parada.resultado === resultado);
+  const pushes = [...deResultado('push-verde'), ...deResultado('push-bloqueo')];
   return {
     area,
     desde: paradas[0]?.fecha,
@@ -123,18 +152,22 @@ export function resumirArea(registro: readonly ParadaStop[], area: string): Resu
     carriles: [...new Set(paradas.map((parada) => parada.carril ?? 'principal'))].toSorted((a, b) =>
       a.localeCompare(b),
     ),
-    paradas: paradas.length,
-    bloqueosPorPaso: contarPorPaso(bloqueos),
-    erroresDeEntorno: bloqueos.flatMap((parada) => parada.entorno ?? []),
-    frenos: bloqueos.filter((parada) => (parada.seguidos ?? 0) >= BLOQUEOS_PARA_FRENAR).length,
-    decisiones: paradas.filter((parada) => parada.resultado === 'decision').length,
-    relevos: paradas.filter((parada) => parada.resultado === 'relevo').length,
+    anotaciones: paradas.length,
+    porResultado: Object.fromEntries(
+      RESULTADOS.map((resultado) => [resultado, deResultado(resultado).length]),
+    ) as Record<ResultadoParada, number>,
+    pasos: {
+      'push-bloqueo': contarPorPaso(deResultado('push-bloqueo')),
+      'implementador-bloqueo': contarPorPaso(deResultado('implementador-bloqueo')),
+      bloqueo: contarPorPaso(deResultado('bloqueo')),
+    },
+    medianaDelPush: mediana(pushes.flatMap((push) => push.milisegundos ?? [])),
   };
 }
 
 /**
- * Paradas de la fase impl mientras el área estaba en curso. Las fases specs y aceptacion no
- * cuentan: tratan todas las áreas a la vez. Cada parada dice su área en curso; las antiguas, que
+ * Anotaciones de la fase impl mientras el área estaba en curso. Las fases specs y aceptacion no
+ * cuentan: tratan todas las áreas a la vez. Cada anotación dice su área en curso; las antiguas, que
  * solo copiaban la lista de áreas fuera de alcance, se resuelven con `paradasAntiguasDelArea`.
  */
 function paradasDelArea(registro: readonly ParadaStop[], area: string): ParadaStop[] {
@@ -167,21 +200,42 @@ function contarPorPaso(bloqueos: readonly ParadaStop[]): [string, number][] {
   return [...cuenta].toSorted(([, a], [, b]) => b - a);
 }
 
+/** Con un número par de valores, la media de los dos centrales; undefined sin valores. */
+function mediana(valores: readonly number[]): number | undefined {
+  const ordenados = valores.toSorted((a, b) => a - b);
+  const mitad = (ordenados.length - 1) / 2;
+  const baja = ordenados[Math.floor(mitad)];
+  const alta = ordenados[Math.ceil(mitad)];
+  return baja === undefined || alta === undefined ? undefined : (baja + alta) / 2;
+}
+
 export function formatearResumen(resumen: ResumenDeArea): string {
-  if (resumen.paradas === 0) {
-    return `${resumen.area}: el registro no tiene paradas del hook Stop con esta área en curso.`;
+  if (resumen.anotaciones === 0) {
+    return `${resumen.area}: el registro no tiene anotaciones con esta área en curso.`;
   }
-  const bloqueos = resumen.bloqueosPorPaso.reduce((total, [, cuenta]) => total + cuenta, 0);
-  const porPaso = resumen.bloqueosPorPaso.map(([paso, cuenta]) => `${paso} ${String(cuenta)}`).join(', ');
-  const entorno = resumen.erroresDeEntorno;
+  const { porResultado: cuenta, pasos } = resumen;
+  const tarda =
+    resumen.medianaDelPush === undefined
+      ? ''
+      : `; la comprobación tarda ${String(Math.round(resumen.medianaDelPush / 1000))} s de mediana`;
   return [
-    `${resumen.area}: ${String(resumen.paradas)} paradas del hook Stop en ${String(resumen.sesiones)} conversaciones, ` +
+    `${resumen.area}: ${String(resumen.anotaciones)} anotaciones en ${String(resumen.sesiones)} conversaciones, ` +
       `desde ${resumen.desde ?? '?'}.`,
     `  - Carriles: ${resumen.carriles.join(', ')}.`,
-    `  - Bloqueos: ${String(bloqueos)}${bloqueos === 0 ? '' : ` (${porPaso})`}.`,
-    `  - Por el entorno: ${String(entorno.length)}${entorno.length === 0 ? '' : ` (${entorno.join(', ')})`}.`,
-    `  - Con el freno (${String(BLOQUEOS_PARA_FRENAR)}.º bloqueo seguido o más): ${String(resumen.frenos)}.`,
-    `  - Paradas con [DECISIÓN PENDIENTE]: ${String(resumen.decisiones)}.`,
-    `  - Paradas con [RELEVO]: ${String(resumen.relevos)}.`,
+    `  - Push: ${String(cuenta['push-verde'])} en verde y ${bloqueos(pasos['push-bloqueo'])}${tarda}.`,
+    `  - Implementador: ${bloqueos(pasos['implementador-bloqueo'])}.`,
+    `  - Paradas del hook Stop: ${String(cuenta.decision)} con [DECISIÓN PENDIENTE], ${String(cuenta.relevo)} con ` +
+      `[RELEVO], ${String(cuenta.espera)} esperando a subagentes, ${String(cuenta['sin-cambios'])} sin cambios y ` +
+      `${String(cuenta['con-cambios'])} con cambios sin commitear.`,
+    ...(cuenta.verde + cuenta.bloqueo === 0
+      ? []
+      : [`  - Comprobación en el Stop, ya retirada: ${String(cuenta.verde)} en verde y ${bloqueos(pasos.bloqueo)}.`]),
   ].join('\n');
+}
+
+/** «3 bloqueos (unidad 2, lint 1)», o «0 bloqueos». */
+function bloqueos(porPaso: readonly (readonly [string, number])[]): string {
+  const total = porPaso.reduce((suma, [, cuenta]) => suma + cuenta, 0);
+  const detalle = porPaso.map(([paso, cuenta]) => `${paso} ${String(cuenta)}`).join(', ');
+  return `${String(total)} bloqueos${total === 0 ? '' : ` (${detalle})`}`;
 }

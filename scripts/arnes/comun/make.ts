@@ -1,5 +1,6 @@
 // Ejecuta un objetivo del Makefile y recoge su salida. Lo usan los hooks que exigen una
-// comprobación en verde: Stop (exigir-check.ts) y SubagentStop (exigir-check-implementador.ts).
+// comprobación en verde: PreToolUse en Bash (exigir-check-push.ts) y SubagentStop
+// (exigir-check-implementador.ts).
 import { spawnSync } from 'node:child_process';
 
 // La salida de make check puede ser larga (los tests de aceptación); el límite por defecto se queda corto.

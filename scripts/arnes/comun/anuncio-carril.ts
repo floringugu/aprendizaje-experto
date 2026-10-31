@@ -34,7 +34,7 @@ export function anuncioDelCarril(raiz: string, entrada: unknown): AnuncioDelCarr
   const avisos = [
     `Carril ${nombre}: fase ${fase} (${modelo}, esfuerzo ${esfuerzo})`,
     `área en curso: ${area ?? 'ninguna'}`,
-    `Stop exige make ${objetivo}`,
+    `git push exige make ${objetivo}`,
     ...(relevos.length === 0 ? [] : ['relevo pendiente']),
   ];
   return {
@@ -42,7 +42,7 @@ export function anuncioDelCarril(raiz: string, entrada: unknown): AnuncioDelCarr
     paraClaude: [
       `Arnés: la conversación ha entrado en el carril «${nombre}» (${carril}), en la fase «${fase}» ` +
         `(${PROPOSITO_POR_FASE[fase]}). Área en curso: ${area ?? 'ninguna'}.`,
-      `El hook Stop exige «make ${objetivo}» en verde en este carril antes de terminar, si hay cambios respecto al último commit.`,
+      `git push y gh pr create exigen «make ${objetivo}» en verde en este carril: el hook exigir-check-push los niega mientras falle.`,
       blanca.length === 0
         ? `El carril no tiene lista blanca (${RUTA_CODEOWNERS}): todo PR espera al visto bueno del dueño.`
         : `Un PR que solo toca la lista blanca (${RUTA_CODEOWNERS}) se fusiona solo: ${blanca.join(', ')}. ` +

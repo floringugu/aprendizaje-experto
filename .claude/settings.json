@@ -35,6 +35,16 @@
         ]
       },
       {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/exigir-check-push.ts\"",
+            "timeout": 600
+          }
+        ]
+      },
+      {
         "matcher": "Agent",
         "hooks": [
           {
@@ -92,8 +102,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/exigir-check.ts\"",
-            "timeout": 600
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/anotar-parada.ts\"",
+            "timeout": 30
           }
         ]
       }
