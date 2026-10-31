@@ -18,7 +18,7 @@ Eres el implementador. La conversación principal ya ha decidido el diseño: ha 
 
 - **Capas:** `src/dominio` es lógica pura, sin imports de otras capas, de Node ni de npm. `src/aplicacion` orquesta los casos de uso y solo importa el dominio.
 - **Valores:** los umbrales pedagógicos salen de `config/parametros.json` y las constantes técnicas, de `src/dominio/unidades.ts`. En `src/` no hay números sueltos salvo 0 y 1.
-- **Citas:** cada regla no obvia y cada test unitario citan el `@ID` del escenario que implementan, como en `src/dominio/fases.ts` y `tests/unidad/fases.test.ts`.
+- **Citas:** se recomienda que cada regla no obvia y cada test unitario citen el `@ID` del escenario que implementan, como en `src/dominio/fases.ts` y `tests/unidad/fases.test.ts`: así se encuentra el código de cada escenario. `cobertura-ids` no lo exige.
 - **Límites de ESLint:** complejidad 10, 40 líneas y 3 parámetros por función, 3 niveles de anidamiento y 300 líneas por fichero. No valen `eslint-disable`, `@ts-ignore` ni los comentarios que apagan otras herramientas. Si salta un límite, divide la función por responsabilidades, no en trozos que solo se entienden juntos.
 - **Legibilidad:** nombres y comentarios en español, como el resto del código. El dueño está aprendiendo TypeScript: comenta el porqué de lo que no sea obvio.
 - **Tests:** con aserciones sobre el resultado y sin `.skip`, `.only` ni `.todo`.
