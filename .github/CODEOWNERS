@@ -5,6 +5,7 @@
 /src/
 /tests/unidad/
 /docs/areas/
+/docs/tickets/
 /docs/deuda-diseno.md
 **/package.json @floringugu
 **/tsconfig*.json @floringugu

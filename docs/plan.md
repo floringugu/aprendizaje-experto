@@ -45,7 +45,7 @@ El dueño aprobó el 18-10-2026 todas las decisiones del §14 y todas las propue
 | Horas (etapa 2) | Registro manual de fecha y minutos de práctica focalizada; sin metas; nunca miden el progreso. | `HORA` |
 | Instrumentación (etapa 2) | Un CSV por tipo de evento, con columnas fijas: `respuestas`, `cambios_ayuda`, `objetivos_dominados`, `cambios_fase`, `evaluaciones_externas` y `horas`. La columna `tras_ejemplo` de `respuestas` indica si la sesión mostró un ejemplo resuelto justo antes del ítem. | `INST` |
 | Área `MATE` (20-10-2026) | Prefijo nuevo para el material del dominio y los borradores que redacta una IA (§17.6). | `features/` (fase specs) |
-| Orden de la etapa 4 (20-10-2026) | Tras DIAG: RECU → MAST → MATE → PLAN → PANT → AYUD → INTE → CALI y HORA → TARE → BUCL → INST. | Etapa 4 |
+| Orden de la etapa 4 (20-10-2026; 31-10-2026) | Lo da el grafo de dependencias de los tickets de `docs/tickets/` (§6, «Tickets»): `make tickets` dice cuáles están listos. Las dependencias entre áreas siguen el orden de partida, tras DIAG: RECU → MAST → MATE → PLAN → PANT → AYUD → INTE → CALI y HORA → TARE → BUCL → INST. | Etapa 4 |
 | Transferencia (hueco 3, 24-10-2026) | <ul><li>**Ítems reservados:** un ítem puede llevar `reservado: true`. La práctica, los repasos, el diagnóstico y el intento de exploración nunca lo presentan; si un ítem es a la vez reservado y `diagnostico`, gana lo reservado y no es un error de formato. Se presenta una sola vez (MAST-8.1, MAST-8.5).</li><li>**Para qué sirven:** para pasar a la fase avanzada y en las pruebas de retención. No cuentan para el dominio ni para saber si un objetivo tiene todos sus ítems con intento (MAST-8.2).</li><li>**Fase avanzada:** además del acierto en problemas intercalados, exige llegar a `umbral_transferencia` (0,85, extrapolación) en los problemas reservados de categorías con grupo, todos respondidos. Con menos de `minimo_problemas_reservados` (5, extrapolación; con el 85 %, hasta 6 problemas obligan a acertarlos todos), no se avanza y la aplicación dice que faltan casos nuevos (MAST-6.7 a MAST-6.11, MAST-6.14).</li><li>**Si falla la transferencia (25-10-2026):** cada reservado se presenta una sola vez, así que quien falla no puede mejorar con los mismos. Si no quedan reservados por responder, la aplicación avisa de que faltan casos nuevos y ofrece pedir más por `MATE`; el acierto se calcula sobre todos los reservados respondidos, los viejos y los nuevos (MAST-6.12, MAST-6.13). Pedir más reservados es una redacción como las demás: el borrador lleva solo ítems reservados, la petición incluye los enunciados de los ítems que ya tiene el objetivo para que el caso sea otro, y uno que no sea reservado se aparta (MATE-2.10, MATE-2.11).</li><li>**Reparto:** los problemas reservados de categorías con grupo entran en la mezcla de las sesiones intercaladas cuando todos los problemas no reservados del grupo ya tienen un intento intercalado, sin nada que los distinga (INTE-5). Los demás (hechos y problemas de categorías sin grupo) van a las pruebas de retención, a partes iguales entre las semanas configuradas y en el orden del contenido; si no sale exacto, las primeras pruebas llevan uno más (MAST-8.3). Fallar uno en una prueba de retención no quita el dominio (MAST-8.4).</li><li>**Cuándo se gasta (25-10-2026):** cuando se declara la confianza, que es cuando el intento está completo (CALI-1.1). Uno que se mostró y se abandonó antes sigue disponible y sin intento (MAST-8.6).</li><li>**Registro:** su respuesta va a `respuestas.csv` con el contexto «transferencia» (INST-1.3).</li><li>**Petición a la IA:** marca como reservado uno de cada cinco ítems de cada objetivo y al menos un problema de cada categoría con grupo (I9); si se le piden más, redacta solo reservados (I10).</li><li>**Quién marca (25-10-2026):** la IA pone `reservado` (MATE-2.8; un valor que no es verdadero ni falso aparta la pieza, MATE-2.9), porque es quien sabe de qué ítem es variante cada reservado. La persona lo ve en la revisión y lo pone o quita al corregir (MATE-4.12). La aplicación avisa si una categoría con grupo no tiene ningún problema reservado y si hay menos que el mínimo, a partir solo del contenido aprobado, que es el que usa `MAST` (MATE-3.6, MATE-3.7).</li><li>Que la transferencia se mida con ítems del propio contenido, y los umbrales, son decisiones del autor: el informe da la métrica sin cifra.</li></ul> | `MAST`, `INTE`, `INST`, `MATE`, formato del contenido |
 | Área `PANT` (24-10-2026) | <ul><li>Prefijo nuevo, «servidor y pantallas», justo después de `PLAN` y antes de `AYUD`. Con ella termina el primer release.</li><li>Incluye `node:http` (`src/interfaz/servidor.ts`), la persistencia del estado (hoy los intentos solo viven en memoria), el emparejamiento por QR (§17.5), los adaptadores de `MATE` y las pantallas de `DIAG`, `RECU`, `MAST`, `MATE` y `PLAN`, además de Ajustes (tema y vibración, §17.1 y §17.4).</li><li>Desde `PANT`, cada área añade sus pantallas.</li><li>Su «Mecanismo» (§16) decide los puntos del §17.8 y cómo se prueban las pantallas, y quizá pida una dependencia nueva, que se presenta con su licencia y su tamaño.</li></ul> | `features/pantallas.feature`, `src/interfaz/`, `config/alcance.json` |
 | Borradores (20-10-2026; ejemplos, 24-10-2026) | <ul><li>Van en un fichero aparte, `contenido/borradores/<dominio>.json`, con el formato del contenido.</li><li>El motor solo lee `contenido/<dominio>.json`, así que un borrador nunca llega a una sesión.</li><li>Los ids no se repiten ni dentro del borrador ni entre los dos ficheros, sea cual sea el tipo de pieza: la revisión nombra cada pieza solo por su id (24-10-2026). En el contenido aprobado escrito a mano no se exige; sus piezas no llevan `fuente`, así que «Ver fuente» no se vuelve ambiguo.</li><li>Los ejemplos resueltos de un objetivo ya aprobado van en `ejemplos_resueltos` de la raíz, cada uno con su `objetivo`; los de un objetivo nuevo, dentro de él (etapa 3).</li></ul> | `MATE` |
@@ -121,6 +121,8 @@ docs/
   deuda-diseno.md        deuda de diseño pendiente, que se paga al abrir cada área (lista blanca; se edita en la fase impl)
   areas/                 archivo de cada área de la etapa 4: mecanismo, interfaces descartadas,
                          deuda pagada, mutación y bloqueos (plantilla.md; lista blanca)
+  tickets/               el trabajo pendiente, un ticket por carril, con sus dependencias y su huella
+                         (_plantilla.md; lista blanca; §6, «Tickets»)
 features/                Gherkin en español (etapa 2; con dueño, fase specs)
 src/
   dominio/               lógica pura: planificador, criterio de dominio, fases, ayuda, calibración
@@ -145,7 +147,7 @@ scripts/arnes/           scripts de make check y de la CI (con dueño)
   CODEOWNERS             qué rutas esperan al visto bueno del dueño y cuáles son la lista blanca (§6)
   workflows/puerta.yml   la CI: los checks rama, rutas y check (§14, decisión 16)
 .vscode/
-  tasks.json             tareas del dueño: fase, abrir y retirar un carril
+  tasks.json             tareas del dueño: fase, abrir y retirar un carril, y el tablero de tickets
   settings.json          muestra los carriles en el control de código fuente
 reports/relevo.md        relevo pendiente del checkout (§5; fuera de git)
 CLAUDE.md                reglas de trabajo de Claude (con dueño)
@@ -167,9 +169,10 @@ Los pasos se ejecutan en este orden. La ejecución se para en el primero que fal
 | 4 | `codigo-muerto` | knip | hay ficheros, exports o dependencias sin usar | — |
 | 5 | `capas` | dependency-cruiser | se rompe una regla de capas (ver abajo) | — |
 | 6 | `unidad` | Vitest con cobertura v8 (`vitest run --coverage`; `tests/unidad/` y `tests/arnes/`) | falla un test o un fichero de `src/dominio/` no llega al 100 % de cobertura | 100 % por fichero en `src/dominio/`; el resto de `src/` se mide sin umbral (informe en `reports/cobertura/`) |
-| 7 | `specs` | `scripts/arnes/cobertura-ids.ts --solo-specs` | `features/`, sus frases vagas o los parámetros no son válidos (§8) | — |
-| 8 | `aceptacion` | Cucumber, en modo `strict` | un escenario falla, está pendiente o tiene pasos sin definir | Solo las áreas cerradas de `config/alcance.json` (regresión), no el área en curso de la conversación (§6) |
-| 9 | `cobertura-ids` | `scripts/arnes/cobertura-ids.ts` | Ver el §8 | — |
+| 7 | `tickets` | `scripts/arnes/tickets.ts comprobar` | un ticket de `docs/tickets/` está mal escrito, su área no tiene feature, una dependencia no existe o hay un ciclo (§6, «Tickets») | — |
+| 8 | `specs` | `scripts/arnes/cobertura-ids.ts --solo-specs` | `features/`, sus frases vagas o los parámetros no son válidos (§8) | — |
+| 9 | `aceptacion` | Cucumber, en modo `strict` | un escenario falla, está pendiente o tiene pasos sin definir | Solo las áreas cerradas de `config/alcance.json` (regresión), no el área en curso de la conversación (§6) |
+| 10 | `cobertura-ids` | `scripts/arnes/cobertura-ids.ts` | Ver el §8 | — |
 
 **Reglas de ESLint**
 
@@ -208,22 +211,23 @@ En `tests/` no se aplica el límite de longitud por función, porque un `describ
 
 | Objetivo | Fase | Pasos |
 |---|---|---|
-| `make check` | impl (por defecto) | Los 9 de la tabla |
-| `make check-specs` | specs (etapa 2) | Del 1 al 7 |
-| `make check-aceptacion` | aceptacion (etapa 3) | Del 1 al 7 y `estado-aceptacion` (los escenarios del área en curso deben fallar en rojo: ni pasar, ni quedar pendientes, ni tener pasos sin definir; los de las áreas cerradas deben seguir en verde) |
-| `make check-implementador` | impl, la del subagente `implementador` (§7) | Del 1 al 6 salvo `codigo-muerto`: cuando devuelve su encargo, la aplicación aún no usa las funciones nuevas del dominio. El resto lo exige después el hook del push a la conversación principal |
+| `make check` | impl (por defecto) | Los 10 de la tabla |
+| `make check-specs` | specs (etapa 2) | Del 1 al 8 |
+| `make check-aceptacion` | aceptacion (etapa 3) | Del 1 al 8 y `estado-aceptacion` (los escenarios del área en curso deben fallar en rojo: ni pasar, ni quedar pendientes, ni tener pasos sin definir; los de las áreas cerradas deben seguir en verde) |
+| `make check-implementador` | impl, la del subagente `implementador` (§7) | Del 1 al 7 salvo `codigo-muerto`: cuando devuelve su encargo, la aplicación aún no usa las funciones nuevas del dominio. El resto lo exige después el hook del push a la conversación principal |
 
-Fuera de `make check` hay ocho objetivos más:
+Fuera de `make check` hay diez objetivos más:
 
 - `make mutacion` (§9);
-- `make cerrar-area A=<ÁREA>` (§6): los pasos del 1 al 6, y la aceptación y la cobertura de los IDs con el área en curso incluida, que es lo último antes de cerrar el área;
+- `make cerrar-area A=<ÁREA>` (§6): los pasos del 1 al 7, y la aceptación y la cobertura de los IDs con el área en curso incluida, que es lo último antes de cerrar el área;
 - `make fase F=<fase> [A=<ÁREA>] [N=<carril>]` (§6), que es solo tuyo: fija la fase y el área de la carpeta principal o, con `N=`, del carril `N`;
 - `make abrir` y `make retirar` (§6), también solo tuyos: crean y borran un carril (un worktree con su rama);
 - `make rama` (§6), que lanza la conversación de un carril cuando GitHub ha fusionado el PR de su rama: pasa el carril a su rama siguiente;
 - `make bloqueos A=<ÁREA>` (§5), que resume las anotaciones de los hooks de un área (paradas, comprobaciones del push y bloqueos del implementador) para su archivo;
+- `make tickets` y `make tablero` (§6, «Tickets»): los tickets de `docs/tickets/` con su estado, en texto y en una página web;
 - `make formatear`.
 
-`make fase`, `make abrir` y `make retirar` también se lanzan desde VS Code, con las tareas de `.vscode/tasks.json` (Ctrl+Shift+P → «Tasks: Run Task»).
+`make fase`, `make abrir`, `make retirar` y `make tablero` también se lanzan desde VS Code, con las tareas de `.vscode/tasks.json` (Ctrl+Shift+P → «Tasks: Run Task»).
 
 ---
 
@@ -309,7 +313,7 @@ Están en `.claude/settings.json`:
 
 Al empezar cada conversación (y al reanudarla, limpiarla o compactarla), dice en qué fase está el checkout de su directorio de trabajo, que es la carpeta principal salvo que la conversación se abra dentro de un carril:
 
-- **A ti**, con un aviso de una línea: la fase con su modelo y su esfuerzo (§6), la comprobación que exigirá `git push`, el área en curso, las áreas cerradas y los checkouts (la carpeta principal y los carriles) que tienen un relevo pendiente. Así compruebas que la fase y el área que elegiste con `make fase` o `make abrir` han llegado a los hooks. Si la conversación usa otro modelo que el de la fase, el aviso lo dice y te recuerda `/model`; si Claude Code no envía el modelo, no hay aviso.
+- **A ti**, con un aviso de una línea: la fase con su modelo y su esfuerzo (§6), la comprobación que exigirá `git push`, el área en curso, las áreas cerradas y los checkouts (la carpeta principal y los carriles) que tienen un relevo pendiente. Así compruebas que la fase y el área que elegiste con `make fase` o `make abrir` han llegado a los hooks. Si la conversación usa otro modelo que el de la fase, el aviso lo dice y te recuerda `/model`; si Claude Code no envía el modelo, no hay aviso. En la carpeta principal añade los tickets listos para abrir (§6, «Tickets»), con lo último que se trajo de origin: no hace `git fetch`, para no depender de la red.
 - **A Claude**, como contexto: además, para qué sirve la fase y, si hay relevos pendientes, la ruta absoluta de cada `reports/relevo.md`: si sigue en ese carril, lo lee antes de nada y lo borra.
 
 ### PostToolUse en EnterWorktree: `anunciar-carril.ts`
@@ -318,7 +322,8 @@ Una conversación de carril empieza en la carpeta principal y entra en el carril
 
 - la lista blanca: las rutas de `.github/CODEOWNERS` sin dueño, las líneas de un solo campo, que se fusionan sin tu visto bueno; lo demás lo espera (§6);
 - que los enlaces a ficheros van con la ruta absoluta del carril, porque VS Code los resuelve desde la carpeta principal;
-- que no toque los otros carriles.
+- que no toque los otros carriles;
+- si el carril tiene ticket (§6, «Tickets»), leído de su árbol de trabajo: el título, «Hecho cuando», «Leer primero», `toca` y los carriles abiertos con los que se solapa, sin `git fetch` ni `gh`.
 
 ### PreToolUse: `proteger-rutas.ts`
 
@@ -429,6 +434,7 @@ Impide que se cambie la configuración de Claude Code (la del usuario, la del pr
 - `/src/`;
 - `/tests/unidad/`;
 - `/docs/areas/`;
+- `/docs/tickets/`;
 - `/docs/deuda-diseno.md`.
 
 Dentro de ellas vuelve a tener dueño la configuración: `package.json`, `tsconfig*.json`, `.prettierrc*`, `*.config.*` y `.npmrc`. En CODEOWNERS gana la última línea que coincide.
@@ -477,8 +483,8 @@ Además, specs y aceptacion escriben rutas con dueño, así que sus PR siempre t
 
 **Carriles: un carril = un worktree = una fase y un área.** Para trabajar en varias áreas a la vez, cada línea de trabajo tiene su carril: un directorio hermano de la carpeta principal, con su rama y sus propios ajustes locales. El flujo:
 
-1. **Abrir.** `make abrir N=<carril> F=<fase> A=<ÁREA>`, solo tú y desde cualquier checkout. El área es obligatoria. Hace `git fetch`, crea `../<carpeta principal>-<carril>` con la rama `<fase>/<ÁREA>/<carril>` sacada de `origin/main`, enlaza su `node_modules` al de la carpeta principal y fija la fase, el área, el modelo y el esfuerzo en sus ajustes locales, sin permisos. Imprime «Entra en el carril <carril>.» y no abre ninguna ventana.
-2. **Entrar.** En una conversación nueva de la ventana principal pegas esa frase. Claude llama a `EnterWorktree` con la ruta del carril, y `anunciar-carril.ts` (§5) le dice la fase, el área, la lista blanca, el relevo pendiente y el modelo.
+1. **Abrir.** `make abrir N=<carril> F=<fase> A=<ÁREA>`, solo tú y desde cualquier checkout. El área es obligatoria. Si el carril tiene ticket, basta `make abrir N=<carril>`: la fase y el área salen del ticket, y se niega si no está listo («Tickets», abajo). Hace `git fetch`, crea `../<carpeta principal>-<carril>` con la rama `<fase>/<ÁREA>/<carril>` sacada de `origin/main`, enlaza su `node_modules` al de la carpeta principal y fija la fase, el área, el modelo y el esfuerzo en sus ajustes locales, sin permisos. Imprime «Entra en el carril <carril>.» y no abre ninguna ventana.
+2. **Entrar.** En una conversación nueva de la ventana principal pegas esa frase. Claude llama a `EnterWorktree` con la ruta del carril, y `anunciar-carril.ts` (§5) le dice la fase, el área, la lista blanca, el relevo pendiente, el modelo y, si lo hay, el ticket.
 3. **Trabajar.** Antes de `git push` y `gh pr create`, el hook del push ejecuta en el carril el objetivo de su fase. La guardia niega las ediciones y los Bash sobre otros carriles y las ediciones de las rutas de otra fase (§5); la carpeta principal solo se frena por la fase.
 4. **Terminar.** Claude hace los commits y después `git push -u origin HEAD` y `gh pr create --fill`. Después, `gh pr merge --auto --rebase` solo si el PR toca únicamente la lista blanca (lo mira con `gh pr diff --name-only`), y `gh pr checks --watch`. Nunca hace push a mitad de la conversación. Si hay relevo, lo escribe en `<carril>/reports/relevo.md` y termina con `[RELEVO]`.
 5. **Fusión.** El PR de la lista blanca se fusiona solo; el resto lo fusionas tú con bypass.
@@ -489,7 +495,43 @@ Además, specs y aceptacion escriben rutas con dueño, así que sus PR siempre t
 
 `make fase N=` y `make retirar` se niegan si el carril tiene un relevo pendiente, cambios sin commitear o una rama sin fusionar. Una rama cuenta como fusionada si, tras `git fetch`, `git cherry origin/main <rama>` no devuelve líneas `+`: el rebase de GitHub crea SHAs nuevos, así que no sirve `git merge-base --is-ancestor`.
 
-`make abrir`, `make retirar` y `make fase` también se lanzan desde VS Code, con las tareas de `.vscode/tasks.json`. `make rama` no es solo tuyo: lo lanza la conversación del carril.
+`make abrir`, `make retirar`, `make fase` y `make tablero` también se lanzan desde VS Code, con las tareas de `.vscode/tasks.json`. `make rama` no es solo tuyo: lo lanza la conversación del carril.
+
+**Tickets** (`docs/tickets/<id>.md`, 31-10-2026). Son opcionales. Un ticket es el trabajo de un carril: su `<id>` es el nombre del carril, y lleva una fase y un área. Hay un fichero por ticket, para que dos carriles no choquen al crearlos; los que empiezan por `_`, como `_plantilla.md`, no son tickets. El frontmatter (`scripts/arnes/comun/tickets.ts`, con un parser propio de `clave: valor` y listas `[a, b]`):
+
+- `fase` y `area`;
+- `depende`: un id en minúsculas es un ticket, cumplido cuando tiene `estado: hecho` en `origin/main`; un área en mayúsculas, cumplida cuando está en `areas_cerradas` de `origin/main`. Así, las dependencias entre áreas no se rompen cuando un ticket grueso se divide;
+- `toca`: la huella prevista, con rutas, carpetas (acaban en `/`) y patrones con `*`. Avisa de los solapes, no los prohíbe;
+- `estado`: `abierto`, `hecho` o `descartado`. Es lo único de estado que se escribe a mano.
+
+El cuerpo empieza por el título (`# …`) y lleva «Qué», «Hecho cuando» y «Leer primero». El resto del estado no se guarda: lo calcula `scripts/arnes/comun/estado-tickets.ts` con los tickets y las `areas_cerradas` de `origin/main`, los carriles abiertos (`git worktree list`), lo que ha commiteado cada uno sin fusionar y los PR abiertos (`gh pr list`; si falla, se omiten):
+
+| Estado | Cuándo |
+|---|---|
+| hecho, descartado | Su `estado` en `origin/main`. Si su carril sigue abierto, el tablero avisa de que está para retirar. |
+| en revisión | Su carril está abierto y su rama tiene un PR abierto. |
+| en curso | Su carril está abierto. |
+| listo | Todas sus dependencias están cumplidas y su `toca` no se solapa con ningún carril abierto. |
+| bloqueado | Dice qué dependencias faltan y con qué carriles y ficheros se solapa. |
+
+La huella de un carril abierto es el `toca` de su ticket más lo que ya ha commiteado. Un carril sin ticket solo cuenta por lo commiteado, y el tablero lo avisa. Dos huellas se solapan si algún fichero del árbol de `origin/main`, o alguna ruta sin `*` de las dos, casa con una entrada de cada una.
+
+- **`make tickets`** hace `git fetch` y lista los tickets por estado, con el `make abrir N=<id>` de los listos.
+- **`make tablero`** escribe `reports/tablero.html`, con una columna por estado y el grafo de dependencias en Mermaid, y, si lo lanzas tú, lo abre en el navegador. Mermaid se carga de jsdelivr con la versión fijada: sin red se ven las columnas, pero no el grafo.
+- **`npm run tickets`**, un paso de las comprobaciones (§4), mira que los tickets del árbol de trabajo estén bien escritos, que sus áreas tengan feature, que sus dependencias existan y que no haya ciclos. Así, un ticket mal escrito no llega a `main`.
+- **`make abrir N=<id>`,** si existe `origin/main:docs/tickets/<id>.md`, saca de él la fase y el área (si pasas `F` o `A` distintos, se niega) y se niega si no está listo, salvo con `FORZAR=1`. Un ticket hecho o descartado no se abre ni con `FORZAR=1`.
+
+Las reglas para Claude, en `CLAUDE.md`:
+
+- En un carril con ticket, el trabajo es el del ticket, y su «Hecho cuando» es el criterio de cierre.
+- Si hay que tocar algo fuera de su `toca`, se añade al `toca` en el mismo PR. Si `make tickets` muestra que eso se solapa con un carril abierto, Claude para con `[DECISIÓN PENDIENTE]`.
+- El trabajo nuevo que aparezca y no sea del ticket no se hace: va a un ticket nuevo en el mismo PR. Sustituye a las notas sueltas como `docs/areas/MATE-pendiente.md`: un impl que encuentra un problema de la spec crea un ticket specs.
+- El último PR del ticket le pone `estado: hecho`. Un ticket que se divide pasa a `descartado` o se estrecha, y sus partes heredan sus dependencias.
+- En la carpeta principal, cuando preguntas qué sigue, Claude ejecuta `make tickets` y te da los `make abrir N=<id>` de los listos.
+
+No se hace: la guardia no niega las ediciones fuera de `toca`, porque sería rígido y no hay dato; y no hay espejo en GitHub Projects, que queda como opción si algún día hace falta ver el tablero fuera del ordenador.
+
+El dato (principio 7) es escaso: un conflicto de fusión real en `scripts/arnes/comun/relevo.ts` y `tests/arnes/relevo.test.ts` el 30-10-2026 (sesión `589dc2f8`); tres carriles MATE activos a la vez el 31-10, de 12:16 a 12:28 (`mutacion`, `cambio2` y `contexto`); cuatro negaciones de la guardia «es otro carril» el 31-10 (sesión `b937041d`), y ninguna regla para dos áreas que tocan el mismo fichero. Lo que motiva el cambio es, sobre todo, tu petición: ver las dependencias y los solapes antes de abrir un carril.
 
 ---
 
@@ -634,7 +676,7 @@ El job `mezcla` de la CI (`scripts/arnes/regla-commits.ts`) rechazaba un PR si a
 - **Tu cuenta de administrador sigue en el llavero de `gh`.** Claude trabaja con `floringugu757-lgtm` (`GH_TOKEN`, permiso `write`, sin admin), así que GitHub le niega `gh pr merge --admin` y los cambios en rulesets y ajustes. Pero tu cuenta `floringugu` sigue inactiva en el llavero de esta máquina, y Claude podría usarla vaciando `GH_TOKEN` o con `gh auth token --user floringugu`. La guardia de Bash solo niega `env -u` y `env -i`; solo se lo impide `CLAUDE.md`. Es un riesgo aceptado: no hay ningún dato de que Claude haya usado esa cuenta, y en la auditoría de 62 sesiones no hubo ningún intento deliberado de saltarse el arnés (principio 7: no se añade un mecanismo sin un dato). Si aparece un intento, se replantean las credenciales.
 - **Desde un carril no se frena la carpeta principal,** salvo las rutas de otra fase. Claude podría editarla, pero lo que no pase por un PR no llega a GitHub. Lo ves en `git status` antes del `git pull --ff-only`.
 - **La CI usa el arnés de la rama,** salvo el job `rutas`, que ejecuta el script de la base. Un PR que relaja otra comprobación se comprueba con ella relajada. Por eso la configuración y el arnés tienen dueño, también dentro de la lista blanca: ese PR te espera.
-- **La lista blanca se fusiona sin que la veas.** Un PR que solo toca `src/`, `tests/unidad/`, `docs/areas/` o `docs/deuda-diseno.md` entra con la CI en verde. Lo que no mide la CI (diseño, nombres, comentarios) lo señala `revisor-codigo` y lo ves después en `main`.
+- **La lista blanca se fusiona sin que la veas.** Un PR que solo toca `src/`, `tests/unidad/`, `docs/areas/`, `docs/tickets/` o `docs/deuda-diseno.md` entra con la CI en verde. Lo que no mide la CI (diseño, nombres, comentarios) lo señala `revisor-codigo` y lo ves después en `main`.
 - **Que pasen los tests no demuestra eficacia pedagógica.** Lo dirá el README de la etapa 5.
 
 ---
@@ -806,7 +848,7 @@ Conversación nueva en la fase `aceptacion`.
 
 ### Etapa 4: implementación
 
-Una conversación nueva en la fase `impl` por cada área. El MVP es DIAG, PLAN, RECU, MAST, MATE y PANT, con un dominio ficticio pequeño. Tras DIAG, el orden es RECU → MAST → MATE → PLAN → PANT → AYUD → INTE → CALI y HORA → TARE → BUCL → INST. `PANT` monta el servidor, guarda el estado y trae las pantallas de las áreas anteriores; su «Mecanismo» decide los puntos del §17.8 y cómo se prueban las pantallas, y quizá pida una dependencia nueva. Desde `PANT`, cada área añade sus pantallas.
+Una conversación nueva en la fase `impl` por cada área. El MVP es DIAG, PLAN, RECU, MAST, MATE y PANT, con un dominio ficticio pequeño. El orden lo da el grafo de dependencias de `docs/tickets/` (§6, «Tickets»): `make tickets` dice qué carriles se pueden abrir sin pisarse. Las dependencias entre áreas siguen el orden de partida, tras DIAG: RECU → MAST → MATE → PLAN → PANT → AYUD → INTE → CALI y HORA → TARE → BUCL → INST. `PANT` monta el servidor, guarda el estado y trae las pantallas de las áreas anteriores; su «Mecanismo» decide los puntos del §17.8 y cómo se prueban las pantallas, y quizá pida una dependencia nueva. Desde `PANT`, cada área añade sus pantallas.
 
 `MATE` aún no tiene feature. Antes de implementarla pasa por una sesión de etapa 2 (su feature) y otra de etapa 3 (sus steps):
 
@@ -836,7 +878,7 @@ Antes del código de cada fichero nuevo de `src/`, de cualquier capa (`docs/arne
 - esbozo al menos otra interfaz radicalmente distinta, solo con sus métodos principales, y me quedo con la más profunda;
 - anoto la descartada y por qué en el archivo del área.
 
-Sin dependencias nuevas sin tu aprobación. Si un escenario o un parámetro parece mal, paro con `[DECISIÓN PENDIENTE]`. Si te convence el cambio, lo hace una conversación de la fase specs, porque impl no toca la especificación (§6), y su PR espera a tu visto bueno.
+Sin dependencias nuevas sin tu aprobación. Si un escenario o un parámetro parece mal, paro con `[DECISIÓN PENDIENTE]`. Si te convence el cambio, lo apunto en un ticket specs (§6, «Tickets») y lo hace una conversación de esa fase, porque impl no toca la especificación (§6); su PR espera a tu visto bueno.
 
 ### Etapa 5: README
 
