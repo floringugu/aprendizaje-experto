@@ -21,9 +21,9 @@ describe('seccionesDelInforme', () => {
 describe('citasEnTexto', () => {
   it('encuentra IDs con número, con su línea, e ignora prefijos sueltos', () => {
     const texto = '// @MAST-1.2: umbral\nconst a = 1; // @MAST y @CALI-3\n';
-    expect(citasEnTexto(texto, 'src/a.ts', 'codigo')).toEqual([
-      { id: 'MAST-1.2', fichero: 'src/a.ts', linea: 1, zona: 'codigo' },
-      { id: 'CALI-3', fichero: 'src/a.ts', linea: 2, zona: 'codigo' },
+    expect(citasEnTexto(texto, 'src/a.ts')).toEqual([
+      { id: 'MAST-1.2', fichero: 'src/a.ts', linea: 1 },
+      { id: 'CALI-3', fichero: 'src/a.ts', linea: 2 },
     ]);
   });
 });
