@@ -21,6 +21,22 @@
       "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
     },
     {
+      "label": "Arnés: abrir el carril de un ticket",
+      "detail": "Crea el carril de docs/tickets/<nombre>.md, con la fase y el área del ticket; se niega si el ticket no está listo",
+      "type": "shell",
+      "command": "make abrir N=${input:nombre}",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+    },
+    {
+      "label": "Arnés: tablero de tickets",
+      "detail": "Trae origin, escribe reports/tablero.html con el estado de los tickets y lo abre en el navegador",
+      "type": "shell",
+      "command": "make tablero",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+    },
+    {
       "label": "Arnés: retirar un carril",
       "detail": "Borra el carril y todas sus ramas, solo si están fusionadas en origin/main y no queda relevo ni cambios",
       "type": "shell",
