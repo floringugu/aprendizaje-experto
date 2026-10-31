@@ -16,8 +16,14 @@ const CATEGORIAS_INTERCALABLES = [
   { id: 'C2', descripcion: 'Descripción de C2', grupo_parecidas: 'G1' },
 ];
 
+/**
+ * Un ítem tal como lo escribe el autor, con el campo `reservado` de MATE-2.8. `ItemContenido` aún no lo
+ * tiene (lo añade el ticket mate-reservados), así que se declara aquí por intersección.
+ */
+export type ItemDePrueba = ItemContenido & { readonly reservado?: boolean };
+
 /** Datos mínimos de un ítem; el resto se rellena con valores por defecto. */
-type DatosItem = Partial<ItemContenido> & { readonly id: string; readonly objetivo: string };
+type DatosItem = Partial<ItemDePrueba> & { readonly id: string; readonly objetivo: string };
 
 export function ejemploPorDefecto(id = 'E1', pasos = PASOS_POR_DEFECTO): EjemploResueltoContenido {
   return { id, pasos };
@@ -52,7 +58,7 @@ export class BorradorContenido {
   readonly dominio: string;
   objetivos: readonly ObjetivoContenido[];
   categorias: readonly CategoriaContenido[] = [];
-  items: readonly ItemContenido[] = [];
+  items: readonly ItemDePrueba[] = [];
   tareas: readonly TareaContenido[] = [];
 
   constructor(dominio: string) {
@@ -79,8 +85,8 @@ export class BorradorContenido {
     this.categorias = categorias;
   }
 
-  agregarItem(datos: DatosItem): ItemContenido {
-    const item: ItemContenido = {
+  agregarItem(datos: DatosItem): ItemDePrueba {
+    const item: ItemDePrueba = {
       tipo: 'hecho',
       diagnostico: false,
       enunciado: `Enunciado de ${datos.id}`,
@@ -92,7 +98,7 @@ export class BorradorContenido {
     return item;
   }
 
-  item(id: string): ItemContenido {
+  item(id: string): ItemDePrueba {
     const encontrado = this.items.find((candidato) => candidato.id === id);
     if (encontrado === undefined) {
       throw new Error(`El contenido de prueba no tiene el ítem ${id}`);
@@ -101,16 +107,69 @@ export class BorradorContenido {
   }
 
   /** Devuelve el ítem si ya existe; si no, lo crea en el objetivo indicado. */
-  asegurarItem(id: string, objetivo = 'O1'): ItemContenido {
+  asegurarItem(id: string, objetivo = 'O1'): ItemDePrueba {
     return this.items.find((candidato) => candidato.id === id) ?? this.agregarItem({ id, objetivo });
   }
 
-  itemsDe(objetivo: string): readonly ItemContenido[] {
-    return this.items.filter((item) => item.objetivo === objetivo);
+  /** Los ítems del objetivo que la persona practica: los reservados no cuentan (MAST-8). */
+  itemsDe(objetivo: string): readonly ItemDePrueba[] {
+    return this.items.filter((item) => item.objetivo === objetivo && !this.esReservado(item));
+  }
+
+  esReservado(item: ItemDePrueba): boolean {
+    return item.reservado === true;
+  }
+
+  /** Los reservados del dominio, o solo los del objetivo, en el orden del contenido. */
+  reservados(objetivo?: string): readonly ItemDePrueba[] {
+    return this.items.filter(
+      (item) => this.esReservado(item) && (objetivo === undefined || item.objetivo === objetivo),
+    );
+  }
+
+  /** Los problemas de categorías con grupo de parecidas que la persona practica, sin los reservados. */
+  problemasIntercalables(): readonly ItemDePrueba[] {
+    return this.items.filter(
+      (item) => item.tipo === 'problema' && this.esIntercalable(item) && !this.esReservado(item),
+    );
+  }
+
+  cambiarItem(id: string, cambios: Partial<ItemDePrueba>): void {
+    this.items = this.items.map((item) => (item.id === id ? { ...item, ...cambios } : item));
+  }
+
+  /** Marca el ítem como reservado y, con `cambios`, le cambia el tipo o la categoría. */
+  reservar(id: string, cambios: Partial<ItemDePrueba> = {}): void {
+    this.cambiarItem(id, { ...cambios, reservado: true });
+  }
+
+  /** Le da otro `id` al ítem, para que un escenario pueda usar el suyo en otro objetivo. */
+  liberarId(id: string): void {
+    this.cambiarItem(id, { id: this.idLibre('I') });
+  }
+
+  /** Añade `cantidad` problemas reservados de categorías con grupo de parecidas y los devuelve. */
+  agregarReservadosIntercalables(cantidad: number, objetivo = 'O1'): readonly ItemDePrueba[] {
+    this.hacerIntercalables(0);
+    const agrupadas = this.categorias.filter((categoria) => categoria.grupo_parecidas !== undefined);
+    const nuevos: ItemDePrueba[] = [];
+    for (let numero = 0; numero < cantidad; numero += 1) {
+      const categoria = agrupadas[numero % agrupadas.length]?.id ?? 'C1';
+      nuevos.push(this.agregarItem({ id: this.idLibre('R'), objetivo, tipo: 'problema', categoria, reservado: true }));
+    }
+    return nuevos;
+  }
+
+  /** Añade el objetivo al final de la ruta, con el ejemplo resuelto por defecto. */
+  agregarObjetivo(id: string): void {
+    this.objetivos = [
+      ...this.objetivos,
+      { id, instruccion: `Instrucción de ${id}`, ejemplos_resueltos: [ejemploPorDefecto()] },
+    ];
   }
 
   /** Añade `cantidad` ítems nuevos al objetivo, con los datos comunes que se indiquen. */
-  agregarItems(objetivo: string, cantidad: number, datos: Partial<ItemContenido> = {}): void {
+  agregarItems(objetivo: string, cantidad: number, datos: Partial<ItemDePrueba> = {}): void {
     for (let numero = 0; numero < cantidad; numero += 1) {
       this.agregarItem({ ...datos, id: this.idLibre('I'), objetivo });
     }
@@ -122,7 +181,7 @@ export class BorradorContenido {
     const agrupadas = this.categorias.filter((categoria) => categoria.grupo_parecidas !== undefined);
     let siguiente = 0;
     this.items = this.items.map((item) => {
-      if (item.tipo !== 'problema' || this.esIntercalable(item)) {
+      if (item.tipo !== 'problema' || this.esIntercalable(item) || this.esReservado(item)) {
         return item;
       }
       siguiente += 1;
@@ -153,10 +212,10 @@ export class BorradorContenido {
       this.categorias = [...this.categorias, ...CATEGORIAS_INTERCALABLES];
     }
     const agrupadas = this.categorias.filter((categoria) => categoria.grupo_parecidas !== undefined);
-    const yaSon = (item: ItemContenido): boolean => item.tipo === 'problema' && this.esIntercalable(item);
-    let faltan = cantidad - this.items.filter(yaSon).length;
+    const yaSon = (item: ItemDePrueba): boolean => item.tipo === 'problema' && this.esIntercalable(item);
+    let faltan = cantidad - this.problemasIntercalables().length;
     this.items = this.items.map((item) => {
-      if (faltan <= 0 || yaSon(item)) {
+      if (faltan <= 0 || yaSon(item) || this.esReservado(item)) {
         return item;
       }
       faltan -= 1;
@@ -165,7 +224,7 @@ export class BorradorContenido {
     this.asegurarProblemas(this.objetivos[0]?.id ?? 'O1', cantidad);
   }
 
-  esIntercalable(item: ItemContenido): boolean {
+  esIntercalable(item: ItemDePrueba): boolean {
     const categoria = this.categorias.find((candidata) => candidata.id === item.categoria);
     return categoria?.grupo_parecidas !== undefined;
   }
