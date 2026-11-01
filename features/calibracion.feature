@@ -337,6 +337,8 @@ Característica: Calibración de la confianza
     de la persona. No hay ningún texto escrito de antemano que defienda un método, ni siquiera el de
     recuperar: si los datos contradicen la idea de que recuperar es mejor, la pantalla los enseña
     igual. Los textos hablan de la tarea («estos ítems», «estas tarjetas»), no de la persona.
+    Cada pantalla enseñada y cada tarjeta abierta se registra (INST-1.10 a INST-1.15), para medir
+    si las pantallas cambian la diferencia entre confianza y acierto (INST-3).
 
     Antecedentes:
       Dado que el mínimo de ítems de las pantallas de calibración configurado es 5
