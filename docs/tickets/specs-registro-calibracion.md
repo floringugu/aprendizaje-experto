@@ -15,6 +15,6 @@ estado: abierto
 
 ## Por decidir
 
-- Si es un CSV nuevo (hoy hay siete, y la exportación los lista todos) o columnas en uno existente.
+- Si es un CSV nuevo (hoy hay ocho, con `experimentos.csv` de specs-experimento-releer, y la exportación los lista todos) o columnas en uno existente.
 - Cuántas semanas de calibración antes de la primera pantalla hacen falta para poder comparar.
 - Si la comparación se enseña a la persona o solo se exporta. Si se enseña, los datos mandan (CALI-6).

@@ -149,6 +149,30 @@
     "extrapolacion": true,
     "nota": "Ningún estudio fija este umbral. La sección 2.5 solo justifica comparar la confianza con el acierto. Un 80 % como «dar por seguro» es decisión del autor, sin evidencia propia. La confianza no cambia el progreso (CALI-3)."
   },
+  "experimento_items_por_mitad": {
+    "descripcion": "Ítems de cada mitad del experimento de releer frente a recuperar: la persona estudia esa cantidad releyendo y esa cantidad recuperando, y la prueba incluye las dos mitades.",
+    "valor": 10,
+    "seccion": ["2.2", "2.5"],
+    "nivel_evidencia": "extrapolación del autor",
+    "extrapolacion": true,
+    "nota": "La sección 2.5 dice que releer da sensación de dominio sin dominio y que hay que medir con pruebas; la 2.2 recoge que la recuperación supera a la relectura como control (g = 0,51 en un resumen secundario). Ningún estudio del informe fija cuántos ítems hacen falta en un experimento personal. Diez por mitad es decisión del autor, sin evidencia propia: con tan pocos ítems un acierto más mueve el resultado 10 puntos, y el resultado es un dato descriptivo, no una prueba."
+  },
+  "experimento_pasadas_de_estudio": {
+    "descripcion": "Veces que se presenta cada ítem, en cualquiera de las dos mitades, durante el estudio del experimento de releer frente a recuperar.",
+    "valor": 2,
+    "seccion": ["2.2", "2.5"],
+    "nivel_evidencia": "extrapolación del autor",
+    "extrapolacion": true,
+    "nota": "El número de pasadas es igual en las dos mitades para que la comparación sea justa: es la condición que fija la aplicación, y las dos pasadas son decisión del autor, sin evidencia propia. Con una sola pasada la mitad recuperada solo vería la respuesta tras responder, sin ninguna recuperación posterior."
+  },
+  "experimento_plazo_prueba_dias": {
+    "descripcion": "Días entre el final del estudio del experimento de releer frente a recuperar y la prueba de las dos mitades.",
+    "valor": 7,
+    "seccion": ["2.2", "2.5"],
+    "nivel_evidencia": "extrapolación del autor",
+    "extrapolacion": true,
+    "nota": "Una semana es decisión del autor, sin evidencia propia: la sección 2.2 recoge el efecto de la recuperación sobre la relectura, pero ningún estudio del informe fija este plazo para un experimento personal. Coincide con la semana 1 de «retencion_diferida_semanas»."
+  },
   "periodicidad_bucle_dias": {
     "descripcion": "Cada cuántos días se ejecuta el bucle de retroalimentación (medir, calibrar, ajustar ayuda, reprogramar, revisar).",
     "valor": 7,
