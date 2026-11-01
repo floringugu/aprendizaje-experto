@@ -71,6 +71,14 @@
     "extrapolacion": true,
     "nota": "Barbieri et al. (2023), dentro de la evidencia sobre ejemplos resueltos (bien establecido para novatos): añadir instrucciones de autoexplicación redujo el beneficio. Los 55 estudios son de matemáticas; aplicarlo a otros dominios es extrapolación (sección 4: «la aplicación a dominios no estudiados»). El informe no clasifica esta interacción por separado."
   },
+  "numero_prepreguntas": {
+    "descripcion": "Número máximo de prepreguntas de opción múltiple con las que empieza, en la fase intermedia, un objetivo nuevo. Si el objetivo tiene menos ítems de tipo «hecho» con opciones, se piden los que haya.",
+    "valor": 3,
+    "seccion": ["2.2", "3", "4"],
+    "nivel_evidencia": "extrapolación del autor",
+    "extrapolacion": true,
+    "nota": "El informe no recoge las prepreguntas: la evidencia es Soderstrom y Bjork (2023, Educational Psychology Review), que en un curso universitario real vieron que unas preguntas breves de opción múltiple antes de algunas clases mejoraron en el examen final el material preguntado y el relacionado no preguntado. Sus límites: un solo curso, mecanismos inferidos en parte por autoinforme y la petición de más investigación. La cita viene del ticket y no se ha comprobado contra el artículo. Las secciones 2.2 (feedback correctivo), 3 y 4 (exploración antes de la instrucción) son solo contexto cercano: el informe no trata las prepreguntas. Pasarlo de clases a objetivos de una aplicación, limitarlo a la fase intermedia (el estudio fue con estudiantes nuevos en el tema, más cerca de la fase novato) y fijar tres preguntas son decisiones del autor, sin evidencia propia: ni el estudio ni el informe fijan cuántas; tres es poco para no alargar mucho el inicio de cada objetivo."
+  },
   "intervalo_repaso_por_horizonte": {
     "descripcion": "Intervalo entre repasos de los ítems de tipo «problema», como fracción del horizonte de retención que elige la persona. Los ítems de tipo «hecho» los programa el algoritmo de repetición espaciada.",
     "valor": [

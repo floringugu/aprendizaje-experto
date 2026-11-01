@@ -11,8 +11,9 @@ Característica: Criterio de dominio
   fue correcto. Los ítems reservados miden la transferencia a casos nuevos y no cuentan (MAST-8).
   Un intento es sin ayuda cuando, mientras la persona responde, no ve ningún ejemplo resuelto ni la
   respuesta, aunque haya estudiado un ejemplo justo antes. Esta definición es decisión del autor.
-  Hay una excepción: el intento de exploración de un objetivo nuevo (AYUD-5) no cuenta como intento,
-  ni para el acierto ni para saber si el ítem tiene ya un intento. También es decisión del autor.
+  Hay una excepción: el intento de exploración de un objetivo nuevo (AYUD-5) y sus prepreguntas
+  (AYUD-8) no cuentan como intento, ni para el acierto ni para saber si el ítem tiene ya un intento.
+  También es decisión del autor.
 
   Antecedentes:
     Dado el dominio de prueba «ficticio» con los objetivos O1, O2 y O3, en ese orden
@@ -71,6 +72,25 @@ Característica: Criterio de dominio
       Y que la persona acierta el ítem I1 de O4 como intento de exploración
       Cuando la persona responde de nuevo I1 de O4 y lo acierta
       Entonces ese intento cuenta como el primero de I1
+      Y la aplicación indica que faltan 19 ítems de O4
+
+    @MAST-1.6 @extrapolacion
+    Escenario: Una prepregunta no cuenta como intento del ítem
+      Dado que la persona está en la fase «intermedio» con O1, O2 y O3 dominados
+      Y que O4 se aprobó en la revisión del material, sin dominarlo ni practicarlo, con 20 ítems de tipo «hecho» con opciones
+      Y que la persona acierta los ítems H1, H2 y H3 de O4 como prepreguntas
+      Cuando la aplicación evalúa O4
+      Entonces O4 no queda dominado
+      Y la aplicación indica que faltan 20 ítems de O4
+      Y la fase sigue siendo «intermedio»
+
+    @MAST-1.7 @extrapolacion
+    Escenario: El intento posterior a una prepregunta sí cuenta
+      Dado que la persona está en la fase «intermedio» con O1, O2 y O3 dominados
+      Y que O4 se aprobó en la revisión del material, sin dominarlo ni practicarlo, con 20 ítems de tipo «hecho» con opciones
+      Y que la persona acierta el ítem H1 de O4 como prepregunta
+      Cuando la persona responde de nuevo H1 de O4 y lo acierta
+      Entonces ese intento cuenta como el primero de H1
       Y la aplicación indica que faltan 19 ítems de O4
 
   @MAST-2 @evidencia-2.3 @evidencia-3 @extrapolacion

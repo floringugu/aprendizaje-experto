@@ -13,7 +13,8 @@ Característica: Ayuda adaptativa con retirada progresiva
 
   Antes de los ejemplos y los problemas de AYUD-1, la primera sesión de un objetivo no dominado
   lleva su instrucción (AYUD-4). En las fases intermedia y avanzada empieza además con un problema
-  de exploración (AYUD-5) y pide una autoexplicación tras la instrucción (AYUD-6). El diagrama de
+  de exploración (AYUD-5) y pide una autoexplicación tras la instrucción (AYUD-6). En la fase
+  intermedia, tras la exploración y antes de la instrucción, van unas prepreguntas (AYUD-8). El diagrama de
   un objetivo o de un ejemplo resuelto se muestra junto a su texto, salvo el de un ejemplo con pasos
   retirados (AYUD-7). La secuencia entera es
   extrapolación: el informe avisa de que el uso combinado de todas las técnicas no es
@@ -150,7 +151,7 @@ Característica: Ayuda adaptativa con retirada progresiva
     sostener una decisión central: la regla es extrapolación, y «solo la primera vez» también.
     En la fase novato la instrucción va además antes de cualquier problema (AYUD-4.1).
     En las fases intermedia y avanzada la instrucción llega tras el intento de exploración y su feedback
-    (AYUD-5), pero antes de cualquier ejemplo.
+    (AYUD-5) y, en la intermedia, tras las prepreguntas (AYUD-8), pero antes de cualquier ejemplo.
 
     @AYUD-4.1 @evidencia-4 @extrapolacion
     Escenario: En la fase novato, la primera sesión empieza por la instrucción, antes de cualquier problema
@@ -225,8 +226,13 @@ Característica: Ayuda adaptativa con retirada progresiva
     que mira lo ya estudiado; ni en el paso a la fase avanzada (MAST-6.6), donde solo cuentan los
     intentos intercalados. Es decisión del autor.
 
-    Un objetivo sin ítems de tipo «problema» empieza por la instrucción (AYUD-5.7): el fracaso
-    productivo es «intentar el problema» (sección 3), y un hecho no enseñado solo se adivina.
+    Un objetivo sin ítems de tipo «problema» no tiene intento de exploración (AYUD-5.7): el fracaso
+    productivo es «intentar el problema» (sección 3), y un hecho no enseñado solo se adivina. Los
+    hechos con opciones se preguntan antes de la instrucción como prepreguntas, no como exploración
+    (AYUD-8); si el objetivo no tiene ninguno, empieza por la instrucción.
+
+    Los escenarios de AYUD-5 y AYUD-6 hablan de un objetivo O4 sin ítems de tipo «hecho» con
+    opciones; las prepreguntas se tratan en AYUD-8.
 
     Antecedentes:
       Dado que O4 se aprobó en la revisión del material, sin dominarlo ni practicarlo, con la instrucción «La regla R4 se aplica cuando el caso cumple A y B.» y el ejemplo resuelto E4
@@ -257,6 +263,7 @@ Característica: Ayuda adaptativa con retirada progresiva
     Esquema del escenario: Después del intento de exploración, acierte o falle, viene la instrucción
       Dado que la persona está en la fase «intermedio» con O1, O2 y O3 dominados
       Y que O4 tiene problemas
+      Y que O4 no tiene ítems de tipo «hecho» con opciones
       Cuando la persona practica O4 y <resultado> el problema de exploración
       Entonces tras el feedback del problema, lo siguiente que presenta la sesión es la instrucción «La regla R4 se aplica cuando el caso cumple A y B.»
 
@@ -292,9 +299,9 @@ Característica: Ayuda adaptativa con retirada progresiva
       Y no se registra ningún cambio en cambios_ayuda.csv
 
     @AYUD-5.7 @extrapolacion
-    Escenario: Un objetivo sin ítems de tipo «problema» empieza por la instrucción
+    Escenario: Un objetivo sin problemas ni hechos con opciones empieza por la instrucción
       Dado que la persona está en la fase «intermedio» con O1, O2 y O3 dominados
-      Y que O4 solo tiene ítems de tipo «hecho»
+      Y que O4 solo tiene ítems de tipo «hecho» sin opciones
       Cuando la persona practica O4
       Entonces la sesión no presenta ningún problema de exploración
       Y lo primero que ve es la instrucción de O4
@@ -382,6 +389,7 @@ Característica: Ayuda adaptativa con retirada progresiva
     Esquema del escenario: La primera sesión de un objetivo nuevo sigue siempre el mismo orden
       Dado que la persona está en la fase «<fase>» con O1, O2 y O3 dominados
       Y que O4 tiene problemas
+      Y que O4 no tiene ítems de tipo «hecho» con opciones
       Cuando la persona practica O4 por primera vez
       Entonces la sesión presenta, en este orden:
         | pieza                                                                |
@@ -463,3 +471,162 @@ Característica: Ayuda adaptativa con retirada progresiva
         | novato           |
         | intermedio       |
         | avanzado_experto |
+
+  @AYUD-8 @evidencia-2.2 @evidencia-3 @evidencia-4 @extrapolacion
+  Regla: En la fase intermedia, un objetivo nuevo empieza con unas prepreguntas de opción múltiple
+    Unas pocas preguntas breves de opción múltiple antes de la clase mejoraron, en un curso
+    universitario real, el examen final, tanto en el material preguntado como en el relacionado no
+    preguntado (Soderstrom y Bjork, 2023, Educational Psychology Review). Ese estudio no está en el
+    informe, y tiene límites: un solo curso, mecanismos inferidos en parte por autoinforme y la
+    petición de sus autores de investigar más. La cita viene del ticket y no se ha comprobado contra
+    el artículo. Es extrapolación pasarlo de clases a objetivos de una aplicación y limitarlo a la
+    fase intermedia. Ese límite es una cautela del autor, por analogía con el fracaso productivo,
+    que el informe condiciona al conocimiento previo («no con novatos sin conocimientos
+    activables», sección 3): el estudio se hizo con estudiantes nuevos en el tema, más cerca de la
+    fase novato, así que el límite se aleja de donde está la evidencia. Es decisión del autor.
+
+    Una prepregunta es un ítem normal del objetivo, de tipo «hecho», con opciones y no reservado (un
+    reservado se presenta una sola vez para medir la transferencia, MAST-8): no hay un tipo de
+    ítem nuevo, y lo que la IA redacta para el material ya sirve (config/peticion-ia.md, I2 e I3). Son
+    los primeros, en el orden del objetivo, hasta `numero_prepreguntas`. Si el objetivo tiene menos,
+    se piden los que haya, y si no tiene ninguno, no hay prepreguntas. Los problemas quedan para el
+    intento de exploración (AYUD-5), y así ningún ítem hace las dos cosas. Es decisión del autor.
+
+    Se suman al intento de exploración, y no lo sustituyen: la exploración, que sí está en el informe
+    (sección 3), va primero y sin cambios, para que quien lo intenta no haya visto antes el feedback
+    de ningún hecho del objetivo; las prepreguntas van tras su feedback y justo antes de la
+    instrucción (AYUD-8.7). Un objetivo sin problemas empieza por sus prepreguntas, sin exploración.
+    Intercalarlas es extrapolación: el informe pide la instrucción «a continuación» de la
+    exploración (secciones 2.3 y 3), y aquí la instrucción sigue llegando siempre, pero tras las
+    prepreguntas. El inicio de cada objetivo se alarga con ellas, y por eso `numero_prepreguntas` es
+    pequeño. Es decisión del autor.
+
+    Una prepregunta se responde, pide la confianza y da feedback como cualquier ítem (CALI-1, RECU-2),
+    y no se puede saltar (CALI-13.2). La confianza se pide porque el feedback llega después de
+    declararla (CALI-1.1); se registra, pero no entra en la calibración (CALI-2.5, CALI-4.9). Lo que
+    se intenta antes de la instrucción no mide lo aprendido, aunque se fallen casi todas. Por eso una prepregunta no cuenta como intento del ítem (MAST-1.6 y MAST-1.7), ni para
+    el dominio ni para el paso de fase, ni para el ajuste semanal (AYUD-8.12), ni en el paso 1 del
+    bucle (BUCL-2.4). Es decisión del autor.
+
+    Antecedentes:
+      Dado que O4 se aprobó en la revisión del material, sin dominarlo ni practicarlo, con la instrucción «La regla R4 se aplica cuando el caso cumple A y B.» y el ejemplo resuelto E4
+      Y que el número de prepreguntas configurado es 3
+
+    @AYUD-8.1 @evidencia-3 @evidencia-4 @extrapolacion
+    Escenario: En la fase novato no hay prepreguntas
+      Dado que la persona está en la fase «novato»
+      Y que O1 tiene los ítems H1, H2 y H3 de tipo «hecho» con opciones
+      Y que la persona nunca ha practicado O1
+      Cuando la persona practica O1
+      Entonces la sesión no presenta ninguna prepregunta
+      Y lo primero que ve es la instrucción de O1
+
+    @AYUD-8.2 @extrapolacion
+    Escenario: En la fase avanzada no hay prepreguntas
+      Dado que la persona está en la fase «avanzado_experto» con O1, O2 y O3 dominados
+      Y que O4 tiene los ítems H1, H2 y H3 de tipo «hecho» con opciones
+      Cuando la persona practica O4
+      Entonces la sesión no presenta ninguna prepregunta
+
+    @AYUD-8.3 @extrapolacion
+    Escenario: Las prepreguntas son los primeros hechos con opciones, hasta el número configurado
+      Dado que la persona está en la fase «intermedio» con O1, O2 y O3 dominados
+      Y que O4 tiene los ítems H1, H2, H3, H4 y H5 de tipo «hecho» con opciones, en ese orden
+      Cuando la persona practica O4
+      Entonces la sesión presenta como prepreguntas H1, H2 y H3, en ese orden
+      Y no presenta H4 ni H5 como prepreguntas
+
+    @AYUD-8.4 @extrapolacion
+    Escenario: Con menos hechos con opciones que el número configurado, se piden los que haya
+      Dado que la persona está en la fase «intermedio» con O1, O2 y O3 dominados
+      Y que O4 tiene los ítems H1 y H2 de tipo «hecho» con opciones
+      Cuando la persona practica O4
+      Entonces la sesión presenta como prepreguntas H1 y H2
+
+    @AYUD-8.5 @extrapolacion
+    Escenario: Solo los hechos con opciones y no reservados son prepreguntas
+      Dado que la persona está en la fase «intermedio» con O1, O2 y O3 dominados
+      Y que O4 tiene, en este orden, el ítem H1 de tipo «hecho» sin opciones, el ítem R1 de tipo «hecho» con opciones y reservado, el ítem Q1 de tipo «problema» con opciones y los ítems H2 y H3 de tipo «hecho» con opciones
+      Cuando la persona practica O4
+      Entonces la sesión presenta como prepreguntas H2 y H3
+      Y no presenta H1, R1 ni Q1 como prepreguntas
+
+    @AYUD-8.6 @extrapolacion
+    Escenario: Sin hechos con opciones no hay prepreguntas
+      Dado que la persona está en la fase «intermedio» con O1, O2 y O3 dominados
+      Y que O4 tiene problemas
+      Y que O4 no tiene ítems de tipo «hecho» con opciones
+      Cuando la persona practica O4
+      Entonces la sesión no presenta ninguna prepregunta
+      Y empieza con el problema de exploración de O4
+
+    @AYUD-8.7 @evidencia-3 @evidencia-4 @extrapolacion
+    Escenario: Las prepreguntas van tras el intento de exploración y antes de la instrucción
+      Dado que la persona está en la fase «intermedio» con O1, O2 y O3 dominados
+      Y que O4 tiene problemas
+      Y que O4 tiene los ítems H1, H2 y H3 de tipo «hecho» con opciones
+      Cuando la persona practica O4 por primera vez
+      Entonces la sesión presenta, en este orden:
+        | pieza                                                                |
+        | un problema de exploración de O4                                     |
+        | las prepreguntas H1, H2 y H3                                         |
+        | la instrucción de O4                                                 |
+        | la petición de autoexplicación de la instrucción                     |
+        | el ejemplo resuelto E4, alternado con problemas de O4                |
+      Y no presenta ninguna prepregunta antes del problema de exploración
+
+    @AYUD-8.8 @extrapolacion
+    Escenario: Un objetivo sin problemas empieza por sus prepreguntas, sin exploración
+      Dado que la persona está en la fase «intermedio» con O1, O2 y O3 dominados
+      Y que O4 solo tiene los ítems H1, H2 y H3 de tipo «hecho» con opciones
+      Cuando la persona practica O4
+      Entonces la sesión no presenta ningún problema de exploración
+      Y lo primero que ve es la prepregunta H1
+      Y tras las prepreguntas H1, H2 y H3, lo siguiente que presenta la sesión es la instrucción «La regla R4 se aplica cuando el caso cumple A y B.»
+
+    @AYUD-8.9 @extrapolacion
+    Esquema del escenario: Después de las prepreguntas, se acierten o se fallen, viene la instrucción
+      Dado que la persona está en la fase «intermedio» con O1, O2 y O3 dominados
+      Y que O4 solo tiene los ítems H1, H2 y H3 de tipo «hecho» con opciones
+      Cuando la persona practica O4 y <resultado> las tres prepreguntas
+      Entonces tras el feedback de la última prepregunta, lo siguiente que presenta la sesión es la instrucción «La regla R4 se aplica cuando el caso cumple A y B.»
+      Y la sesión no repite ninguna prepregunta ni le pide que vuelva a intentarla
+
+      Ejemplos:
+        | resultado |
+        | acierta   |
+        | falla     |
+
+    @AYUD-8.10 @extrapolacion
+    Escenario: Solo la primera sesión del objetivo empieza con prepreguntas
+      Dado que la persona está en la fase «intermedio» con O1, O2 y O3 dominados
+      Y que O4 tiene los ítems H1, H2 y H3 de tipo «hecho» con opciones
+      Y que la persona practicó O4 en una sesión anterior
+      Cuando la persona practica O4
+      Entonces la sesión no presenta ninguna prepregunta
+
+    @AYUD-8.11 @extrapolacion
+    Escenario: Una prepregunta se registra con su propio contexto
+      Dado que la persona está en la fase «intermedio» con O1, O2 y O3 dominados
+      Y que O4 tiene los ítems H1, H2 y H3 de tipo «hecho» con opciones
+      Cuando la persona practica O4 y responde la prepregunta H1
+      Entonces su fila en respuestas.csv tiene el contexto «prepregunta»
+
+    @AYUD-8.12 @evidencia-4 @extrapolacion
+    Escenario: Las prepreguntas no cuentan para el ajuste semanal de la ayuda
+      Dado que el umbral de retirada de ayuda configurado es del 85 %
+      Y que la persona está en la fase «intermedio» con O1, O2 y O3 dominados
+      Y que O4 tiene los ítems H1, H2 y H3 de tipo «hecho» con opciones
+      Y que O4 tiene la ayuda completa
+      Y que en la última semana las únicas respuestas de la persona a ítems de O4 fueron aciertos en sus prepreguntas
+      Cuando se ejecuta el bucle semanal
+      Entonces O4 sigue con 0 pasos retirados
+      Y no se registra ningún cambio en cambios_ayuda.csv
+
+    @AYUD-8.13 @evidencia-2.2 @evidencia-3 @evidencia-4 @extrapolacion
+    Escenario: Una prepregunta pide la confianza y da feedback como cualquier ítem
+      Dado que la persona está en la fase «intermedio» con O1, O2 y O3 dominados
+      Y que O4 tiene los ítems H1, H2 y H3 de tipo «hecho» con opciones
+      Cuando la persona practica O4 y responde la prepregunta H1
+      Entonces no ve si ha acertado ni el feedback de H1 hasta declarar su confianza
+      Y después de declararla ve si su respuesta es correcta, la respuesta correcta y el feedback de H1

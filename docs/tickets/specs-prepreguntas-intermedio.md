@@ -3,7 +3,7 @@ fase: specs
 area: AYUD
 depende: []
 toca: [features/ayuda.feature, features/dominio.feature, features/calibracion.feature, config/parametros.json, config/peticion-ia.md]
-estado: abierto
+estado: hecho
 ---
 # En la fase intermedia, un objetivo nuevo empieza con unas prepreguntas de opción múltiple
 
