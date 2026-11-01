@@ -314,7 +314,10 @@ Then('{item} no se presenta en ninguna sesión de práctica, repaso ni sesión i
 });
 
 // Un intento se registra al declarar la confianza, y cada intento registrado es una fila de respuestas.csv.
+// «{item}» también casa con un objetivo («O1», PANT-2.3): la fila lo nombra en la columna `objetivo`.
 Then('{item} no tiene ningún intento registrado', (item: string) => {
-  const filas = filasDelDominio(mundo(), 'respuestas.csv').filter((fila) => fila['item'] === item);
+  const filas = filasDelDominio(mundo(), 'respuestas.csv').filter(
+    (fila) => fila['item'] === item || fila['objetivo'] === item,
+  );
   assert.deepEqual(filas, [], `${item} tiene intentos registrados`);
 });

@@ -1,10 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { Before, BeforeStep, setWorldConstructor } from '@cucumber/cucumber';
-import { crearAplicacion } from '../../../src/aplicacion/aplicacion.ts';
+import { abrirAplicacion, crearAplicacion } from '../../../src/aplicacion/aplicacion.ts';
 import type { Aplicacion } from '../../../src/aplicacion/aplicacion.ts';
 import type { AperturaSesion, IntencionDelPlan, ResultadoBucle } from '../../../src/aplicacion/bucle.ts';
-import type { ContenidoDominio } from '../../../src/aplicacion/contenido.ts';
+import type { Dependencias } from '../../../src/aplicacion/dependencias.ts';
 import type {
   AperturaDominio,
   EvaluacionFase,
@@ -23,6 +23,7 @@ import type {
   TareaPresentada,
 } from '../../../src/aplicacion/tareas.ts';
 import { BorradorContenido } from './contenido.ts';
+import { DIRECCION_DE_PRUEBA, EscenarioPantallas } from './escenario-pantallas.ts';
 import { Externos } from './externos.ts';
 import { EscenarioMaterial } from './escenario-material.ts';
 import { PlanificadorFsrsDePrueba } from './planificador.ts';
@@ -131,6 +132,10 @@ export class Mundo {
   readonly externos = new Externos(this.reloj, (dominio) => this.contenidos.get(dominio)?.toContenido());
   /** Lo que recuerdan los pasos de MATE entre el «Dado», el «Cuando» y el «Entonces». */
   readonly material = new EscenarioMaterial(DOMINIO_POR_DEFECTO);
+  /** Lo que recuerdan los pasos de PANT. */
+  readonly pantallas = new EscenarioPantallas();
+  /** Los escenarios de PANT abren a la persona 0 con `abrirAplicacion` (los demás, en memoria). */
+  persistente = false;
   private pendientes: Preparacion[] = [];
   private preparando = false;
 
@@ -159,12 +164,27 @@ export class Mundo {
     if (existente !== undefined) {
       return existente;
     }
-    const nueva = crearAplicacion({
+    // Solo la persona 0 guarda su progreso (PANT-2): las demás no deben pisarse en los mismos ficheros.
+    const nueva =
+      this.persistente && persona === 0
+        ? aceptado(abrirAplicacion(this.dependencias()))
+        : crearAplicacion(this.dependencias());
+    this.aplicaciones[persona] = nueva;
+    return nueva;
+  }
+
+  /** Reinicia el servidor: la persona 0 vuelve a abrirse sobre los mismos ficheros, reloj y planificador. */
+  reiniciarServidor(): void {
+    this.listo();
+    this.aplicaciones[0] = aceptado(abrirAplicacion(this.dependencias()));
+  }
+
+  /** Lo externo que se le da a la aplicación. El contenido aprobado lo lee de `externos.ficheros`. */
+  private dependencias(): Dependencias {
+    return {
       reloj: this.reloj,
       leerParametros: () => this.parametros,
-      // Si la aplicación ya ha escrito el contenido aprobado (MATE-4.4), manda lo que escribió.
-      leerContenido: (dominio): ContenidoDominio | undefined =>
-        this.externos.ficheros.contenidoEscrito(dominio) ?? this.contenidos.get(dominio)?.toContenido(),
+      direccion: DIRECCION_DE_PRUEBA,
       planificadorFsrs: this.planificador,
       ficheros: this.externos.ficheros,
       leerIa: () => this.externos.leerIa(),
@@ -172,9 +192,7 @@ export class Mundo {
       web: this.externos.web,
       claudeCode: this.externos.claudeCode,
       temporizador: this.externos.temporizador,
-    });
-    this.aplicaciones[persona] = nueva;
-    return nueva;
+    };
   }
 
   preparar(accion: () => void): void {
