@@ -502,7 +502,7 @@ Característica: Calibración de la confianza
     la persona tardó en el recuperado anterior. Dentro de cada mitad los ítems siguen el orden de
     la práctica normal, sin agruparlos ni mezclarlos por tipo a propósito. La mitad recuperada se estudia como cualquier
     práctica: recuerda, declara su confianza y recibe el feedback (CALI-1, RECU-2). La releída se ve
-    con la respuesta (RECU-5) y no es un intento: no hay respuesta ni confianza. Hasta la prueba,
+    con la respuesta (CALI-13) y no es un intento: no hay respuesta ni confianza. Hasta la prueba,
     los ítems del experimento no salen en ninguna otra parte: ni práctica ni repasos. Todo esto
     es decisión del autor.
 
@@ -807,3 +807,56 @@ Característica: Calibración de la confianza
         | fin                              |
         | terminó con la prueba respondida |
         | se canceló antes de la prueba    |
+
+  @CALI-13 @evidencia-2.5 @extrapolacion
+  Regla: El modo releer solo existe dentro del experimento de releer frente a recuperar
+    El experimento (CALI-7 a CALI-12) necesita que la mitad releída se estudie viendo la pregunta
+    con su respuesta. Es la única excepción a RECU-1: fuera del estudio de esa mitad, la persona
+    siempre recuerda antes de ver la respuesta. La sección 2.5 avisa de que releer da sensación de
+    dominio sin dominio: por eso el modo releer no es una forma de estudiar, solo la mitad de una
+    comparación que la persona elige hacer. La excepción es decisión del autor.
+
+    @CALI-13.1 @extrapolacion
+    Escenario: En el estudio de la mitad releída el ítem se presenta con su respuesta
+      Dado que I1 está en la mitad releída de un experimento en curso
+      Cuando se le presenta I1 a la persona en el estudio del experimento
+      Entonces ve el enunciado y las opciones «a», «b» y «c»
+      Y ve que la correcta es «b» y el feedback «Porque b cumple la regla R1.»
+      Pero no se le pide responder ni declarar su confianza
+
+    @CALI-13.2 @extrapolacion
+    Esquema del escenario: Fuera del estudio de la mitad releída no hay modo releer
+      Dado que I1 no está en ningún experimento
+      Cuando se le presenta I1 a la persona <dónde>
+      Entonces no ve cuál es la correcta ni el feedback hasta haber respondido
+      Y no hay ninguna opción para ver la respuesta sin responder ni para marcarlo como sabido
+
+      Ejemplos:
+        | dónde                        |
+        | en una sesión de práctica    |
+        | en un repaso programado      |
+        | en una sesión intercalada    |
+        | en una prueba de retención   |
+        | en el diagnóstico            |
+        | en un intento de exploración |
+
+    @CALI-13.3 @extrapolacion
+    Escenario: La prueba del experimento presenta sin respuesta también los ítems de la mitad releída
+      Dado que I1 está en la mitad releída de un experimento cuya prueba se hace hoy
+      Cuando se le presenta I1 a la persona en la prueba del experimento
+      Entonces no ve cuál es la correcta ni el feedback hasta haber respondido
+      Y no hay ninguna opción para ver la respuesta sin responder ni para marcarlo como sabido
+
+    @CALI-13.4 @extrapolacion
+    Escenario: La mitad recuperada se estudia con la regla de siempre
+      Dado que I2 está en la mitad recuperada de un experimento en curso
+      Cuando se le presenta I2 a la persona en el estudio del experimento
+      Entonces no ve ninguna de las respuestas aceptadas hasta haber respondido
+      Y no hay ninguna opción para ver la respuesta sin responder ni para marcarlo como sabido
+
+    @CALI-13.5 @extrapolacion
+    Escenario: Al cancelar el experimento los ítems de la mitad releída dejan de verse con su respuesta
+      Dado que I1 está en la mitad releída de un experimento en curso
+      Cuando la persona cancela el experimento
+      Y se le presenta I1 a la persona en una sesión de práctica
+      Entonces no ve cuál es la correcta ni el feedback hasta haber respondido
