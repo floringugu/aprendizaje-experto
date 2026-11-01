@@ -5,6 +5,7 @@ import { exportarCsv } from './csv.ts';
 import type { Dependencias } from './dependencias.ts';
 import { abrirDominio, terminarDiagnostico } from './diagnostico.ts';
 import type { CasosDeDominio } from './dominio.ts';
+import type { CasosDeEmparejamiento } from './emparejamiento.ts';
 import type { Entorno } from './estado.ts';
 import { EstadoPersona } from './estado.ts';
 import type { CasosDeExportacion } from './exportacion.ts';
@@ -12,9 +13,12 @@ import type { CasosDeHoras } from './horas.ts';
 import { crearInicioSesion } from './inicio-sesion.ts';
 import { anadirMaterial, listarMaterial, type CasosDeMaterial } from './material.ts';
 import { evaluarNivelExperto } from './nivel-experto.ts';
+import type { CasosDePantallas } from './pantallas.ts';
 import { iniciarSesion } from './practica.ts';
+import type { CasosDePreferencias } from './preferencias.ts';
 import { consultarProgreso } from './progreso.ts';
 import { consultarRepasos } from './repasos.ts';
+import type { Resultado } from './resultado.ts';
 import { crearRevisionDelMaterial, verFuente, type CasosDeRevision } from './revision-del-material.ts';
 import { declararConfianza, presentarItem, responderItem } from './respuestas.ts';
 import { sinImplementar } from './sin-implementar.ts';
@@ -23,7 +27,7 @@ import type { CasosDeTareas } from './tareas.ts';
 
 /**
  * Todos los casos de uso de una persona. Cada llamada a `crearAplicacion` es una persona distinta,
- * con su propio progreso (los escenarios de calibración comparan a dos personas).
+ * con su propio progreso, en memoria (los escenarios de calibración comparan a dos personas).
  */
 export type Aplicacion = CasosDeDominio &
   CasosDeSesiones &
@@ -32,7 +36,10 @@ export type Aplicacion = CasosDeDominio &
   CasosDeTareas &
   CasosDeExportacion &
   CasosDeMaterial &
-  CasosDeClaudeCode;
+  CasosDeClaudeCode &
+  CasosDeEmparejamiento &
+  CasosDePreferencias &
+  CasosDePantallas;
 
 /** Lo que falta del material propio (MATE). */
 const CASOS_DE_MATERIAL: Omit<
@@ -40,6 +47,15 @@ const CASOS_DE_MATERIAL: Omit<
   'anadirMaterial' | 'listarMaterial' | 'verFuente' | keyof CasosDeRevision
 > = {
   redactarBorrador: sinImplementar,
+};
+
+/** Lo que falta del servidor y las pantallas (PANT). */
+const CASOS_DE_PANTALLAS: CasosDeEmparejamiento & CasosDePreferencias & CasosDePantallas = {
+  abrirEmparejamiento: sinImplementar,
+  emparejar: sinImplementar,
+  consultarPreferencias: sinImplementar,
+  cambiarPreferencias: sinImplementar,
+  abrirPantalla: sinImplementar,
 };
 
 /**
@@ -81,5 +97,15 @@ export const crearAplicacion: (dependencias: Dependencias) => Aplicacion = (depe
     ...CASOS_DE_MATERIAL,
     ...crearRevisionDelMaterial(dependencias.ficheros),
     ...crearInicioSesion(dependencias.claudeCode, dependencias.temporizador),
+    ...CASOS_DE_PANTALLAS,
   };
 };
+
+/**
+ * La misma aplicación, pero con el progreso, las preferencias y los dispositivos de la carpeta de datos
+ * (`progreso.json`, `preferencias.json` y `dispositivos.json`, por `dependencias.ficheros`): los carga al
+ * abrir y los guarda tras cada cambio. La usan el servidor y, en los escenarios, la persona 0; un reinicio
+ * del servidor es otra llamada sobre los mismos ficheros. Rechaza, sin pisar nada, si `progreso.json`
+ * existe y no cumple el formato (PANT-2).
+ */
+export const abrirAplicacion: (dependencias: Dependencias) => Resultado<Aplicacion> = sinImplementar;

@@ -4,7 +4,6 @@ import type { Dependencias } from '../../src/aplicacion/dependencias.ts';
 import { EstadoDominio, EstadoPersona, type Entorno, type IntentoNuevo } from '../../src/aplicacion/estado.ts';
 import { guardarDocumento } from '../../src/aplicacion/material-guardado.ts';
 import type { Mesa } from '../../src/aplicacion/mesa.ts';
-import { contenidoDeFicheros } from '../../src/aplicacion/mesa-guardada.ts';
 import type { Ficheros } from '../../src/aplicacion/puertos.ts';
 import { declararConfianza, presentarItem, responderItem } from '../../src/aplicacion/respuestas.ts';
 import type { Resultado } from '../../src/aplicacion/resultado.ts';
@@ -62,7 +61,7 @@ function dependenciasDe(ficheros: Ficheros): Dependencias {
   return {
     reloj: { ahora: () => AHORA },
     leerParametros: () => ({ umbral_dominio: { valor: UMBRAL } }),
-    leerContenido: contenidoDeFicheros(ficheros),
+    direccion: 'http://192.168.1.20:3000',
     planificadorFsrs: { programar: noSeUsa, recalcular: noSeUsa },
     ficheros,
     leerIa: () => undefined,
@@ -243,12 +242,12 @@ describe('verFuente: el dominio que sale de la carpeta de datos', () => {
 });
 
 describe('enDominio: el dominio que sale de la carpeta de datos', () => {
-  it('@MATE-6.1 abrirDominio rechaza con campo dominio sin llamar a leerContenido', () => {
+  it('@MATE-6.1 abrirDominio rechaza con campo dominio sin leer ningún fichero', () => {
     const { entorno } = preparar();
-    const leerContenido = vi.fn(() => MESA.aprobado);
-    const aplicacion = crearAplicacion({ ...entorno.dependencias, leerContenido });
+    const leer = vi.fn((ruta: string) => entorno.dependencias.ficheros.leer(ruta));
+    const aplicacion = crearAplicacion({ ...entorno.dependencias, ficheros: { ...entorno.dependencias.ficheros, leer } });
     expect(aplicacion.abrirDominio({ dominio: '../fuera' })).toMatchObject({ ok: false, campo: 'dominio' });
-    expect(leerContenido).not.toHaveBeenCalled();
+    expect(leer).not.toHaveBeenCalled();
   });
 
   it('@MATE-6.1 abrirDominio lee lo aprobado con contenidoDeFicheros: el que escribió la revisión', () => {

@@ -5,9 +5,8 @@ import { recorrerRuta } from '../dominio/ruta.ts';
 import type { ContenidoValidado } from './contenido.ts';
 import type { Dependencias } from './dependencias.ts';
 import { dominioValido } from './dominio-valido.ts';
-import { lugarDelFallo, validarContenido } from './formato-contenido.ts';
+import { contenidoDeFicheros, contenidoValidado } from './mesa-guardada.ts';
 import type { Resultado } from './resultado.ts';
-import { aceptar, rechazar } from './resultado.ts';
 import type { ContextoRespuesta } from './sesiones.ts';
 
 /** Respuesta recogida que espera la confianza para corregirse. */
@@ -243,25 +242,8 @@ export function enDominio<T>(
   if (!valido.ok) {
     return valido;
   }
-  const contenido = contenidoValidado(dominio, entorno.dependencias.leerContenido(dominio));
+  const contenido = contenidoValidado(dominio, contenidoDeFicheros(entorno.dependencias.ficheros)(dominio));
   return contenido.ok ? caso({ contenido: contenido.valor, estado: entorno.persona.estadoDe(dominio) }) : contenido;
-}
-
-/**
- * El contenido aprobado del dominio, tal como se leyó (`undefined` si no existe), ya validado. Si no
- * existe, o no cumple el formato (D16), rechaza: un contenido mal escrito no tumba el servidor, y el
- * rechazo dice qué pieza hay que arreglar. Lo usan `enDominio` y `leerMesa` y `leerAprobado`
- * (mesa-guardada.ts), que lo leen con el puerto `Ficheros` porque la revisión también lo escribe.
- */
-export function contenidoValidado(dominio: string, leido: unknown): Resultado<ContenidoValidado> {
-  if (leido === undefined) {
-    return rechazar(`No existe el dominio «${dominio}».`);
-  }
-  const contenido = validarContenido(leido);
-  if (!contenido.ok) {
-    return rechazar(`El contenido de «${dominio}» no cumple el formato: revisa ${lugarDelFallo(contenido.fallo)}.`);
-  }
-  return aceptar(contenido.valor);
 }
 
 /** Hasta que la persona termina el diagnóstico de un dominio, no hace nada más en él (@DIAG-1.1). */

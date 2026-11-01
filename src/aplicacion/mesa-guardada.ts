@@ -1,5 +1,5 @@
 import type { ContenidoValidado } from './contenido.ts';
-import { contenidoValidado } from './estado.ts';
+import { lugarDelFallo, validarContenido } from './formato-contenido.ts';
 import { idRepetido, type BorradorDominio, type Mesa } from './mesa.ts';
 import type { Ficheros } from './puertos.ts';
 import { aceptar, rechazar, rechazarPorCausa, type Resultado } from './resultado.ts';
@@ -38,10 +38,9 @@ export function leerJson(bytes: Uint8Array): unknown {
 }
 
 /**
- * Lo que las `Dependencias` dan como `leerContenido`: lee `contenido/<dominio>.json` con `ficheros` cada vez
- * que se llama, y da el JSON tal cual, sin validar (lo valida `enDominio`), o `undefined` si no existe. Si
- * el fichero no es JSON, da su texto: `validarContenido` lo rechaza como un contenido que no cumple el
- * formato, en vez de tumbar el servidor.
+ * Lee `contenido/<dominio>.json` con `ficheros` cada vez que se llama, y da el JSON tal cual, sin validar
+ * (lo valida `enDominio`), o `undefined` si no existe. Si el fichero no es JSON, da su texto:
+ * `validarContenido` lo rechaza como un contenido que no cumple el formato, en vez de tumbar el servidor.
  */
 export function contenidoDeFicheros(ficheros: Ficheros): (dominio: string) => unknown {
   return (dominio) => {
@@ -62,6 +61,23 @@ export function contenidoDeFicheros(ficheros: Ficheros): (dominio: string) => un
   };
 }
 
+/**
+ * El contenido aprobado del dominio, tal como se leyó (`undefined` si no existe), ya validado. Si no
+ * existe, o no cumple el formato (D16), rechaza: un contenido mal escrito no tumba el servidor, y el
+ * rechazo dice qué pieza hay que arreglar. Lo usan `enDominio` (estado.ts), `leerMesa` y `leerAprobado`,
+ * que lo leen con el puerto `Ficheros` porque la revisión también lo escribe.
+ */
+export function contenidoValidado(dominio: string, leido: unknown): Resultado<ContenidoValidado> {
+  if (leido === undefined) {
+    return rechazar(`No existe el dominio «${dominio}».`);
+  }
+  const contenido = validarContenido(leido);
+  if (!contenido.ok) {
+    return rechazar(`El contenido de «${dominio}» no cumple el formato: revisa ${lugarDelFallo(contenido.fallo)}.`);
+  }
+  return aceptar(contenido.valor);
+}
+
 /** Un fichero leído: su contenido ya interpretado y los bytes de los que sale. */
 interface Leido<Contenido> {
   readonly contenido: Contenido;
@@ -71,7 +87,7 @@ interface Leido<Contenido> {
 /**
  * Lee el borrador y el aprobado, y rechaza si alguno no sirve para revisar:
  * - el aprobado puede estar escrito a mano. Si no existe, o no cumple el formato del contenido, rechaza con
- *   `contenidoValidado` (estado.ts). Si no es JSON, rechaza diciendo que no se puede leer, con su ruta;
+ *   `contenidoValidado`. Si no es JSON, rechaza diciendo que no se puede leer, con su ruta;
  * - sin borrador, el borrador está vacío, con el `dominio` de la petición, y sus bytes son los de ese
  *   borrador vacío en `codificarJson`. Solo lo escribe la aplicación, así que no se valida;
  * - si `idRepetido` da un id, rechaza con `causa` `id_repetido` y el id en el motivo: la revisión nombra
@@ -101,7 +117,7 @@ export function leerAprobado(ficheros: Ficheros, dominio: string): Resultado<Con
 }
 
 /**
- * El contenido aprobado, que puede estar escrito a mano: lo valida `contenidoValidado` (estado.ts), con los
+ * El contenido aprobado, que puede estar escrito a mano: lo valida `contenidoValidado`, con los
  * mismos rechazos que ven los demás casos de uso. El de «no existe» se repite aquí porque, sin fichero, no
  * hay bytes que guardar para deshacer, y TypeScript no sabe que `contenidoValidado` rechaza `undefined`.
  */
