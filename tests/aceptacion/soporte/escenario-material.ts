@@ -42,7 +42,8 @@ export type AvisoDeReservados =
 /**
  * Con `Pick` y no con una intersección: el carril mate-reservados añade a src/ `avisos` obligatorio, y
  * `Revision & { avisos? }` lo dejaría obligatorio, con lo que el `!== undefined` de `avisosDeLaRevision`
- * fallaría en no-unnecessary-condition.
+ * fallaría en no-unnecessary-condition. Por lo mismo, `avisosDeLaRevision` lee `avisos` sin desestructurar:
+ * `const { avisos }: RevisionConAvisos = revision` estrecha `avisos` al tipo de `revision`.
  */
 type RevisionConAvisos = Pick<Revision, 'grupos'> & { readonly avisos?: readonly AvisoDeReservados[] };
 
@@ -307,9 +308,9 @@ export async function pedirMasReservados(actual: Escenario, objetivo: string, do
 
 /** Lo que avisa la revisión; falla el paso si la revisión no trae `avisos` (MATE-3.6, MATE-3.7). */
 export function avisosDeLaRevision(revision: Revision): readonly AvisoDeReservados[] {
-  const { avisos }: RevisionConAvisos = revision;
-  assert.ok(avisos !== undefined, 'la revisión no trae avisos');
-  return avisos;
+  const conAvisos: RevisionConAvisos = revision;
+  assert.ok(conAvisos.avisos !== undefined, 'la revisión no trae avisos');
+  return conAvisos.avisos;
 }
 
 /**
