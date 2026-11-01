@@ -3,7 +3,7 @@ fase: impl
 area: MATE
 depende: [mate-reservados]
 toca: [src/aplicacion/contenido.ts, src/aplicacion/revision.ts, src/aplicacion/redaccion.ts, tests/unidad/revision*.ts, tests/unidad/redaccion*.ts]
-estado: abierto
+estado: hecho
 ---
 # Aprobar un ejemplo que va aparte conserva su diagrama
 

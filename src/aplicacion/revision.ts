@@ -1,6 +1,6 @@
 import type { MarcaDeCita, Marcador } from '../dominio/citas.ts';
 import type { AvisoDeReservados } from './avisos-de-reservados.ts';
-import type { ContenidoDominio, EjemploResueltoContenido, ItemContenido, ObjetivoContenido } from './contenido.ts';
+import type { ContenidoDominio, ItemContenido, ObjetivoContenido } from './contenido.ts';
 import {
   esRegistro,
   falloDeLaPiezaSuelta,
@@ -345,14 +345,15 @@ function entrarEnElAprobado(mesa: Mesa, pendiente: Pendiente): Mesa {
     case 'tarea':
       // `mesa` ya no tiene la tarea en el borrador, y esas son las pendientes por las que sigue la cadena.
       return conAprobado(mesa, { tareas: conLaTareaAprobada(aprobado.tareas, pendiente.pieza, mesa.borrador.tareas) });
-    case 'ejemplo':
-      return conAprobado(mesa, {
-        objetivos: aprobado.objetivos.map((objetivo) =>
-          objetivo.id === pendiente.objetivo
-            ? { ...objetivo, ejemplos_resueltos: [...objetivo.ejemplos_resueltos, sinObjetivo(pendiente.pieza)] }
-            : objetivo,
-        ),
-      });
+    case 'ejemplo': {
+      // El ejemplo que va aparte lleva `objetivo`, y dentro de su objetivo no: se quita y lo demás se conserva,
+      // con la fuente y el diagrama si los tiene. Su tipo no declara `objetivo`; se le pone el de la pendiente.
+      const { objetivo: suyo, ...dentro } = { ...pendiente.pieza, objetivo: pendiente.objetivo };
+      const objetivos = aprobado.objetivos.map((objetivo) =>
+        objetivo.id === suyo ? { ...objetivo, ejemplos_resueltos: [...objetivo.ejemplos_resueltos, dentro] } : objetivo,
+      );
+      return conAprobado(mesa, { objetivos });
+    }
   }
 }
 
@@ -366,12 +367,6 @@ function aprobarObjetivo(mesa: Mesa, objetivo: ObjetivoContenido): Mesa {
   }
   const sueltos = objetivo.ejemplos_resueltos.map((ejemplo) => ({ ...ejemplo, objetivo: objetivo.id }));
   return conBorrador(conAprobados, { ejemplos_resueltos: [...(mesa.borrador.ejemplos_resueltos ?? []), ...sueltos] });
-}
-
-/** Dentro de su objetivo, un ejemplo no lleva `objetivo`; se conserva la fuente, si la tiene. */
-function sinObjetivo(ejemplo: EjemploResueltoContenido): EjemploResueltoContenido {
-  const { id, pasos, fuente } = ejemplo;
-  return fuente === undefined ? { id, pasos } : { id, pasos, fuente };
 }
 
 // --- Corregir ---
