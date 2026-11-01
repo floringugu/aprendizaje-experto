@@ -95,6 +95,16 @@ Característica: Bucle semanal de retroalimentación
       Y las tarjetas de O1 y ninguna silueta (CALI-6.1)
       Y los pasos 1, 3, 4 y 5 no muestran ninguna silueta ni ninguna tarjeta
 
+    @BUCL-2.7 @extrapolacion
+    Escenario: El paso 1 no cuenta las prepreguntas
+      Dado que la persona está en la fase «intermedio» con O1, O2 y O3 dominados
+      Y que O4 se aprobó en la revisión del material, sin dominarlo ni practicarlo, con 20 ítems de tipo «hecho» con opciones
+      Y que el número de prepreguntas configurado es 3
+      Y que en la última semana la persona falló las prepreguntas H1, H2 y H3 de O4
+      Y que después acertó 3 de 4 intentos sin ayuda de O4
+      Cuando se ejecuta el bucle semanal
+      Entonces el paso 1 muestra un acierto sin ayuda del 75 % en O4
+
   @BUCL-3 @evidencia-4 @evidencia-2.4 @evidencia-2.1 @extrapolacion
   Regla: El quinto paso revisa el plan con intenciones de implementación y protege el sueño
     Las intenciones de implementación están «bien establecidas en conducta general» (tabla de la

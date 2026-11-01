@@ -61,6 +61,7 @@ Característica: Instrumentación y exportación CSV
         | no reservado en una sesión intercalada                 | intercalado         |
         | en una prueba de retención                             | retencion           |
         | en un intento de exploración                           | exploracion         |
+        | en una prepregunta                                     | prepregunta         |
         | reservado de tipo «problema» en una sesión intercalada | transferencia       |
         | reservado en una prueba de retención                   | transferencia       |
         | en el estudio de la mitad recuperada de un experimento | experimento_estudio |

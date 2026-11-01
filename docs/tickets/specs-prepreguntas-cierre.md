@@ -3,7 +3,7 @@ fase: specs
 area: AYUD
 depende: [specs-prepreguntas-intermedio, specs-registro-calibracion]
 toca: [features/instrumentacion.feature, features/bucle.feature, docs/cobertura-investigacion.md, docs/plan.md]
-estado: abierto
+estado: hecho
 ---
 # El registro, el bucle, la tabla de cobertura y el plan recogen las prepreguntas (AYUD-8)
 
