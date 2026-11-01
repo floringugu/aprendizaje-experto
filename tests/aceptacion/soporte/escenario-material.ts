@@ -32,41 +32,10 @@ export type CategoriaDelBorrador = CategoriaContenido & { readonly fuente?: Fuen
 export type Pieza =
   ObjetivoContenido | EjemploResueltoContenido | ItemContenido | TareaContenido | CategoriaDelBorrador;
 
-/**
- * Lo que avisa la revisión para poder medir la transferencia (MATE-3.6, MATE-3.7). `Revision` aún no trae
- * `avisos`; se declara opcional y se comprueba en tiempo de ejecución.
- */
+/** Lo que avisa la revisión para poder medir la transferencia (MATE-3.6, MATE-3.7). */
 export type AvisoDeReservados =
   | { readonly tipo: 'categoria_sin_reservado'; readonly objetivo: string; readonly categoria: string }
   | { readonly tipo: 'pocos_reservados'; readonly hay: number; readonly hacen_falta: number };
-/**
- * Con `Pick` y no con una intersección: el carril mate-reservados añade a src/ `avisos` obligatorio, y
- * `Revision & { avisos? }` lo dejaría obligatorio, con lo que el `!== undefined` de `avisosDeLaRevision`
- * fallaría en no-unnecessary-condition. Por lo mismo, `avisosDeLaRevision` lee `avisos` sin desestructurar:
- * `const { avisos }: RevisionConAvisos = revision` estrecha `avisos` al tipo de `revision`.
- */
-type RevisionConAvisos = Pick<Revision, 'grupos'> & { readonly avisos?: readonly AvisoDeReservados[] };
-
-/** La pieza de la revisión con su «reservado» propio, que no es una marca (MATE-4.12); `Revision` aún no lo trae. */
-interface PiezaConReservado {
-  readonly id: string;
-  readonly reservado?: boolean;
-}
-
-/** La operación de pedir más reservados de un objetivo (MATE-2.10), que la aplicación aún no tiene. */
-type PedirMasReservados = (peticion: {
-  readonly dominio: string;
-  readonly objetivo: string;
-  readonly documento: string;
-}) => Promise<Resultado<BorradorRedactado>>;
-/**
- * Con `Omit` y no con una intersección, por lo mismo que `RevisionConAvisos`: el carril mate-reservados añade
- * `pedirMasReservados` obligatorio a src/, y el `!== undefined` de `pedirMasReservados` fallaría en
- * no-unnecessary-condition.
- */
-type AplicacionConReservados = Omit<Aplicacion, 'pedirMasReservados'> & {
-  readonly pedirMasReservados?: PedirMasReservados;
-};
 
 /**
  * Lo que usan estas utilidades del mundo del escenario. Se declara aquí en vez de importar `Mundo`
@@ -301,26 +270,20 @@ export async function redactar(actual: Escenario, documento: string): Promise<vo
 
 /** Pide más problemas reservados de un objetivo y deja lo que responde la aplicación para los «Entonces» (MATE-2.10). */
 export async function pedirMasReservados(actual: Escenario, objetivo: string, documento: string): Promise<void> {
-  const aplicacion: AplicacionConReservados = actual.aplicacion();
-  assert.ok(aplicacion.pedirMasReservados !== undefined, 'la aplicación aún no tiene pedirMasReservados');
-  actual.material.redaccion = await aplicacion.pedirMasReservados({ dominio: actual.dominio, objetivo, documento });
+  actual.material.redaccion = await actual
+    .aplicacion()
+    .pedirMasReservados({ dominio: actual.dominio, objetivo, documento });
 }
 
-/** Lo que avisa la revisión; falla el paso si la revisión no trae `avisos` (MATE-3.6, MATE-3.7). */
+/** Lo que avisa la revisión (MATE-3.6, MATE-3.7). */
 export function avisosDeLaRevision(revision: Revision): readonly AvisoDeReservados[] {
-  const conAvisos: RevisionConAvisos = revision;
-  assert.ok(conAvisos.avisos !== undefined, 'la revisión no trae avisos');
-  return conAvisos.avisos;
+  return revision.avisos;
 }
 
-/**
- * Si la revisión dice que la pieza es reservada (MATE-4.12). Cada pieza dice explícitamente «sí» o «no»:
- * una revisión que no trae `reservado` no lo dice, y falla el paso.
- */
+/** Si la revisión dice que la pieza es reservada (MATE-4.12). */
 export function reservadoEnLaRevision(revision: Revision, item: string): boolean {
-  const piezas: readonly PiezaConReservado[] = revision.grupos.flatMap((grupo) => grupo.piezas);
+  const piezas = revision.grupos.flatMap((grupo) => grupo.piezas);
   const pieza = piezas.find((candidata) => candidata.id === item);
   assert.ok(pieza !== undefined, `${item} no está en la revisión`);
-  assert.ok(pieza.reservado !== undefined, `la revisión no dice si ${item} es reservado`);
   return pieza.reservado;
 }
