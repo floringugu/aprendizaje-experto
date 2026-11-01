@@ -10,6 +10,13 @@ Característica: Instrumentación y exportación CSV
   Un texto libre, como el de una autoexplicación, que contenga comas o saltos de línea sale entre
   comillas dobles (INST-1.6).
 
+  Las pantallas de calibración (CALI-4 a CALI-6) son extrapolación del autor y ningún estudio prueba
+  que mejoren la calibración. Para medirlo con los datos de la persona, la aplicación registra qué
+  pantalla enseñó y cuándo, y cuándo abrió cada tarjeta (INST-1.10 a INST-1.15), y la diferencia entre
+  confianza y acierto de cada semana se puede comparar antes y después de la primera pantalla
+  (INST-3). La comparación solo se exporta: la aplicación no se la enseña a la persona. El registro
+  no cambia el progreso (INST-4).
+
   Antecedentes:
     Dado el dominio de prueba «ficticio» con los objetivos O1, O2 y O3, en ese orden
 
@@ -31,6 +38,8 @@ Característica: Instrumentación y exportación CSV
         | horas.csv                 | fecha,dominio,minutos                                                                            |
         | autoexplicaciones.csv     | fecha,dominio,objetivo,texto                                                                     |
         | experimentos.csv          | fecha,dominio,objetivo,item,mitad,estudio_ms                                                     |
+        | pantallas_calibracion.csv | fecha,dominio,objetivo,pantalla,grupo,items,aciertos                                             |
+        | tarjetas_abiertas.csv     | fecha,dominio,objetivo,item,estado                                                               |
 
     @INST-1.2 @evidencia-4
     Escenario: Cada respuesta registra acierto, latencia y confianza
@@ -109,6 +118,66 @@ Característica: Instrumentación y exportación CSV
         | 2026-03-02T10:30:00 | ficticio | O2       | I1   | releer    | 18400      |
         | 2026-03-02T10:30:00 | ficticio | O2       | I2   | recuperar | 21000      |
 
+    @INST-1.10 @extrapolacion
+    Escenario: Cada silueta enseñada ocupa una fila y las que no tienen datos suficientes no
+      Dado que el mínimo de ítems de las pantallas de calibración configurado es 5
+      Y que en O1 la persona respondió 10 ítems no reservados y acertó 6
+      Y que respondió 6 ítems reservados de O1 y acertó 3
+      Y que en O2 respondió 2 ítems no reservados
+      Cuando el 2026-03-30 a las 10:00:00 se ejecuta el bucle semanal
+      Y la persona exporta pantallas_calibracion.csv
+      Entonces tiene estas filas:
+        | fecha               | dominio  | objetivo | pantalla | grupo       | items | aciertos |
+        | 2026-03-30T10:00:00 | ficticio | O1       | silueta  | practicados | 10    | 6        |
+        | 2026-03-30T10:00:00 | ficticio | O1       | silueta  | reservados  | 6     | 3        |
+      Y no tiene ninguna fila de O2
+
+    @INST-1.11 @extrapolacion
+    Escenario: Las tarjetas enseñadas ocupan una fila y el bucle no registra además la silueta
+      Dado que el mínimo de ítems de las pantallas de calibración configurado es 5
+      Y que las semanas de retención diferida configuradas son 1 y 4
+      Y que la persona hizo desde el último bucle la prueba de retención de O1 de la semana 4
+      Y que esa prueba incluye 12 ítems con una confianza de al menos el 80 % en su último intento anterior
+      Y que la persona acertó 6 de los 12
+      Y que O1 tiene datos suficientes para su silueta
+      Cuando el 2026-03-30 a las 10:00:00 se ejecuta el bucle semanal
+      Y la persona exporta pantallas_calibracion.csv
+      Entonces tiene la fila «2026-03-30T10:00:00,ficticio,O1,tarjetas,practicados,12,6»
+      Y no tiene ninguna fila con la pantalla «silueta»
+
+    @INST-1.12 @extrapolacion
+    Esquema del escenario: Cada tarjeta abierta ocupa una fila con su estado y no es un intento
+      Dado que el ítem I1 de O1 tiene una tarjeta «<tarjeta>»
+      Cuando el 2026-03-30 a las 10:05:00 la persona abre la tarjeta de I1
+      Y exporta tarjetas_abiertas.csv
+      Entonces tiene la fila «2026-03-30T10:05:00,ficticio,O1,I1,<estado>»
+      Y respuestas.csv no gana ninguna fila
+
+      Ejemplos:
+        | tarjeta              | estado       |
+        | sigue en pie         | sigue_en_pie |
+        | fallada en la prueba | fallada      |
+
+    @INST-1.13 @extrapolacion
+    Escenario: Abrir la misma tarjeta dos veces ocupa dos filas
+      Dado que el ítem I1 de O1 tiene una tarjeta «fallada en la prueba»
+      Cuando la persona abre la tarjeta de I1 el 2026-03-30 a las 10:05:00 y otra vez a las 10:07:00
+      Y exporta tarjetas_abiertas.csv
+      Entonces tiene dos filas de I1, una con la fecha 2026-03-30T10:05:00 y otra con la 2026-03-30T10:07:00
+
+    @INST-1.14 @extrapolacion
+    Escenario: Abrir una tarjeta del resultado de un experimento no se registra en tarjetas_abiertas.csv
+      Dado que el ítem I1 de O2 tiene una tarjeta «fallada en la prueba» en el resultado de un experimento
+      Cuando la persona abre la tarjeta de I1
+      Y exporta tarjetas_abiertas.csv
+      Entonces el fichero tiene solo la fila de cabecera
+
+    @INST-1.15 @extrapolacion
+    Escenario: Sin ningún bucle ejecutado los dos CSV de calibración solo tienen la cabecera
+      Dado que la persona no ha ejecutado ningún bucle semanal
+      Cuando exporta pantallas_calibracion.csv y tarjetas_abiertas.csv
+      Entonces los dos ficheros tienen solo la fila de cabecera
+
   @INST-2 @extrapolacion
   Regla: La exportación es completa y ordenada
 
@@ -127,6 +196,104 @@ Característica: Instrumentación y exportación CSV
       Y la segunda es la del 2026-03-03, del dominio «ficticio»
 
     @INST-2.3 @extrapolacion
-    Escenario: Se pueden exportar los ocho CSV
+    Escenario: Se pueden exportar los diez CSV
       Cuando la persona abre la exportación
-      Entonces puede descargar respuestas.csv, cambios_ayuda.csv, objetivos_dominados.csv, cambios_fase.csv, evaluaciones_externas.csv, horas.csv, autoexplicaciones.csv y experimentos.csv
+      Entonces puede descargar respuestas.csv, cambios_ayuda.csv, objetivos_dominados.csv, cambios_fase.csv, evaluaciones_externas.csv, horas.csv, autoexplicaciones.csv, experimentos.csv, pantallas_calibracion.csv y tarjetas_abiertas.csv
+
+  @INST-3 @evidencia-2.5 @extrapolacion
+  Regla: La diferencia entre confianza y acierto se compara por semanas, antes y después de la primera pantalla
+    La aplicación no calcula ni enseña esta comparación: la persona la saca de la exportación
+    (respuestas.csv y pantallas_calibracion.csv). Cada semana es la que cierra un bucle semanal,
+    como en CALI-2.1, y su diferencia es la de CALI-2: confianza media menos acierto, en puntos, con
+    las filas de respuestas.csv de esa semana salvo las de exploración y las de los experimentos
+    (CALI-2.3, CALI-12.2). El corte es de cada dominio: la primera fila de pantallas_calibracion.csv
+    de ese dominio. La semana que cierra el bucle que enseñó esa primera pantalla cuenta como
+    «antes», porque la persona aún no la había visto durante ella; las siguientes, como «después».
+    Se compara la diferencia media con signo (de qué lado se desvía) y la distancia media sin signo
+    (cuánto se desvía), cada semana con el mismo peso. Hace falta al menos una semana con respuestas
+    antes y otra después. La sección 2.5 avisa de que parte del desajuste puede ser regresión a la
+    media, y no hay grupo de control: la comparación es descriptiva y no prueba que las pantallas
+    cambien nada. Todo esto es decisión del autor.
+
+    Antecedentes:
+      Dado que la periodicidad del bucle configurada es de 7 días
+
+    @INST-3.1 @extrapolacion
+    Escenario: La diferencia de cada semana sale de respuestas.csv con las reglas de CALI-2
+      Dado que respuestas.csv tiene estas filas entre el bucle del 2026-03-09 y el del 2026-03-16:
+        | contexto           | confianza | correcta |
+        | practica           | 90        | true     |
+        | repaso             | 80        | false    |
+        | transferencia      | 70        | true     |
+        | retencion          | 60        | false    |
+        | exploracion        | 95        | false    |
+        | experimento_prueba | 90        | false    |
+      Cuando se calcula la diferencia de la semana del bucle del 2026-03-16
+      Entonces es de +25 puntos, con una confianza media del 75 % y un acierto del 50 %
+
+    @INST-3.2 @extrapolacion
+    Escenario: La semana del bucle que enseña la primera pantalla cuenta como «antes»
+      Dado que los bucles semanales se ejecutaron el 2026-03-09, el 2026-03-16 y el 2026-03-23
+      Y que la primera fila de pantallas_calibracion.csv del dominio «ficticio» es del bucle del 2026-03-16
+      Cuando se separan las semanas del dominio «ficticio»
+      Entonces las semanas «antes» son las que cerraron los bucles del 2026-03-09 y del 2026-03-16
+      Y la semana «después» es la que cerró el bucle del 2026-03-23
+
+    @INST-3.3 @extrapolacion
+    Escenario: El corte es de cada dominio y sin pantallas no hay semanas «después»
+      Dado que los bucles semanales se ejecutaron el 2026-03-09, el 2026-03-16 y el 2026-03-23 en los dominios «ficticio» y «ficticio_b»
+      Y que pantallas_calibracion.csv solo tiene filas del dominio «ficticio»
+      Cuando se separan las semanas de cada dominio
+      Entonces el dominio «ficticio_b» tiene todas sus semanas «antes» y ninguna «después»
+      Y no hay comparación para «ficticio_b»
+
+    @INST-3.4 @extrapolacion
+    Esquema del escenario: Para comparar hace falta al menos una semana con respuestas antes y otra después
+      Dado que el dominio «ficticio» tiene <antes> semanas «antes» con respuestas y <después> «después» con respuestas
+      Cuando se compara la diferencia entre confianza y acierto
+      Entonces <resultado>
+
+      Ejemplos:
+        | antes | después | resultado                   |
+        | 0     | 2       | no hay con qué comparar     |
+        | 2     | 0       | no hay con qué comparar     |
+        | 1     | 1       | se comparan las dos semanas |
+
+    @INST-3.5 @extrapolacion
+    Escenario: Una semana sin respuestas no cuenta
+      Dado que las semanas «antes» del dominio «ficticio» son dos y solo una tiene respuestas
+      Y que hay una semana «después» con respuestas
+      Cuando se compara la diferencia entre confianza y acierto
+      Entonces la media de las semanas «antes» es la de la semana con respuestas
+
+    @INST-3.6 @extrapolacion
+    Escenario: Se compara la diferencia media con signo y la distancia media sin signo
+      Dado que las semanas «antes» tienen diferencias de +30 y +20 puntos
+      Y que las semanas «después» tienen diferencias de +10 y -20 puntos
+      Cuando se compara la diferencia entre confianza y acierto
+      Entonces la diferencia media pasa de +25 a -5 puntos
+      Y la distancia media pasa de 25 a 15 puntos
+
+    @INST-3.7 @extrapolacion
+    Escenario: La comparación no se enseña a la persona
+      Dado que el dominio «ficticio» tiene dos semanas «antes» y dos «después» con diferencias distintas
+      Cuando se ejecuta el bucle semanal
+      Entonces ningún paso del bucle compara las semanas anteriores y posteriores a la primera pantalla
+      Y la comparación solo se puede sacar de respuestas.csv y pantallas_calibracion.csv
+
+  @INST-4 @extrapolacion
+  Regla: El registro de las pantallas y las tarjetas no cambia el progreso ni las demás exportaciones
+    Enseñar una pantalla y abrir una tarjeta solo añaden filas a pantallas_calibracion.csv y a
+    tarjetas_abiertas.csv. No son intentos, y ni la confianza ni las pantallas afectan al progreso
+    (CALI-3, CALI-5.6). Es decisión del autor.
+
+    @INST-4.1 @extrapolacion
+    Escenario: Dos personas con los mismos intentos solo difieren en los dos CSV de calibración
+      Dado dos personas con los mismos intentos y aciertos en el dominio «ficticio»
+      Pero una vio las pantallas de calibración y abrió todas sus tarjetas y la otra no las vio
+      Cuando la aplicación evalúa a las dos
+      Entonces las dos tienen los mismos objetivos dominados y la misma fase
+      Y los mismos pasos retirados en cada objetivo
+      Y las mismas fechas de repaso
+      Y sus respuestas.csv, cambios_ayuda.csv, objetivos_dominados.csv y cambios_fase.csv tienen las mismas filas
+      Pero pantallas_calibracion.csv y tarjetas_abiertas.csv tienen filas distintas
