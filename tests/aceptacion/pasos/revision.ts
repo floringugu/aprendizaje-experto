@@ -12,6 +12,7 @@ import {
   fuenteDeLosApuntes,
   idsDeLaRevision,
   itemDePrueba,
+  reservadoEnLaRevision,
 } from '../soporte/escenario-material.ts';
 import type { Revision } from '../soporte/escenario-material.ts';
 import { aceptado, mundo } from '../soporte/mundo.ts';
@@ -39,6 +40,9 @@ const FILTROS: Readonly<Record<string, FiltroRevision>> = {
   'No está en tu material': 'sin_fuente',
   'Cita no encontrada': 'cita_no_encontrada',
 };
+
+/** «Reservado» no es una marca de la aplicación: la revisión lo da en un campo propio de la pieza (MATE-4.12). */
+const RESERVADO = 'Reservado';
 
 function aMarca(texto: string): string {
   return presente(MARCAS[texto], `la marca «${texto}»`);
@@ -106,6 +110,32 @@ function dejarPendiente(item: string, objetivo: string): void {
 }
 
 Given('que contenido\\/borradores\\/ficticio.json tiene el ítem {item} de {objetivo}, pendiente', dejarPendiente);
+
+/**
+ * El ítem pendiente, sin marcas, que está o no marcado como reservado (MATE-4.12). Sustituye al de los
+ * antecedentes de MATE-4, que tiene el mismo id.
+ */
+function dejarPendienteReservado(item: string, objetivo: string, reservado: boolean): void {
+  const actual = mundo();
+  const { borrador } = actual.material;
+  borrador.items = borrador.items.filter((candidato) => candidato.id !== item);
+  const fuente = fuenteDeLosApuntes(actual.material.frase);
+  actual.material.agregarAlBorrador(actual, { ...itemDePrueba(item, objetivo, fuente), reservado });
+}
+
+Given(
+  'que contenido\\/borradores\\/ficticio.json tiene el ítem {item} de {objetivo}, pendiente y marcado como reservado',
+  (item: string, objetivo: string) => {
+    dejarPendienteReservado(item, objetivo, true);
+  },
+);
+
+Given(
+  'que contenido\\/borradores\\/ficticio.json tiene el ítem {item} de {objetivo}, pendiente y sin marcar',
+  (item: string, objetivo: string) => {
+    dejarPendienteReservado(item, objetivo, false);
+  },
+);
 Given(
   'que contenido\\/borradores\\/ficticio.json tiene también el ítem {item} de {objetivo}, pendiente',
   dejarPendiente,
@@ -164,12 +194,17 @@ When('la persona abre la revisión del material de {texto}', (dominio: string) =
   abrirLaRevision(mundo(), dominio);
 });
 
+function tieneLaMarca(item: string, marca: string): boolean {
+  const revision = revisionAbierta();
+  return marca === RESERVADO ? reservadoEnLaRevision(revision, item) : marcasDe(revision, item).includes(aMarca(marca));
+}
+
 Then('{item} tiene la marca {texto}', (item: string, marca: string) => {
-  assert.ok(marcasDe(revisionAbierta(), item).includes(aMarca(marca)), `${item} no tiene la marca «${marca}»`);
+  assert.ok(tieneLaMarca(item, marca), `${item} no tiene la marca «${marca}»`);
 });
 
 Then('{item} no tiene la marca {texto}', (item: string, marca: string) => {
-  assert.ok(!marcasDe(revisionAbierta(), item).includes(aMarca(marca)), `${item} tiene la marca «${marca}»`);
+  assert.ok(!tieneLaMarca(item, marca), `${item} tiene la marca «${marca}»`);
 });
 
 Then('{item} no tiene ninguna marca', (item: string) => {

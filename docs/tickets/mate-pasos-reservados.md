@@ -3,7 +3,7 @@ fase: aceptacion
 area: MATE
 depende: []
 toca: [tests/aceptacion/pasos/reservados.ts, tests/aceptacion/pasos/redaccion-rechazos.ts, tests/aceptacion/pasos/revision.ts, tests/aceptacion/pasos/aprobacion.ts, tests/aceptacion/pasos/borradores-en-sesiones.ts, tests/aceptacion/soporte/escenario-material.ts, config/alcance.json, docs/areas/MATE.md]
-estado: abierto
+estado: hecho
 ---
 # Pasos de los reservados de MATE (MATE-2.8 a 2.11, 3.6, 3.7 y 4.12)
 

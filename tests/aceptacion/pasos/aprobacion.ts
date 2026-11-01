@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { Given, Then, When } from '@cucumber/cucumber';
 import type { Fuente, ItemContenido } from '../../../src/aplicacion/contenido.ts';
 import { presente } from '../soporte/comprobar.ts';
+import type { ItemDePrueba } from '../soporte/contenido.ts';
 import {
   aprobadoEnDisco,
   comoEnDisco,
@@ -87,6 +88,21 @@ When('la persona borra el feedback de {item} y guarda la corrección', (item: st
   corregir(actual, item, sinPropiedad(itemInicial(actual, item), 'feedback'));
 });
 
+/** Corrige el ítem con «reservado» a verdadero o a falso, sin tocar nada más (MATE-4.12). */
+function corregirReservado(item: string, reservado: boolean): void {
+  const actual = mundo();
+  corregir(actual, item, { ...itemInicial(actual, item), reservado });
+  aceptado(presente(actual.ultimoResultado, 'ninguna respuesta al corregir'));
+}
+
+When('la persona quita {texto} en {item} y guarda la corrección', (_marca: string, item: string) => {
+  corregirReservado(item, false);
+});
+
+When('la persona pone {texto} en {item} y guarda la corrección', (_marca: string, item: string) => {
+  corregirReservado(item, true);
+});
+
 Then('{item} ya no está en contenido\\/borradores\\/ficticio.json', comprobarFueraDelBorrador);
 Then('{item} sigue fuera de contenido\\/borradores\\/ficticio.json', comprobarFueraDelBorrador);
 Then('{item} sigue pendiente en contenido\\/borradores\\/ficticio.json', comprobarPendiente);
@@ -108,6 +124,28 @@ Then('{item} sigue pendiente en contenido\\/borradores\\/ficticio.json, con el e
   const pendiente = presente(piezaEnElBorrador(mundo(), item), `${item} en el borrador`) as ItemContenido;
   assert.equal(pendiente.enunciado, `Enunciado corregido de ${item}`);
 });
+
+/** El «reservado» del ítem pendiente, tal como está en el borrador del disco; sin él, no es reservado. */
+function reservadoEnElBorrador(item: string): boolean {
+  const pendiente = presente(piezaEnElBorrador(mundo(), item), `${item} en el borrador`) as ItemDePrueba;
+  return pendiente.reservado === true;
+}
+
+Then(
+  '{item} sigue pendiente en contenido\\/borradores\\/ficticio.json, con {texto} a verdadero',
+  (item: string, campo: string) => {
+    assert.equal(campo, 'reservado');
+    assert.equal(reservadoEnElBorrador(item), true, `${item} no está como reservado en el borrador`);
+  },
+);
+
+Then(
+  '{item} sigue pendiente en contenido\\/borradores\\/ficticio.json, sin {texto} a verdadero',
+  (item: string, campo: string) => {
+    assert.equal(campo, 'reservado');
+    assert.equal(reservadoEnElBorrador(item), false, `${item} sigue como reservado en el borrador`);
+  },
+);
 
 Then('la aplicación no guarda la corrección e indica que falta {falta}', (falta: string) => {
   const resultado = presente(mundo().ultimoResultado, 'ninguna respuesta al corregir');
@@ -177,9 +215,14 @@ Given(
   dejarTareaPendiente,
 );
 
-Given('que contenido\\/borradores\\/ficticio.json tiene la tarea {tarea}, pendiente, sin {texto}', (tarea: string) => {
-  dejarTareaPendiente(tarea);
-});
+// La frase lleva dos parámetros, la tarea y el texto «antes de», y Cucumber exige un argumento por cada uno.
+Given(
+  'que contenido\\/borradores\\/ficticio.json tiene la tarea {tarea}, pendiente, sin {texto}',
+  (tarea: string, sinTexto: string) => {
+    assert.equal(sinTexto, 'antes de');
+    dejarTareaPendiente(tarea);
+  },
+);
 
 Then('contenido\\/ficticio.json tiene las tareas {ids}, en ese orden', (ids: string[]) => {
   assert.deepEqual(
