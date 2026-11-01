@@ -16,6 +16,7 @@ import {
   marcasDe,
   mesaDe,
   objetivo,
+  reservado,
   tarea,
 } from './revision-fabricas.ts';
 
@@ -31,10 +32,10 @@ describe('revisar: agrupación y orden', () => {
   it('@MATE-4.1 cada pieza trae su marca: ninguna, o una', () => {
     const [grupo] = revisar(MESA, marcador, 'pendientes').grupos;
     expect(grupo?.piezas).toStrictEqual([
-      { id: 'I7', tipo: 'item', marcas: [] },
-      { id: 'I8', tipo: 'item', marcas: ['sin_fuente'] },
-      { id: 'I9', tipo: 'item', marcas: ['cita_no_encontrada'] },
-      { id: 'I10', tipo: 'item', marcas: [] },
+      { id: 'I7', tipo: 'item', marcas: [], reservado: false },
+      { id: 'I8', tipo: 'item', marcas: ['sin_fuente'], reservado: false },
+      { id: 'I9', tipo: 'item', marcas: ['cita_no_encontrada'], reservado: false },
+      { id: 'I10', tipo: 'item', marcas: [], reservado: false },
     ]);
   });
 
@@ -73,7 +74,7 @@ describe('revisar: categorías', () => {
 
   it('@MATE-4.1 la pieza de una categoría dice que es una categoría', () => {
     const sinObjetivo = revisar(mesa, marcador, 'pendientes').grupos.at(-1);
-    expect(sinObjetivo?.piezas[0]).toStrictEqual({ id: 'C1', tipo: 'categoria', marcas: [] });
+    expect(sinObjetivo?.piezas[0]).toStrictEqual({ id: 'C1', tipo: 'categoria', marcas: [], reservado: false });
   });
 
   it.each([
@@ -164,4 +165,44 @@ describe('revisar: marca «un_solo_paso»', () => {
       expect(marcasDe(mesa, id, 'un_solo_paso')).toBeUndefined();
     },
   );
+});
+
+describe('revisar: «reservado» de la pieza', () => {
+  /** El valor `reservado` de la pieza `id` en la revisión sin filtro, o `undefined` si la pieza no sale. */
+  const reservadoDe = (mesa: Mesa, id: string): boolean | undefined =>
+    revisar(mesa, marcador, 'pendientes')
+      .grupos.flatMap((grupo) => grupo.piezas)
+      .find((pieza) => pieza.id === id)?.reservado;
+
+  it('@MATE-4.12 un ítem con «reservado» verdadero sale con reservado verdadero', () => {
+    expect(reservadoDe(mesaDe({ items: [reservado(item('I7'))] }), 'I7')).toBe(true);
+  });
+
+  it.each([
+    ['sin el campo', item('I7')],
+    ['con «reservado» falso', { ...item('I7'), reservado: false }],
+  ])('@MATE-4.12 un ítem %s sale con reservado falso', (_descripcion, pieza) => {
+    expect(reservadoDe(mesaDe({ items: [pieza] }), 'I7')).toBe(false);
+  });
+
+  it.each(['O1', 'E1', 'C1', 'T1'])('@MATE-4.12 la pieza %s, que no es un ítem, sale con reservado falso', (id) => {
+    const mesa = mesaDe({
+      objetivos: [objetivo('O1', [ejemplo('E1')])],
+      categorias: [categoria('C1')],
+      tareas: [tarea('T1')],
+    });
+    expect(reservadoDe(mesa, id)).toBe(false);
+  });
+
+  it('@MATE-4.12 «reservado» no es una marca: no sale en las marcas, aunque falte la fuente', () => {
+    const mesa = mesaDe({ items: [reservado(item('I7', FUENTE_BUENA)), reservado(item('I8'))] });
+    expect(marcasDe(mesa, 'I7')).toStrictEqual([]);
+    expect(marcasDe(mesa, 'I8')).toStrictEqual(['sin_fuente']);
+  });
+
+  it('@MATE-4.12 el filtro de marca no tiene en cuenta «reservado»: un reservado con marca sale, uno sin marca, no', () => {
+    const mesa = mesaDe({ items: [reservado(item('I7', FUENTE_BUENA)), reservado(item('I8')), item('I9')] });
+    expect(agrupadas(mesa, 'sin_fuente')).toStrictEqual([['O1', ['I8', 'I9']]]);
+    expect(marcasDe(mesa, 'I7', 'sin_fuente')).toBeUndefined();
+  });
 });

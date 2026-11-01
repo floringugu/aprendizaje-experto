@@ -4,7 +4,7 @@ import { contenidoDeFicheros, mismaMesa, type ParDeBytes } from '../../src/aplic
 import type { Ficheros } from '../../src/aplicacion/puertos.ts';
 import { crearRevisionDelMaterial, type CasosDeRevision } from '../../src/aplicacion/revision-del-material.ts';
 import { ficherosEnMemoria } from './ficheros-en-memoria.ts';
-import { codificar } from './revision-fabricas.ts';
+import { codificar, externosDe } from './revision-fabricas.ts';
 
 // Un dominio con el que, sin validar, se escribiría fuera de la carpeta de datos.
 const FUERA = '../fuera';
@@ -74,7 +74,7 @@ describe('el dominio que sale de la carpeta de datos', () => {
     '@MATE-4.1 %s rechaza con campo dominio y no lee ni escribe nada',
     (_caso, llamar) => {
       const { ficheros, leer, escribir } = ficherosEspiados();
-      expect(llamar(crearRevisionDelMaterial(ficheros))).toMatchObject(RECHAZO_DE_DOMINIO);
+      expect(llamar(crearRevisionDelMaterial(externosDe(ficheros)))).toMatchObject(RECHAZO_DE_DOMINIO);
       expect(leer).not.toHaveBeenCalled();
       expect(escribir).not.toHaveBeenCalled();
     },

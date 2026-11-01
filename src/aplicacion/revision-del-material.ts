@@ -1,10 +1,13 @@
 import { contextoDeLaCita, marcadorDelMaterial, type Marcador } from '../dominio/citas.ts';
+import { avisosDeReservados } from './avisos-de-reservados.ts';
 import type { Fuente } from './contenido.ts';
+import type { Dependencias } from './dependencias.ts';
 import { dominioValido } from './dominio-valido.ts';
 import type { Entorno } from './estado.ts';
 import { textosDelMaterial } from './material-guardado.ts';
 import { buscarPieza, type BorradorDominio, type PiezaDeLaMesa } from './mesa.ts';
 import { bytesDeLaMesa, escribirPar, leerAprobado, leerMesa, mismaMesa, type ParDeBytes } from './mesa-guardada.ts';
+import { parametroNumerico } from './parametros.ts';
 import type { PeticionDominio } from './peticiones.ts';
 import type { Ficheros } from './puertos.ts';
 import { aceptar, rechazarPorCausa, type Resultado } from './resultado.ts';
@@ -30,7 +33,10 @@ export interface FuenteAbierta {
 }
 
 export interface CasosDeRevision {
-  /** Las piezas pendientes del borrador, agrupadas por objetivo; sin filtro, todas (MATE-4.1, MATE-4.2). */
+  /**
+   * Las piezas pendientes del borrador, agrupadas por objetivo; sin filtro, todas (MATE-4.1, MATE-4.2). Con
+   * los avisos de los problemas reservados del aprobado, que el filtro no cambia (MATE-3.6, MATE-3.7).
+   */
   abrirRevision(peticion: { readonly dominio: string; readonly filtro?: FiltroRevision }): Resultado<Revision>;
   /** Pasa la pieza del borrador al contenido aprobado, con su fuente (MATE-4.4). */
   aprobarPieza(peticion: PeticionPieza): Resultado<null>;
@@ -45,7 +51,7 @@ export interface CasosDeRevision {
 }
 
 /**
- * Los casos de la revisión sobre `ficheros`, con un hueco de deshacer por dominio, en memoria. Cada
+ * Los casos de la revisión sobre `externos.ficheros`, con un hueco de deshacer por dominio, en memoria. Cada
  * llamada tiene sus propios huecos; la aplicación crea uno por persona. Devuelve un objeto de funciones,
  * no una instancia de clase: `crearAplicacion` lo reparte con `...`, que no copia los métodos de una clase.
  *
@@ -56,7 +62,9 @@ export interface CasosDeRevision {
  *
  * **Los casos.**
  * - `abrirRevision` da `revisar`, con el filtro `pendientes` si no viene, y no escribe nada. Las marcas
- *   salen de `marcadorDelMaterial(textosDelMaterial(…))` cada vez que se abre (@MATE-4.7).
+ *   salen de `marcadorDelMaterial(textosDelMaterial(…))` cada vez que se abre (@MATE-4.7). Los `avisos`
+ *   salen de `avisosDeReservados(mesa.aprobado, …)`, con `minimo_problemas_reservados` de
+ *   `leerParametros()`, que se lee cada vez; el filtro no los cambia (MATE-3.6, MATE-3.7).
  * - `aprobarPieza`, `descartarPieza` y `corregirPieza` llaman a `aplicar` con su acción. Si la acepta,
  *   escriben los dos ficheros enteros, en JSON sangrado con dos espacios, y el hueco del dominio pasa a
  *   guardar lo que había en ellos y lo que se acaba de escribir. Si `aplicar` rechaza, no escriben nada,
@@ -68,12 +76,12 @@ export interface CasosDeRevision {
  *   cambiado otra cosa: un borrador redactado después, otra persona, una edición a mano). Volver a lo de
  *   antes borraría ese cambio sin avisar (regla que la feature no cubre).
  */
-export function crearRevisionDelMaterial(ficheros: Ficheros): CasosDeRevision {
+export function crearRevisionDelMaterial(externos: ExternosDeLaRevision): CasosDeRevision {
   // El hueco de cada dominio vive en este cierre: dos llamadas a la función no comparten nada.
-  const almacen: Almacen = { ficheros, huecos: new Map() };
+  const almacen: Almacen = { ficheros: externos.ficheros, huecos: new Map() };
   return {
     abrirRevision: ({ dominio, filtro }) =>
-      conDominioValido(dominio, () => abrir(ficheros, dominio, filtro ?? 'pendientes')),
+      conDominioValido(dominio, () => abrir(externos, dominio, filtro ?? 'pendientes')),
     aprobarPieza: ({ dominio, pieza }) =>
       conDominioValido(dominio, () => ejecutar(almacen, dominio, { tipo: 'aprobar', pieza })),
     descartarPieza: ({ dominio, pieza }) =>
@@ -202,6 +210,8 @@ interface Hueco {
   readonly despues: ParDeBytes;
 }
 
+type ExternosDeLaRevision = Pick<Dependencias, 'ficheros' | 'leerParametros'>;
+
 /** Los ficheros y los huecos de deshacer, por dominio: lo que comparten los casos de una revisión. */
 interface Almacen {
   readonly ficheros: Ficheros;
@@ -215,12 +225,16 @@ function marcasDelMaterial(ficheros: Ficheros, dominio: string): Marcador {
 
 // --- Los casos ---
 
-function abrir(ficheros: Ficheros, dominio: string, filtro: FiltroRevision): Resultado<Revision> {
+function abrir(externos: ExternosDeLaRevision, dominio: string, filtro: FiltroRevision): Resultado<Revision> {
+  const { ficheros } = externos;
   const lectura = leerMesa(ficheros, dominio);
   if (!lectura.ok) {
     return lectura;
   }
-  return aceptar(revisar(lectura.valor.mesa, marcasDelMaterial(ficheros, dominio), filtro));
+  const { mesa } = lectura.valor;
+  const minimo = parametroNumerico(externos.leerParametros(), 'minimo_problemas_reservados');
+  const { grupos } = revisar(mesa, marcasDelMaterial(ficheros, dominio), filtro);
+  return aceptar({ grupos, avisos: avisosDeReservados(mesa.aprobado, minimo) });
 }
 
 /**

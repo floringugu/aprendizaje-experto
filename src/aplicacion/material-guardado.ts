@@ -1,6 +1,7 @@
 import type { TextosDelMaterial } from '../dominio/citas.ts';
 import { codificarJson, leerJson } from './mesa-guardada.ts';
 import type { Ficheros } from './puertos.ts';
+import { aceptar, rechazarPorCausa, type Resultado } from './resultado.ts';
 
 // El material guardado de un dominio (plan §0, «Material guardado»), a través del puerto `Ficheros`, que
 // no sabe listar carpetas: por eso hay un índice. Las rutas son relativas a la carpeta de datos:
@@ -76,6 +77,36 @@ export function textosDelMaterial(ficheros: Ficheros, dominio: string): TextosDe
     }
   }
   return textos;
+}
+
+/**
+ * El PDF que leerá la IA de un documento del material (MATE-2): el de `pdf` en su entrada del índice. El
+ * documento se busca por su nombre o su URL, tal como está en el índice. Rechaza con `causa`:
+ * - `documento_no_encontrado` si el documento no está en el índice, o si su PDF ya no está;
+ * - `documento_sin_pdf` si es una página HTML, que no lo lleva: por ahora la IA solo redacta a partir de un
+ *   PDF (decisión del dueño del 01-11-2026; ticket `specs-redactar-pagina-web`).
+ */
+export function pdfDelDocumento(ficheros: Ficheros, dominio: string, documento: string): Resultado<Uint8Array> {
+  // El documento se busca por su nombre o su URL exactos: así lo apunta el índice y así lo citan las piezas.
+  const entrada = leerIndice(ficheros, dominio).find((candidata) => candidata.documento === documento);
+  if (entrada === undefined) {
+    return rechazarPorCausa('documento_no_encontrado', `No hay ningún documento «${documento}» en el material.`);
+  }
+  if (entrada.pdf === undefined) {
+    return rechazarPorCausa(
+      'documento_sin_pdf',
+      `«${documento}» es una página web: por ahora la IA solo redacta a partir de un PDF, no de una página web.`,
+    );
+  }
+  const bytes = ficheros.leer(entrada.pdf);
+  if (bytes === undefined) {
+    // El índice apunta a un PDF que ya no está (alguien lo ha borrado): para la persona es como si no existiera.
+    return rechazarPorCausa(
+      'documento_no_encontrado',
+      `El PDF de «${documento}» ya no está en el material: vuelve a añadirlo.`,
+    );
+  }
+  return aceptar(bytes);
 }
 
 // Una entrada del índice (`indice.json`, una lista de entradas). Las rutas son completas, relativas a la

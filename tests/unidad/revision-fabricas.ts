@@ -12,7 +12,8 @@ import type {
   ObjetivoContenido,
   TareaContenido,
 } from '../../src/aplicacion/contenido.ts';
-import type { Ficheros } from '../../src/aplicacion/puertos.ts';
+import type { Dependencias } from '../../src/aplicacion/dependencias.ts';
+import type { Ficheros, ParametrosJson } from '../../src/aplicacion/puertos.ts';
 import type { Resultado } from '../../src/aplicacion/resultado.ts';
 import { aplicar, revisar, type Accion, type FiltroRevision, type Marca } from '../../src/aplicacion/revision.ts';
 import type { BorradorDominio, Mesa, TareaDelBorrador } from '../../src/aplicacion/mesa.ts';
@@ -37,8 +38,19 @@ export function item(id: string, fuente?: Fuente, objetivo = 'O1'): ItemContenid
 export function itemDeCategoria(id: string, categoria: string, objetivo = 'O1'): ItemContenido {
   return { ...item(id, undefined, objetivo), categoria };
 }
+/** Un problema (no un hecho) de ese objetivo, con categoría si se da; por defecto, de O1 y no reservado. */
+export function problema(id: string, categoriaDelProblema?: string, objetivoDelProblema = 'O1'): ItemContenido {
+  const base: ItemContenido = { ...item(id, undefined, objetivoDelProblema), tipo: 'problema' };
+  return categoriaDelProblema === undefined ? base : { ...base, categoria: categoriaDelProblema };
+}
+/** El mismo ítem, con `reservado: true`. */
+export const reservado = (pieza: ItemContenido): ItemContenido => ({ ...pieza, reservado: true });
 export function categoria(id: string, fuente?: Fuente): CategoriaContenido {
   return { id, descripcion: `Descripción de ${id}`, ...conFuente(fuente) };
+}
+/** Una categoría de un grupo de parecidas, las únicas cuyos problemas se pueden reservar y se intercalan. */
+export function categoriaConGrupo(id: string, grupo = 'G1'): CategoriaContenido {
+  return { ...categoria(id), grupo_parecidas: grupo };
 }
 export function ejemplo(id: string, fuente?: Fuente): EjemploResueltoContenido {
   return { id, pasos: ['P1'], ...conFuente(fuente) };
@@ -117,4 +129,20 @@ export function rechazado(mesa: Mesa, accion: Accion): Extract<Resultado<Mesa>, 
   if (resultado.ok) throw new Error('Se esperaba un rechazo');
   if (resultado.motivo.trim() === '') throw new Error('El rechazo no explica el motivo');
   return resultado;
+}
+
+/** El mínimo de problemas reservados que usan por defecto los tests de la revisión (el valor de config/parametros.json). */
+const MINIMO_RESERVADOS = 5;
+
+/** Los parámetros de prueba de la revisión: solo el mínimo de problemas reservados, que es el que lee. */
+export const parametrosDeReservados = (minimo: number): ParametrosJson => ({
+  minimo_problemas_reservados: { valor: minimo },
+});
+
+/** Lo que recibe `crearRevisionDelMaterial`: los ficheros y unos parámetros de prueba. */
+export function externosDe(
+  ficheros: Ficheros,
+  minimo = MINIMO_RESERVADOS,
+): Pick<Dependencias, 'ficheros' | 'leerParametros'> {
+  return { ficheros, leerParametros: () => parametrosDeReservados(minimo) };
 }

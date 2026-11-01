@@ -30,6 +30,11 @@ export interface ItemContenido {
   readonly tipo: TipoItem;
   /** Solo los ítems marcados se usan en el diagnóstico. */
   readonly diagnostico: boolean;
+  /**
+   * Un ítem reservado mide la transferencia: solo cuenta para pasar a la fase avanzada y en las pruebas
+   * de retención, y se presenta una sola vez (plan §0, «Transferencia»; MAST-8). Sin el campo, no lo es.
+   */
+  readonly reservado?: boolean;
   readonly enunciado: string;
   readonly respuesta: RespuestaContenido;
   readonly feedback: string;

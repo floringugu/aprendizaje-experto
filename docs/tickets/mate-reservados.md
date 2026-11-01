@@ -2,8 +2,8 @@
 fase: impl
 area: MATE
 depende: [mate-pasos-reservados]
-toca: [src/aplicacion/formato-contenido.ts, src/aplicacion/material.ts, src/aplicacion/revision.ts, src/aplicacion/revision-del-material.ts, src/aplicacion/aplicacion.ts, tests/unidad/formato-contenido*.ts, tests/unidad/revision*.ts, tests/unidad/material.test.ts, config/alcance.json, docs/areas/MATE.md]
-estado: abierto
+toca: [src/aplicacion/formato-contenido.ts, src/aplicacion/contenido.ts, src/aplicacion/puertos.ts, src/aplicacion/material.ts, src/aplicacion/material-guardado.ts, src/aplicacion/mesa-guardada.ts, src/aplicacion/redaccion*.ts, src/aplicacion/avisos-de-reservados.ts, src/aplicacion/revision.ts, src/aplicacion/revision-del-material.ts, src/aplicacion/aplicacion.ts, tests/unidad/formato-contenido*.ts, tests/unidad/redaccion*.ts, tests/unidad/avisos-de-reservados*.ts, tests/unidad/revision*.ts, tests/unidad/material.test.ts, tests/unidad/material-guardado.test.ts, tests/unidad/material-dominio.test.ts, config/alcance.json, docs/areas/MATE.md]
+estado: hecho
 ---
 # Los reservados en MATE, con la redacción del borrador
 

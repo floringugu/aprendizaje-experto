@@ -46,7 +46,8 @@ export function lugarDelFallo(fallo: FalloDeFormato): string {
  *   escrita sin ninguna aceptada no tendría qué enseñar en el feedback (@RECU-2.1). `correcta` tiene que
  *   ser una de las `opciones`, y `nivel` es un número. Dos `opciones` que solo cambian en espacios o
  *   mayúsculas son la misma opción (MATE-2.5) y el fallo es `opciones`.
- * - `tipo` es `hecho` o `problema`, y `diagnostico` es un booleano.
+ * - `tipo` es `hecho` o `problema`, y `diagnostico` es un booleano. `reservado` es opcional y, si viene,
+ *   también es un booleano (MATE-2.9).
  * - Una categoría lleva `descripcion`, un texto no vacío (MATE-2.3); se mira antes que `grupo_parecidas`.
  * - `categoria`, `grupo_parecidas`, `fuente` y, en objetivos y ejemplos resueltos, `diagrama` son
  *   opcionales; una propiedad opcional que vale `undefined` cuenta como ausente. Una `fuente` que viene
@@ -166,7 +167,7 @@ function esListaNoVacia(valor: unknown): valor is readonly unknown[] {
   return esLista(valor) && valor.length > 0;
 }
 
-function esTextoNoVacio(valor: unknown): valor is string {
+export function esTextoNoVacio(valor: unknown): valor is string {
   return typeof valor === 'string' && valor !== '';
 }
 
@@ -375,6 +376,7 @@ const MOLDE_DEL_ITEM: Molde = {
     exigir('categoria', opcional(esTextoNoVacio)),
     exigir('tipo', esTipoDeItem),
     exigir('diagnostico', esBooleano),
+    exigir('reservado', opcional(esBooleano)),
     exigir('enunciado', esTextoNoVacio),
     faltaDeLaRespuesta,
     exigir('feedback', esTextoNoVacio),

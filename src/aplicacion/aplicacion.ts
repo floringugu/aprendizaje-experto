@@ -11,7 +11,13 @@ import { EstadoPersona } from './estado.ts';
 import type { CasosDeExportacion } from './exportacion.ts';
 import type { CasosDeHoras } from './horas.ts';
 import { crearInicioSesion } from './inicio-sesion.ts';
-import { anadirMaterial, listarMaterial, type CasosDeMaterial } from './material.ts';
+import {
+  anadirMaterial,
+  listarMaterial,
+  pedirMasReservados,
+  redactarBorrador,
+  type CasosDeMaterial,
+} from './material.ts';
 import { evaluarNivelExperto } from './nivel-experto.ts';
 import type { CasosDePantallas } from './pantallas.ts';
 import { iniciarSesion } from './practica.ts';
@@ -19,7 +25,7 @@ import type { CasosDePreferencias } from './preferencias.ts';
 import { consultarProgreso } from './progreso.ts';
 import { consultarRepasos } from './repasos.ts';
 import type { Resultado } from './resultado.ts';
-import { crearRevisionDelMaterial, verFuente, type CasosDeRevision } from './revision-del-material.ts';
+import { crearRevisionDelMaterial, verFuente } from './revision-del-material.ts';
 import { declararConfianza, presentarItem, responderItem } from './respuestas.ts';
 import { sinImplementar } from './sin-implementar.ts';
 import type { CasosDeSesiones } from './sesiones.ts';
@@ -40,14 +46,6 @@ export type Aplicacion = CasosDeDominio &
   CasosDeEmparejamiento &
   CasosDePreferencias &
   CasosDePantallas;
-
-/** Lo que falta del material propio (MATE). */
-const CASOS_DE_MATERIAL: Omit<
-  CasosDeMaterial,
-  'anadirMaterial' | 'listarMaterial' | 'verFuente' | keyof CasosDeRevision
-> = {
-  redactarBorrador: sinImplementar,
-};
 
 /** Lo que falta del servidor y las pantallas (PANT). */
 const CASOS_DE_PANTALLAS: CasosDeEmparejamiento & CasosDePreferencias & CasosDePantallas = {
@@ -93,9 +91,10 @@ export const crearAplicacion: (dependencias: Dependencias) => Aplicacion = (depe
     listarExportaciones: sinImplementar,
     anadirMaterial: (peticion) => anadirMaterial(dependencias, peticion),
     listarMaterial: (peticion) => listarMaterial(dependencias.ficheros, peticion),
+    redactarBorrador: (peticion) => redactarBorrador(dependencias, peticion),
+    pedirMasReservados: (peticion) => pedirMasReservados(dependencias, peticion),
     verFuente: (peticion) => verFuente(entorno, peticion),
-    ...CASOS_DE_MATERIAL,
-    ...crearRevisionDelMaterial(dependencias.ficheros),
+    ...crearRevisionDelMaterial(dependencias),
     ...crearInicioSesion(dependencias.claudeCode, dependencias.temporizador),
     ...CASOS_DE_PANTALLAS,
   };
