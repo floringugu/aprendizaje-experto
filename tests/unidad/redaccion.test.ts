@@ -244,9 +244,8 @@ describe('incorporarEntrega: formato', () => {
   });
 
   it('@MATE-2.3 conserva las propiedades de más de una pieza válida, como las deja la validación', () => {
-    // El diagrama no está en los tipos del contenido, solo en el formato: la pieza se escribe como el JSON de la IA.
-    const ejemploConDiagrama: Record<string, unknown> = { ...ejemplo('E2'), diagrama: '<svg></svg>' };
-    const conDiagrama = { ...objetivo('O2'), ejemplos_resueltos: [ejemploConDiagrama], diagrama: '<svg></svg>' };
+    const ejemploConDiagrama = { ...ejemplo('E2'), diagrama: '<svg></svg>' };
+    const conDiagrama = { ...objetivo('O2', [ejemploConDiagrama]), diagrama: '<svg></svg>' };
     const conExtra = { ...item('I2', FUENTE_BUENA), nota: 'de más' };
     const resultado = incorporarEntrega(mesa, entregaCon({ objetivos: [conDiagrama], items: [conExtra] }));
     expect(resultado.borrador.objetivos).toStrictEqual([conDiagrama]);

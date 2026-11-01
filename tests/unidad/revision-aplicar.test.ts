@@ -66,6 +66,12 @@ describe('aplicar: aprobar', () => {
     expect(nueva.borrador.ejemplos_resueltos).toStrictEqual([]);
   });
 
+  it('@MATE-4.4 un ejemplo que iba aparte entra dentro de su objetivo con su diagrama y su fuente', () => {
+    const conDiagrama = { ...ejemplo('E2', FUENTE_BUENA), diagrama: '<svg></svg>' };
+    const mesa = mesaDe({ ejemplos_resueltos: [{ ...conDiagrama, objetivo: 'O1' }] }, { objetivos: [objetivo('O1')] });
+    expect(aprobar(mesa, 'E2').aprobado.objetivos).toStrictEqual([objetivo('O1', [conDiagrama])]);
+  });
+
   it('@MATE-4.4 un ejemplo que iba aparte y no tiene fuente entra sin la propiedad `fuente`, ni siquiera con undefined', () => {
     const aparte = { ...ejemplo('E2'), objetivo: 'O1' };
     const mesa = mesaDe({ ejemplos_resueltos: [aparte] }, { objetivos: [objetivo('O1')] });

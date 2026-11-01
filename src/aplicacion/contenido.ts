@@ -49,6 +49,8 @@ export function itemsDelObjetivo(items: readonly ItemContenido[], objetivo: stri
 export interface EjemploResueltoContenido {
   readonly id: string;
   readonly pasos: readonly string[];
+  /** Un SVG que acompaña a los pasos (MATE-2.7); el formato del contenido solo deja entrar SVG. */
+  readonly diagrama?: string;
   readonly fuente?: Fuente;
 }
 
@@ -56,6 +58,8 @@ export interface ObjetivoContenido {
   readonly id: string;
   readonly instruccion: string;
   readonly ejemplos_resueltos: readonly EjemploResueltoContenido[];
+  /** Un SVG que acompaña a la instrucción (MATE-2.7); el formato del contenido solo deja entrar SVG. */
+  readonly diagrama?: string;
   /** En un objetivo, cita de dónde sale su instrucción. */
   readonly fuente?: Fuente;
 }
