@@ -34,12 +34,17 @@ export type Pieza =
 
 /**
  * Lo que avisa la revisión para poder medir la transferencia (MATE-3.6, MATE-3.7). `Revision` aún no trae
- * `avisos`; se añade por intersección y se comprueba en tiempo de ejecución.
+ * `avisos`; se declara opcional y se comprueba en tiempo de ejecución.
  */
 export type AvisoDeReservados =
   | { readonly tipo: 'categoria_sin_reservado'; readonly objetivo: string; readonly categoria: string }
   | { readonly tipo: 'pocos_reservados'; readonly hay: number; readonly hacen_falta: number };
-type RevisionConAvisos = Revision & { readonly avisos?: readonly AvisoDeReservados[] };
+/**
+ * Con `Pick` y no con una intersección: el carril mate-reservados añade a src/ `avisos` obligatorio, y
+ * `Revision & { avisos? }` lo dejaría obligatorio, con lo que el `!== undefined` de `avisosDeLaRevision`
+ * fallaría en no-unnecessary-condition.
+ */
+type RevisionConAvisos = Pick<Revision, 'grupos'> & { readonly avisos?: readonly AvisoDeReservados[] };
 
 /** La pieza de la revisión con su «reservado» propio, que no es una marca (MATE-4.12); `Revision` aún no lo trae. */
 interface PiezaConReservado {
@@ -53,7 +58,14 @@ type PedirMasReservados = (peticion: {
   readonly objetivo: string;
   readonly documento: string;
 }) => Promise<Resultado<BorradorRedactado>>;
-type AplicacionConReservados = Aplicacion & { readonly pedirMasReservados?: PedirMasReservados };
+/**
+ * Con `Omit` y no con una intersección, por lo mismo que `RevisionConAvisos`: el carril mate-reservados añade
+ * `pedirMasReservados` obligatorio a src/, y el `!== undefined` de `pedirMasReservados` fallaría en
+ * no-unnecessary-condition.
+ */
+type AplicacionConReservados = Omit<Aplicacion, 'pedirMasReservados'> & {
+  readonly pedirMasReservados?: PedirMasReservados;
+};
 
 /**
  * Lo que usan estas utilidades del mundo del escenario. Se declara aquí en vez de importar `Mundo`
