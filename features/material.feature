@@ -446,24 +446,23 @@ Característica: Material del dominio y borradores
     Las sesiones solo leen contenido/<dominio>.json. Lo que redacta la IA no llega a la persona sin
     pasar por su aprobación. Es decisión del autor: el informe no revisó la IA generativa como tutor
     (sección 6) y no trata de dónde sale el contenido. Que una tarea del borrador no se presente se
-    comprueba en TARE-1.6, que comparte el primer paso de los Antecedentes.
+    comprueba en TARE-1.6, que comparte el primer paso de los Antecedentes. Los repasos del día, las
+    pruebas de retención y las sesiones intercaladas son de PLAN-4.1, MAST-7.4 e INTE-6.1, que
+    comparten los dos pasos de los Antecedentes.
 
     Antecedentes:
       Dado que contenido/borradores/ficticio.json tiene, sin aprobar, el objetivo O4, el ejemplo resuelto E9 de O1, la tarea T9 y el ítem I9 de O1
       Y que I9 es de tipo «problema», está marcado para el diagnóstico y es de una categoría intercalable
 
     @MATE-6.1 @extrapolacion
-    Esquema del escenario: Un ítem del borrador no se presenta en ninguna sesión
+    Esquema del escenario: Un ítem del borrador no se presenta en el diagnóstico ni en la práctica
       Cuando la persona hace <sesión>
       Entonces no se le presenta I9
 
       Ejemplos:
-        | sesión                              |
-        | el diagnóstico de «ficticio»        |
-        | una sesión de práctica de O1        |
-        | los repasos del día                 |
-        | una prueba de retención de O1       |
-        | una sesión intercalada              |
+        | sesión                       |
+        | el diagnóstico de «ficticio» |
+        | una sesión de práctica de O1 |
 
     @MATE-6.2 @extrapolacion
     Escenario: Un ejemplo resuelto del borrador no se muestra

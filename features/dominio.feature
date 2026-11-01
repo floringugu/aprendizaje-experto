@@ -351,6 +351,13 @@ Característica: Criterio de dominio
       Entonces se programa una prueba de retención de O1 para el 2026-03-16
       Y otra para el 2026-04-27
 
+    @MAST-7.4 @extrapolacion
+    Escenario: Un ítem del borrador no se presenta en una prueba de retención
+      Dado que contenido/borradores/ficticio.json tiene, sin aprobar, el objetivo O4, el ejemplo resuelto E9 de O1, la tarea T9 y el ítem I9 de O1
+      Y que I9 es de tipo «problema», está marcado para el diagnóstico y es de una categoría intercalable
+      Cuando la persona hace una prueba de retención de O1
+      Entonces no se le presenta I9
+
   @MAST-8 @evidencia-2.2 @evidencia-4 @extrapolacion
   Regla: Los casos nuevos se miden con ítems reservados
     La sección 4 pone la transferencia a casos nuevos entre las métricas de la Fase 2, y la sección

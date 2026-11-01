@@ -145,3 +145,20 @@ Característica: Intercalado de categorías parecidas
       Dado que todos los problemas no reservados de C1 y de C2 tienen un intento intercalado
       Cuando la persona responde I15 en una sesión intercalada
       Entonces el intento queda registrado en respuestas.csv con el contexto «transferencia»
+
+  @INTE-6 @extrapolacion
+  Regla: Un problema del borrador no entra en la mezcla
+    Las sesiones intercaladas leen solo contenido/<dominio>.json (MATE-6). Lo que redacta la IA no
+    llega a la persona sin pasar por su aprobación. Es decisión del autor: el informe no revisó la IA
+    generativa como tutor (sección 6) y no trata de dónde sale el contenido.
+
+    Antecedentes:
+      Dado que la fase de intercalado configurada es «intermedio»
+      Y que la persona está en la fase «intermedio» con O1 y O2 dominados
+
+    @INTE-6.1 @extrapolacion
+    Escenario: Un problema del borrador no se presenta en una sesión intercalada
+      Dado que contenido/borradores/ficticio.json tiene, sin aprobar, el objetivo O4, el ejemplo resuelto E9 de O1, la tarea T9 y el ítem I9 de O1
+      Y que I9 es de tipo «problema», está marcado para el diagnóstico y es de una categoría intercalable
+      Cuando la persona hace una sesión intercalada
+      Entonces no se le presenta I9

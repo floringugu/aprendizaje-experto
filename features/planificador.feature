@@ -94,3 +94,16 @@ Característica: Planificación de repasos espaciados
       Cuando la persona responde Q1
       Entonces el siguiente repaso de Q1 no depende de FSRS ni de SM-2
       Y es el mismo tanto si acierta como si falla
+
+  @PLAN-4 @extrapolacion
+  Regla: Un ítem del borrador no se repasa
+    Los repasos del día son una sesión como las demás: leen solo contenido/<dominio>.json (MATE-6). Lo
+    que redacta la IA no llega a la persona sin pasar por su aprobación. Es decisión del autor: el
+    informe no revisó la IA generativa como tutor (sección 6) y no trata de dónde sale el contenido.
+
+    @PLAN-4.1 @extrapolacion
+    Escenario: Un ítem del borrador no se presenta en los repasos del día
+      Dado que contenido/borradores/ficticio.json tiene, sin aprobar, el objetivo O4, el ejemplo resuelto E9 de O1, la tarea T9 y el ítem I9 de O1
+      Y que I9 es de tipo «problema», está marcado para el diagnóstico y es de una categoría intercalable
+      Cuando la persona hace los repasos del día
+      Entonces no se le presenta I9
