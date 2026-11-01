@@ -17,7 +17,7 @@ Filas: cada técnica de la tabla del §3, cada técnica y cada métrica de las f
 
 | # | Elemento | Informe | Evidencia según el informe | Cubierto por | Estado | Nota |
 |---|---|---|---|---|---|---|
-| 1 | Práctica de recuperación | §3 | Bien establecido; laboratorio y aula; g = 0,499 en aula; todas las fases | RECU-1, RECU-2, RECU-3, RECU-4 | cubierto | «En el formato de la evaluación final»: la evaluación final del §4 son tareas evaluadas por jueces, y los ítems no tienen ese formato. RECU-4 da a la práctica el formato de las pruebas de la aplicación, y la petición a la IA descarta exigirlo (plan §17.6, I7). |
+| 1 | Práctica de recuperación | §3 | Bien establecido; laboratorio y aula; g = 0,499 en aula; todas las fases | RECU-1, RECU-2, RECU-3, RECU-4, CALI-13 | cubierto | RECU-1 tiene una sola excepción, extrapolación del autor: la mitad releída del experimento opcional de releer frente a recuperar se estudia viendo la respuesta (CALI-13). No es una forma de estudiar sino la mitad de una comparación que la persona elige hacer, y el §2.5 avisa de que releer da sensación de dominio sin dominio. El informe no recomienda el experimento y por eso no tiene fila propia. «En el formato de la evaluación final»: la evaluación final del §4 son tareas evaluadas por jueces, y los ítems no tienen ese formato. RECU-4 da a la práctica el formato de las pruebas de la aplicación, y la petición a la IA descarta exigirlo (plan §17.6, I7). |
 | 2 | Práctica espaciada | §3 | Bien establecido; laboratorio y campo largo (hechos); todas | PLAN-1, PLAN-2, PLAN-3 | deliberado | El intervalo no es el 10–20 % del §3, sino la tabla por horizonte de Cepeda (§2.2): plan §15.5 y §0, «Planificador». |
 | 3 | Ejemplos resueltos con retirada progresiva | §3 | Bien establecido; laboratorio y aula; g = 0,48; novato | AYUD-1, AYUD-2 | cubierto | El ritmo de un paso por semana es extrapolación, y está marcada. La autoexplicación va en la misma sesión, antes del ejemplo y nunca sobre él (O13). |
 | 4 | Adaptar la ayuda al nivel (inversión de la pericia) | §3 | Bien establecido, sobre todo laboratorio; d = 0,505 / −0,428; transición | AYUD-2, DIAG-2.5 | cubierto | |
@@ -65,7 +65,7 @@ Filas: cada técnica de la tabla del §3, cada técnica y cada métrica de las f
 | 46 | F3, métrica: reproducibilidad en el tiempo | §4 F3 | Convención propuesta (§4) | TARE-3 | cubierto | |
 | 47 | Bucle: cada semana | §4 bucle | Sin nivel | BUCL-1 | cubierto | |
 | 48 | Bucle 1: medir con pruebas y tareas, no con autoevaluación | §4 bucle | §2.5 | BUCL-2.2 | hueco 4 | Mide con pruebas de recuperación. Las tareas no tienen medida entre evaluaciones externas: lo decide el hueco 4. |
-| 49 | Bucle 2: comparar la confianza con el acierto | §4 bucle | §2.5 | BUCL-2.1, CALI-2, CALI-4, CALI-5, CALI-6, BUCL-2.5, BUCL-2.6 | cubierto | |
+| 49 | Bucle 2: comparar la confianza con el acierto | §4 bucle | §2.5 | BUCL-2.1, CALI-2, CALI-4, CALI-5, CALI-6, BUCL-2.5, BUCL-2.6, CALI-12 | cubierto | Los intentos del experimento de releer frente a recuperar no cuentan para esta comparación (CALI-12, CALI-13): se ven solo en el resultado del experimento. |
 | 50 | Bucle 3: retirar o reintroducir la ayuda | §4 bucle | Como la fila 4 | AYUD-2 | cubierto | Plan §15.2. |
 | 51 | Bucle 4: reprogramar los repasos | §4 bucle | Como la fila 26 | BUCL-2.3, PLAN-1 | cubierto | |
 | 52 | Bucle 5: revisar el plan con intenciones de implementación | §4 bucle | Como la fila 11 | BUCL-3 | cubierto | |
@@ -73,7 +73,7 @@ Filas: cada técnica de la tabla del §3, cada técnica y cada métrica de las f
 | 54 | Instrumento: banco de preguntas con registro de acierto y latencia | §4 instr. | Sin nivel | INST-1 | cubierto | |
 | 55 | Instrumento: SRS (FSRS o SM-2) para hechos | §4 instr. | Como la fila 26 | PLAN-1, PLAN-2 | cubierto | |
 | 56 | Instrumento: rúbricas de tareas con jueces ciegos | §4 instr. | Sin nivel | TARE-1, TARE-2, TARE-3 | cubierto | |
-| 57 | Instrumento: confianza de 0 a 100 % por ítem | §4 instr. | Sin nivel | CALI-1 | cubierto | |
+| 57 | Instrumento: confianza de 0 a 100 % por ítem | §4 instr. | Sin nivel | CALI-1, CALI-12 | cubierto | La confianza declarada en la prueba del experimento de releer frente a recuperar no cuenta para la calibración (CALI-12); la mitad releída no declara confianza (CALI-13). |
 | 58 | Instrumento: horas de práctica focalizada, no totales | §4 instr. | §5 (las 10.000 horas) | HORA-1, HORA-2, HORA-3 | cubierto | |
 
 ## Olvidos

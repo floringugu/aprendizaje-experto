@@ -3,7 +3,7 @@ fase: specs
 area: CALI
 depende: [specs-experimento-releer]
 toca: [docs/cobertura-investigacion.md, docs/plan.md]
-estado: abierto
+estado: hecho
 ---
 # La tabla de cobertura y el plan recogen la excepción a RECU-1 y la exclusión de CALI-12
 
