@@ -3,7 +3,7 @@ fase: aceptacion
 area: MAST
 depende: [mate-sesiones-a-plan-inte]
 toca: [tests/aceptacion/pasos/borradores-en-sesiones.ts, docs/areas/MAST.md]
-estado: abierto
+estado: hecho
 ---
 # Los pasos de MAST-7.4 no chocan con los ítems aprobados
 

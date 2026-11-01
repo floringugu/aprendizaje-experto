@@ -25,7 +25,8 @@ import { aceptado, mundo } from '../soporte/mundo.ts';
 import type { Mundo } from '../soporte/mundo.ts';
 import { ejemplosDe, iniciarSesionDePractica, itemsDe } from '../soporte/sesion.ts';
 
-// Pasos de lo que pasa en las sesiones con el borrador y con lo aprobado (MATE-6, MATE-7).
+// Pasos de lo que pasa en las sesiones con el borrador y con lo aprobado (MATE-6, MATE-7). Los comparten
+// MATE-6.1, PLAN-4.1, MAST-7.4 e INTE-6.1 (ticket mate-sesiones-a-plan-inte).
 
 /**
  * La persona del escenario ya hizo el diagnóstico al prepararlo; quien hace el diagnóstico en MATE-6.1
@@ -34,7 +35,10 @@ import { ejemplosDe, iniciarSesionDePractica, itemsDe } from '../soporte/sesion.
 const PERSONA_SIN_DIAGNOSTICO = 1;
 /** Cuántas tareas pide como mucho la persona al pedirlas una a una, por si la aplicación nunca dice que no quedan. */
 const MAXIMO_DE_TAREAS = 20;
-/** El ítem aprobado que se parece a I9 del borrador: así cada sesión tiene algo que presentar (MATE-6.1). */
+/**
+ * El ítem aprobado que se parece a I9 del borrador: así cada sesión tiene algo que presentar (MATE-6.1,
+ * PLAN-4.1, MAST-7.4, INTE-6.1).
+ */
 const PARECIDO_A_I9 = 'I20';
 
 function anotarVistos(ids: readonly string[]): void {
@@ -79,6 +83,10 @@ Given(
     material.borrador.tareas = [tareaDePrueba('T9', fuente)];
     material.ejemplosSueltos = [ejemploDePrueba('E9', 'O1', fuente)];
     material.agregarAlBorrador(actual, itemDePrueba('I9', 'O1', fuente));
+    // Los antecedentes de MAST-7.4 dan 20 ítems por objetivo (I1 a I60): I9 e I20 ya son ítems aprobados de
+    // O1 y la prueba de retención los presentaría. Se les da otro id, si existen (como MAST-1.4).
+    actual.contenido().liberarId('I9');
+    actual.contenido().liberarId(PARECIDO_A_I9);
     // Lo aprobado tiene ítems en cada objetivo y una tarea, para que cada sesión tenga algo que presentar.
     actual.contenido().asegurarItemsPorObjetivo(1);
     actual.contenido().asegurarTarea('T1');
