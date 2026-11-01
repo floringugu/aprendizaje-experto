@@ -13,6 +13,7 @@ import type { BorradorDominio, CasosDeMaterial, EjemploDeObjetivoAprobado } from
 import type { Aplicacion } from '../../../src/aplicacion/aplicacion.ts';
 import type { Resultado } from '../../../src/aplicacion/resultado.ts';
 import { BorradorContenido, criterioPorDefecto, ejemploPorDefecto } from './contenido.ts';
+import type { ItemDePrueba } from './contenido.ts';
 import type { Externos } from './externos.ts';
 
 // Estado y utilidades de los escenarios de MATE: el borrador que ya estaba en el disco, el PDF de los
@@ -30,6 +31,29 @@ export type InicioSesionEnCurso = Aceptado<Awaited<ReturnType<CasosDeClaudeCode[
 export type CategoriaDelBorrador = CategoriaContenido & { readonly fuente?: Fuente };
 export type Pieza =
   ObjetivoContenido | EjemploResueltoContenido | ItemContenido | TareaContenido | CategoriaDelBorrador;
+
+/**
+ * Lo que avisa la revisión para poder medir la transferencia (MATE-3.6, MATE-3.7). `Revision` aún no trae
+ * `avisos`; se añade por intersección y se comprueba en tiempo de ejecución.
+ */
+export type AvisoDeReservados =
+  | { readonly tipo: 'categoria_sin_reservado'; readonly objetivo: string; readonly categoria: string }
+  | { readonly tipo: 'pocos_reservados'; readonly hay: number; readonly hacen_falta: number };
+type RevisionConAvisos = Revision & { readonly avisos?: readonly AvisoDeReservados[] };
+
+/** La pieza de la revisión con su «reservado» propio, que no es una marca (MATE-4.12); `Revision` aún no lo trae. */
+interface PiezaConReservado {
+  readonly id: string;
+  readonly reservado?: boolean;
+}
+
+/** La operación de pedir más reservados de un objetivo (MATE-2.10), que la aplicación aún no tiene. */
+type PedirMasReservados = (peticion: {
+  readonly dominio: string;
+  readonly objetivo: string;
+  readonly documento: string;
+}) => Promise<Resultado<BorradorRedactado>>;
+type AplicacionConReservados = Aplicacion & { readonly pedirMasReservados?: PedirMasReservados };
 
 /**
  * Lo que usan estas utilidades del mundo del escenario. Se declara aquí en vez de importar `Mundo`
@@ -63,6 +87,8 @@ export class EscenarioMaterial {
   ultimoMaterial = '';
   /** Lo que respondió la aplicación al pedirle un borrador (MATE-2). */
   redaccion: Resultado<BorradorRedactado> | undefined;
+  /** El objetivo del que la persona pidió más problemas reservados antes de que la IA entregara nada (MATE-2.11). */
+  reservadosDe: string | undefined;
   revision: Revision | undefined;
   fuenteAbierta: FuenteAbierta | undefined;
   inicioSesion: InicioSesionEnCurso | undefined;
@@ -86,7 +112,7 @@ export class EscenarioMaterial {
   }
 
   /** Añade un ítem pendiente al borrador del «Dado» y lo deja en el disco antes de que la persona haga nada. */
-  agregarAlBorrador(actual: Escenario, item: ItemContenido): void {
+  agregarAlBorrador(actual: Escenario, item: ItemDePrueba): void {
     this.borrador.agregarItem(item);
     this.dejarBorrador(actual);
   }
@@ -188,7 +214,7 @@ export function fuenteDeLosApuntes(fragmento: string): Fuente {
 }
 
 /** Un ítem con los valores por defecto del contenido de prueba y, si se indica, su fuente. */
-export function itemDePrueba(id: string, objetivo: string, fuente?: Fuente): ItemContenido {
+export function itemDePrueba(id: string, objetivo: string, fuente?: Fuente): ItemDePrueba {
   const item = new BorradorContenido('').agregarItem({ id, objetivo });
   return fuente === undefined ? item : { ...item, fuente };
 }
@@ -258,4 +284,30 @@ export function entregaDeLaIa(actual: Escenario, piezas: Partial<Record<keyof Bo
 /** Pide el borrador de un documento y deja lo que responde la aplicación para los pasos «Entonces». */
 export async function redactar(actual: Escenario, documento: string): Promise<void> {
   actual.material.redaccion = await actual.aplicacion().redactarBorrador({ dominio: actual.dominio, documento });
+}
+
+/** Pide más problemas reservados de un objetivo y deja lo que responde la aplicación para los «Entonces» (MATE-2.10). */
+export async function pedirMasReservados(actual: Escenario, objetivo: string, documento: string): Promise<void> {
+  const aplicacion: AplicacionConReservados = actual.aplicacion();
+  assert.ok(aplicacion.pedirMasReservados !== undefined, 'la aplicación aún no tiene pedirMasReservados');
+  actual.material.redaccion = await aplicacion.pedirMasReservados({ dominio: actual.dominio, objetivo, documento });
+}
+
+/** Lo que avisa la revisión; falla el paso si la revisión no trae `avisos` (MATE-3.6, MATE-3.7). */
+export function avisosDeLaRevision(revision: Revision): readonly AvisoDeReservados[] {
+  const { avisos }: RevisionConAvisos = revision;
+  assert.ok(avisos !== undefined, 'la revisión no trae avisos');
+  return avisos;
+}
+
+/**
+ * Si la revisión dice que la pieza es reservada (MATE-4.12). Cada pieza dice explícitamente «sí» o «no»:
+ * una revisión que no trae `reservado` no lo dice, y falla el paso.
+ */
+export function reservadoEnLaRevision(revision: Revision, item: string): boolean {
+  const piezas: readonly PiezaConReservado[] = revision.grupos.flatMap((grupo) => grupo.piezas);
+  const pieza = piezas.find((candidata) => candidata.id === item);
+  assert.ok(pieza !== undefined, `${item} no está en la revisión`);
+  assert.ok(pieza.reservado !== undefined, `la revisión no dice si ${item} es reservado`);
+  return pieza.reservado;
 }

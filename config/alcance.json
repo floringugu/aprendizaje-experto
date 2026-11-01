@@ -1,6 +1,23 @@
 {
   "areas_cerradas": ["RECU", "DIAG"],
   "escenarios_en_rojo": {
+    "MATE": [
+      "MATE-2.1",
+      "MATE-2.2",
+      "MATE-2.3",
+      "MATE-2.4",
+      "MATE-2.5",
+      "MATE-2.6",
+      "MATE-2.7",
+      "MATE-2.8",
+      "MATE-2.9",
+      "MATE-2.10",
+      "MATE-2.11",
+      "MATE-3.6",
+      "MATE-3.7",
+      "MATE-4.12",
+      "MATE-6.1"
+    ],
     "MAST": [
       "MAST-1.4",
       "MAST-1.5",

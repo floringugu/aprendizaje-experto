@@ -19,7 +19,7 @@ import { aceptado, mundo } from '../soporte/mundo.ts';
 // Pasos de lo que la aplicación aparta o corrige del borrador que entrega la IA (MATE-2.3, MATE-2.5 a 2.7).
 
 /** Un ítem completo de O1 y el borrador que entrega la IA con él y con las demás piezas. */
-async function entregar(piezas: Readonly<Record<string, unknown>>): Promise<void> {
+export async function entregar(piezas: Readonly<Record<string, unknown>>): Promise<void> {
   const actual = mundo();
   const completo = itemDePrueba('I8', 'O1', fuenteDeLosApuntes(actual.material.frase));
   const { items = [], ...demas } = piezas;
@@ -28,7 +28,7 @@ async function entregar(piezas: Readonly<Record<string, unknown>>): Promise<void
 }
 
 /** Lo que la aplicación apartó: una entrada por pieza, con la propiedad del formato que le falta. */
-function comprobarApartadas(cantidad: number, falta: string): void {
+export function comprobarApartadas(cantidad: number, falta: string): void {
   const redactado = aceptado(presente(mundo().material.redaccion, 'ningún borrador redactado'));
   assert.deepEqual(
     redactado.apartadas,

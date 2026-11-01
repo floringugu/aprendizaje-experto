@@ -32,7 +32,7 @@ import { ejemplosDe, iniciarSesionDePractica, itemsDe } from '../soporte/sesion.
  * es una persona que abre el dominio por primera vez.
  */
 const PERSONA_SIN_DIAGNOSTICO = 1;
-/** Cuántas tareas pide como mucho la persona en MATE-6.3, por si la aplicación nunca dice que no quedan. */
+/** Cuántas tareas pide como mucho la persona al pedirlas una a una, por si la aplicación nunca dice que no quedan. */
 const MAXIMO_DE_TAREAS = 20;
 /** El ítem aprobado que se parece a I9 del borrador: así cada sesión tiene algo que presentar (MATE-6.1). */
 const PARECIDO_A_I9 = 'I20';
@@ -91,8 +91,8 @@ Given('que I9 es de tipo «problema», está marcado para el diagnóstico y es d
   contenido.hacerIntercalables(2);
   const comoI9: Partial<ItemContenido> = { tipo: 'problema', diagnostico: true, categoria: 'C1' };
   contenido.agregarItem({ ...comoI9, id: PARECIDO_A_I9, objetivo: 'O1' });
+  // Las categorías son las aprobadas: copiarlas al borrador repetiría sus ids y la revisión lo rechazaría.
   const { borrador } = actual.material;
-  borrador.fijarCategorias(contenido.categorias);
   borrador.items = borrador.items.map((item) => (item.id === 'I9' ? { ...item, ...comoI9 } : item));
 });
 
