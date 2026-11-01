@@ -12,6 +12,7 @@ import {
   MESA,
   codificar,
   escribirMesa,
+  externosDe,
   ids,
   item,
   mesaDe,
@@ -32,7 +33,7 @@ function jsonDe(contenidos: ReadonlyMap<string, Uint8Array>, ruta: string): unkn
 function preparar(mesa: Mesa = MESA) {
   const { ficheros, contenidos } = ficherosEnMemoria();
   escribirMesa(ficheros, mesa, DOMINIO);
-  return { ficheros, contenidos, casos: crearRevisionDelMaterial(ficheros) };
+  return { ficheros, contenidos, casos: crearRevisionDelMaterial(externosDe(ficheros)) };
 }
 
 /** El documento «apuntes.pdf», con el fragmento «buena» (FUENTE_BUENA): sin él, ninguna cita se encuentra. */
@@ -118,7 +119,7 @@ describe('abrirRevision', () => {
   it('sin borrador, la revisión está vacía (regla que la feature no cubre)', () => {
     const { contenidos, casos } = preparar();
     contenidos.delete(BORRADOR);
-    expect(abrir(casos)).toStrictEqual({ grupos: [] });
+    expect(abrir(casos).grupos).toStrictEqual([]);
   });
 });
 

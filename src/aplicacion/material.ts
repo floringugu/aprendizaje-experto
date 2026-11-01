@@ -1,8 +1,11 @@
 import type { Dependencias } from './dependencias.ts';
 import { dominioValido } from './dominio-valido.ts';
-import { documentosDelMaterial, guardarDocumento } from './material-guardado.ts';
+import { documentosDelMaterial, guardarDocumento, pdfDelDocumento } from './material-guardado.ts';
+import type { Mesa } from './mesa.ts';
+import { escribirBorrador, leerMesa } from './mesa-guardada.ts';
 import type { PeticionDominio } from './peticiones.ts';
-import type { Ficheros, LibreOffice, PaginaDescargada } from './puertos.ts';
+import type { Ficheros, LibreOffice, PaginaDescargada, PeticionDeRedaccion } from './puertos.ts';
+import { aprobadoParaLaIa, incorporarEntrega, peticionDeReservados, type Apartada } from './redaccion.ts';
 import type { Resultado } from './resultado.ts';
 import { aceptar, rechazarElCampo, rechazarPorCausa } from './resultado.ts';
 import type { CasosDeRevision, FuenteAbierta, PeticionPieza } from './revision-del-material.ts';
@@ -21,10 +24,21 @@ type PeticionMaterial =
   | { readonly dominio: string; readonly url: string };
 
 /** Lo que la aplicación hizo con el borrador que entregó la IA (MATE-2.3). */
-interface BorradorRedactado {
+export interface BorradorRedactado {
   /** Una por pieza apartada: la propiedad del formato del contenido que le falta (`feedback`, `pasos`…). */
-  readonly apartadas: readonly { readonly falta: string }[];
+  readonly apartadas: readonly Apartada[];
 }
+
+/** Un documento del material del que la IA redacta piezas: su nombre o su URL, tal como se añadió. */
+interface DocumentoParaRedactar {
+  readonly dominio: string;
+  readonly documento: string;
+}
+
+/** Al pedir más reservados: el documento y el objetivo del que se piden (MATE-2.10). */
+type PeticionReservados = DocumentoParaRedactar & { readonly objetivo: string };
+
+type ExternosDeRedaccion = Pick<Dependencias, 'ficheros' | 'leerIa'>;
 
 /** Los casos de la revisión están en revision-del-material.ts, con su hueco de deshacer. */
 export interface CasosDeMaterial extends CasosDeRevision {
@@ -41,11 +55,22 @@ export interface CasosDeMaterial extends CasosDeRevision {
    * `campo` `dominio` si el dominio no pasa `dominioValido`.
    */
   listarMaterial(peticion: PeticionDominio): Resultado<readonly string[]>;
-  /** La IA configurada redacta piezas a partir de un documento del material (MATE-2). Sin IA, `causa` `sin_ia`. */
-  redactarBorrador(peticion: {
-    readonly dominio: string;
-    readonly documento: string;
-  }): Promise<Resultado<BorradorRedactado>>;
+  /**
+   * La IA configurada redacta piezas a partir de un documento del material, y las válidas se añaden al
+   * borrador (MATE-2). Rechaza con `causa` `sin_ia` (@MATE-2.4), `documento_no_encontrado` o
+   * `documento_sin_pdf` (una página web: por ahora la IA solo lee PDF), y como la revisión si no puede leer
+   * el contenido del dominio.
+   */
+  redactarBorrador(peticion: DocumentoParaRedactar): Promise<Resultado<BorradorRedactado>>;
+  /**
+   * La IA configurada redacta, a partir de un documento del material, ítems reservados de un objetivo
+   * (MATE-2.10). A la IA se le piden solo ítems con `reservado: true` y se le pasan los enunciados de los
+   * ítems que el objetivo ya tiene, aprobados y pendientes, para que el caso sea otro. Lo que entrega pasa
+   * por el mismo formato que `redactarBorrador`; además, un ítem que no trae `reservado: true` se aparta
+   * (MATE-2.11), y uno que cuelga de otro objetivo también. Rechaza con `causa` `objetivo_no_encontrado`
+   * (no está ni en el contenido aprobado ni en el borrador) y con las de `redactarBorrador`.
+   */
+  pedirMasReservados(peticion: PeticionReservados): Promise<Resultado<BorradorRedactado>>;
   /**
    * «Ver fuente» de una pieza del borrador o de un ítem aprobado. En una sesión, solo después de que la
    * persona responda (MATE-7.1); sin fuente, se rechaza (MATE-7.3).
@@ -94,7 +119,26 @@ export function listarMaterial(ficheros: Ficheros, peticion: PeticionDominio): R
   return aceptar(documentosDelMaterial(ficheros, peticion.dominio));
 }
 
-type Externos = Pick<Dependencias, 'ficheros' | 'libreOffice' | 'web'>;
+/**
+ * La IA redacta piezas a partir de un documento del material y las válidas van al borrador («Mecanismo» 4,
+ * MATE-2). Es `redactarConLaIa` sin objetivo.
+ */
+export function redactarBorrador(
+  externos: ExternosDeRedaccion,
+  peticion: DocumentoParaRedactar,
+): Promise<Resultado<BorradorRedactado>> {
+  return redactarConLaIa(externos, peticion);
+}
+
+/** Más ítems reservados de `peticion.objetivo` (MATE-2.10, MATE-2.11). Es `redactarConLaIa` con ese objetivo. */
+export function pedirMasReservados(
+  externos: ExternosDeRedaccion,
+  peticion: PeticionReservados,
+): Promise<Resultado<BorradorRedactado>> {
+  return redactarConLaIa(externos, peticion, peticion.objetivo);
+}
+
+type ExternosDeAlta = Pick<Dependencias, 'ficheros' | 'libreOffice' | 'web'>;
 type PeticionDeUrl = Extract<PeticionMaterial, { readonly url: string }>;
 type PeticionDeFichero = Exclude<PeticionMaterial, PeticionDeUrl>;
 type FormatoDeCopia = 'html' | 'pdf';
@@ -120,7 +164,7 @@ const MOTIVO_URL_SIN_TIPO_ADMITIDO =
  * Un fichero: primero el nombre, luego el PDF del que sale el texto (el propio fichero o el convertido) y,
  * solo con el texto en la mano, se guarda. Un rechazo en cualquiera de los pasos no escribe nada.
  */
-async function anadirFichero(externos: Externos, peticion: PeticionDeFichero): Promise<Resultado<null>> {
+async function anadirFichero(externos: ExternosDeAlta, peticion: PeticionDeFichero): Promise<Resultado<null>> {
   const { nombre, bytes } = peticion;
   const rechazo = rechazoDelNombre(nombre);
   if (rechazo !== undefined) {
@@ -175,7 +219,7 @@ async function convertirSiHaceFalta(
 }
 
 /** Una URL: se descarga, se lee según su `Content-Type` y se guarda la copia con su texto (@MATE-1.5). */
-async function anadirUrl(externos: Externos, peticion: PeticionDeUrl): Promise<Resultado<null>> {
+async function anadirUrl(externos: ExternosDeAlta, peticion: PeticionDeUrl): Promise<Resultado<null>> {
   const pagina = await externos.web.descargar(peticion.url);
   if (pagina === undefined) {
     return rechazarPorCausa(
@@ -213,4 +257,106 @@ function paginasDeLaCopia(pagina: PaginaDescargada, formato: FormatoDeCopia): Pr
   }
   // `textoDelHtml` recibe el `Content-Type` entero: de él sale el `charset` con el que se leen los bytes.
   return Promise.resolve(aceptar([textoDelHtml(pagina.bytes, pagina.tipoContenido)]));
+}
+
+const MOTIVO_SIN_IA = 'Para redactar borradores hay que configurar una IA en Ajustes.';
+
+/**
+ * El cuerpo de `redactarBorrador` y, con `objetivo`, de `pedirMasReservados` («Mecanismo» 4). Por este orden:
+ * 1. **Dominio.** Rechaza con `campo` `dominio` el que no pasa `dominioValido`.
+ * 2. **IA.** Si `leerIa()` da `undefined`, rechaza con `causa` `sin_ia` y `MOTIVO_SIN_IA` antes de leer
+ *    nada: ni la mesa ni el documento (@MATE-2.4).
+ * 3. **Mesa.** `leerMesa`, que rechaza como la revisión (`id_repetido`, un contenido que no cumple el formato…).
+ * 4. **Objetivo** (solo con `objetivo`). `peticionDeReservados(mesa, objetivo)`; si da `undefined`, rechaza
+ *    con `causa` `objetivo_no_encontrado` y el objetivo en el motivo.
+ * 5. **Documento.** `pdfDelDocumento`, que rechaza con `documento_no_encontrado` o `documento_sin_pdf`.
+ * 6. **Redacción.** `await ia.redactar({ documento, pdf, aprobado: aprobadoParaLaIa(mesa.aprobado) })`, con
+ *    `reservadosDe` si hay objetivo. Si la IA rechaza la promesa, el rechazo se propaga sin capturarlo: qué
+ *    ve la persona lo decide PANT (`docs/areas/PANT.md`, «Qué devuelve `leerIa` sin sesión»).
+ * 7. **Incorporación.** Vuelve a leer la mesa con `leerMesa`, que rechaza igual que en el paso 3: la IA tarda,
+ *    y si la persona aprueba una pieza mientras tanto, incorporar en la mesa de antes la devolvería al
+ *    borrador con el mismo id que en el aprobado. `incorporarEntrega(mesa, entrega, objetivo)` y
+ *    `escribirBorrador` con lo que devuelve; el aprobado no se escribe (@MATE-2.1).
+ *
+ * Acepta con las `apartadas` de `incorporarEntrega`. Ningún rechazo escribe nada.
+ */
+async function redactarConLaIa(
+  externos: ExternosDeRedaccion,
+  peticion: DocumentoParaRedactar,
+  objetivo?: string,
+): Promise<Resultado<BorradorRedactado>> {
+  const dominio = dominioValido(peticion.dominio);
+  if (!dominio.ok) {
+    return dominio;
+  }
+  const ia = externos.leerIa();
+  if (ia === undefined) {
+    return rechazarPorCausa('sin_ia', MOTIVO_SIN_IA);
+  }
+  const paraLaIa = peticionParaLaIa(externos.ficheros, peticion, objetivo);
+  if (!paraLaIa.ok) {
+    return paraLaIa;
+  }
+  // Si la IA rechaza la promesa, el rechazo se propaga: no se captura aquí (lo decide PANT).
+  const entrega = await ia.redactar(paraLaIa.valor);
+  // La mesa se vuelve a leer: durante la espera la persona ha podido aprobar, corregir o descartar piezas, y
+  // la entrega tiene que incorporarse a lo que hay ahora, no a lo que había al pedirla.
+  const lectura = leerMesa(externos.ficheros, peticion.dominio);
+  if (!lectura.ok) {
+    return lectura;
+  }
+  const { borrador, apartadas } = incorporarEntrega(lectura.valor.mesa, entrega, objetivo);
+  escribirBorrador(externos.ficheros, peticion.dominio, borrador);
+  return aceptar({ apartadas });
+}
+
+/**
+ * Lo que se le pide a la IA, con los pasos 3 a 5 de `redactarConLaIa`, en ese orden: la mesa, el objetivo (si
+ * lo hay) y el PDF del documento. Un rechazo en cualquiera de ellos no llega a la IA.
+ */
+function peticionParaLaIa(
+  ficheros: Ficheros,
+  peticion: DocumentoParaRedactar,
+  objetivo: string | undefined,
+): Resultado<PeticionDeRedaccion> {
+  const lectura = leerMesa(ficheros, peticion.dominio);
+  if (!lectura.ok) {
+    return lectura;
+  }
+  const { mesa } = lectura.valor;
+  const reservados = reservadosDeLaPeticion(mesa, objetivo);
+  if (!reservados.ok) {
+    return reservados;
+  }
+  const pdf = pdfDelDocumento(ficheros, peticion.dominio, peticion.documento);
+  if (!pdf.ok) {
+    return pdf;
+  }
+  return aceptar({
+    documento: peticion.documento,
+    pdf: pdf.valor,
+    aprobado: aprobadoParaLaIa(mesa.aprobado),
+    ...reservados.valor,
+  });
+}
+
+/** `reservadosDe` solo existe al pedir más reservados de un objetivo (MATE-2.10); sin objetivo, la petición no lo lleva. */
+type ConReservados = Pick<PeticionDeRedaccion, 'reservadosDe'>;
+
+/**
+ * Los enunciados de los ítems del objetivo, para que la IA proponga otro caso (@MATE-2.10). Con
+ * `exactOptionalPropertyTypes`, `reservadosDe` no puede valer `undefined`: o está o no se escribe.
+ */
+function reservadosDeLaPeticion(mesa: Mesa, objetivo: string | undefined): Resultado<ConReservados> {
+  if (objetivo === undefined) {
+    return aceptar({});
+  }
+  const reservadosDe = peticionDeReservados(mesa, objetivo);
+  if (reservadosDe === undefined) {
+    return rechazarPorCausa(
+      'objetivo_no_encontrado',
+      `No existe el objetivo «${objetivo}»: no está ni en el contenido aprobado ni en el borrador.`,
+    );
+  }
+  return aceptar({ reservadosDe });
 }

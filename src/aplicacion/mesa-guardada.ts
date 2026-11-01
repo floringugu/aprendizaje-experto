@@ -169,6 +169,14 @@ export function escribirPar(ficheros: Ficheros, dominio: string, par: ParDeBytes
   ficheros.escribir(rutaDelAprobado(dominio), par.aprobado);
 }
 
+/**
+ * Escribe solo el borrador, entero y en `codificarJson`: una redacción no toca el aprobado (@MATE-2.1). Con
+ * eso, «Deshacer» ya no deshace la acción de antes de la redacción (`mismaMesa` da `false`).
+ */
+export function escribirBorrador(ficheros: Ficheros, dominio: string, borrador: BorradorDominio): void {
+  ficheros.escribir(rutaDelBorrador(dominio), codificarJson(borrador));
+}
+
 /** Si los dos ficheros del dominio son, byte a byte, los de `par`. Un fichero que no existe no es igual a nada. */
 export function mismaMesa(ficheros: Ficheros, dominio: string, par: ParDeBytes): boolean {
   return (

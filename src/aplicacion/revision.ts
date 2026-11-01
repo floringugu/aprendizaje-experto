@@ -1,4 +1,5 @@
 import type { MarcaDeCita, Marcador } from '../dominio/citas.ts';
+import type { AvisoDeReservados } from './avisos-de-reservados.ts';
 import type { ContenidoDominio, EjemploResueltoContenido, ItemContenido, ObjetivoContenido } from './contenido.ts';
 import {
   esRegistro,
@@ -33,6 +34,11 @@ interface PiezaPendiente {
    * pasos: de ninguna a dos marcas.
    */
   readonly marcas: readonly Marca[];
+  /**
+   * Si es un ítem con `reservado: true`; `false` en los demás ítems y en las demás piezas. No es una marca:
+   * las marcas las pone la aplicación, y «Reservado» lo elige la persona (@MATE-4.12).
+   */
+  readonly reservado: boolean;
 }
 
 interface GrupoRevision {
@@ -44,6 +50,8 @@ interface GrupoRevision {
 /** La pantalla «Revisión del material»: las piezas pendientes, agrupadas por objetivo (MATE-4.1). */
 export interface Revision {
   readonly grupos: readonly GrupoRevision[];
+  /** Lo que falta para medir la transferencia, solo con el aprobado; vacío si no falta nada (MATE-3.6, MATE-3.7). */
+  readonly avisos: readonly AvisoDeReservados[];
 }
 
 export type Accion =
@@ -63,8 +71,9 @@ export type Accion =
  * del borrador: objetivos (cada uno seguido de sus ejemplos), ejemplos que van aparte, ítems, categorías
  * y tareas.
  * Con un filtro de marca solo quedan las piezas que la llevan, y un grupo sin piezas no sale (@MATE-4.2).
+ * Los `avisos` no salen de aquí, sino de `avisosDeReservados`, que necesita el mínimo de los parámetros.
  */
-export function revisar(mesa: Mesa, marcas: Marcador, filtro: FiltroRevision): Revision {
+export function revisar(mesa: Mesa, marcas: Marcador, filtro: FiltroRevision): Pick<Revision, 'grupos'> {
   const piezas = pendientesDelBorrador(mesa.borrador).map((pendiente) => ({
     objetivo: colgadoDe(pendiente),
     pieza: piezaPendiente(pendiente, marcas),
@@ -145,7 +154,8 @@ function colgadoDe(pendiente: Pendiente): string | undefined {
 }
 
 function piezaPendiente(pendiente: Pendiente, marcas: Marcador): PiezaPendiente {
-  return { id: pendiente.pieza.id, tipo: pendiente.tipo, marcas: marcasDeLaPieza(pendiente, marcas) };
+  const reservado = pendiente.tipo === 'item' && pendiente.pieza.reservado === true;
+  return { id: pendiente.pieza.id, tipo: pendiente.tipo, marcas: marcasDeLaPieza(pendiente, marcas), reservado };
 }
 
 /**

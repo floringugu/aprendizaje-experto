@@ -53,13 +53,47 @@ export interface Ficheros {
   escribir(ruta: string, bytes: Uint8Array): void;
 }
 
+/**
+ * Lo aprobado que la IA necesita para colgar de ello las piezas nuevas y decir dónde va cada tarea, en el
+ * orden del contenido (plan §0, «Reglas de `MATE` que la feature no cubre»).
+ */
+export interface AprobadoParaLaIa {
+  readonly objetivos: readonly { readonly id: string; readonly instruccion: string }[];
+  readonly categorias: readonly {
+    readonly id: string;
+    readonly descripcion: string;
+    readonly grupo_parecidas?: string;
+  }[];
+  readonly tareas: readonly { readonly id: string; readonly enunciado: string }[];
+}
+
+/** Lo que la aplicación le pide a la IA: un documento del material, en PDF, y lo que ya está aprobado. */
+export interface PeticionDeRedaccion {
+  /** El nombre o la URL del documento, tal como está en el material: el `documento` de las `fuente`. */
+  readonly documento: string;
+  readonly pdf: Uint8Array;
+  readonly aprobado: AprobadoParaLaIa;
+  /** Solo al pedir más reservados (MATE-2.10). */
+  readonly reservadosDe?: ReservadosDe;
+}
+
+/**
+ * Qué reservados se piden: solo ítems de `objetivo` con `reservado: true`, y que sean otro caso que los
+ * `enunciados` de los ítems que ya tiene, aprobados y pendientes (MATE-2.10).
+ */
+export interface ReservadosDe {
+  readonly objetivo: string;
+  readonly enunciados: readonly string[];
+}
+
 /** La IA que redacta borradores a partir del material (MATE-2). La aplicación nunca la usa en una sesión. */
 export interface RedactorIa {
   /**
    * Redacta piezas con el formato del contenido, cada una con su `fuente`. Devuelve el JSON tal como lo
-   * entrega la IA, sin validar: la aplicación aparta las piezas que no cumplen el formato (MATE-2.3).
+   * entrega la IA, sin validar: la aplicación aparta las piezas que no cumplen el formato (MATE-2.3). Si
+   * no puede redactar (sin sesión, sin red), rechaza la promesa.
    */
-  redactar(peticion: { readonly documento: string; readonly pdf: Uint8Array }): Promise<unknown>;
+  redactar(peticion: PeticionDeRedaccion): Promise<unknown>;
 }
 
 /** LibreOffice, instalado en el PC: es un programa aparte, no una dependencia de npm (MATE-1.2). */

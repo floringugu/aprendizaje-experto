@@ -79,6 +79,27 @@ describe('falloDeLaPiezaSuelta', () => {
     expect(falloDeLaPiezaSuelta(tipo, pieza)).toBeUndefined();
   });
 
+  it.each([true, false])('@MATE-2.8 un ítem con «reservado» igual a %s cumple el formato', (reservado) => {
+    expect(falloDeLaPiezaSuelta('item', item({ reservado }))).toBeUndefined();
+  });
+
+  it('@MATE-2.8 un ítem sin «reservado» cumple el formato, también con el campo a undefined', () => {
+    expect(falloDeLaPiezaSuelta('item', item())).toBeUndefined();
+    expect(falloDeLaPiezaSuelta('item', item({ reservado: undefined }))).toBeUndefined();
+  });
+
+  it.each(['sí', 'true', 1, 0, null, [], {}])(
+    '@MATE-2.9 un ítem con «reservado» igual a %j falla en reservado',
+    (reservado) => {
+      expect(falloDeLaPiezaSuelta('item', item({ reservado }))).toStrictEqual({ pieza: ITEM, falta: 'reservado' });
+    },
+  );
+
+  it('@MATE-2.9 «reservado» solo lo mira un ítem: en las demás piezas es una propiedad de más', () => {
+    expect(falloDeLaPiezaSuelta('categoria', categoria({ reservado: 'sí' }))).toBeUndefined();
+    expect(falloDeLaPiezaSuelta('tarea', tarea({ reservado: 'sí' }))).toBeUndefined();
+  });
+
   it('@MATE-4.8 un ejemplo sin objetivo se nombra como de «su objetivo»', () => {
     expect(falloDeLaPiezaSuelta('ejemplo', ejemplo({ pasos: [] }))).toStrictEqual({
       pieza: 'el ejemplo resuelto E1 de su objetivo',

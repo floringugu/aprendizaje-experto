@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { crearRevisionDelMaterial, type CasosDeRevision } from '../../src/aplicacion/revision-del-material.ts';
 import { ficherosEnMemoria } from './ficheros-en-memoria.ts';
-import { FUENTE_BUENA, MESA, codificar, escribirMesa, item } from './revision-fabricas.ts';
+import { FUENTE_BUENA, MESA, codificar, escribirMesa, externosDe, item } from './revision-fabricas.ts';
 
 const OK = { ok: true, valor: null };
 // El motivo tiene que decir algo (`\S`: al menos un carácter que no sea un espacio), como en los rechazos del material.
@@ -21,7 +21,7 @@ function montar(...dominios: readonly string[]) {
   for (const dominio of dominios) {
     escribirMesa(ficheros, MESA, dominio);
   }
-  return { ficheros, contenidos, casos: crearRevisionDelMaterial(ficheros) };
+  return { ficheros, contenidos, casos: crearRevisionDelMaterial(externosDe(ficheros)) };
 }
 
 /** Los bytes de un fichero que tiene que existir. */
@@ -199,7 +199,7 @@ describe('los huecos de deshacer (reglas que la feature no cubre)', () => {
 
   it('dos llamadas a crearRevisionDelMaterial no comparten huecos', () => {
     const { ficheros, casos: unaPersona } = montar('ficticio');
-    const otraPersona = crearRevisionDelMaterial(ficheros);
+    const otraPersona = crearRevisionDelMaterial(externosDe(ficheros));
     aprobarI7(unaPersona);
     expect(deshacer(otraPersona)).toMatchObject(NADA_QUE_DESHACER);
     expect(deshacer(unaPersona)).toStrictEqual(OK);
