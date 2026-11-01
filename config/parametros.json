@@ -133,6 +133,22 @@
     "extrapolacion": true,
     "nota": "Instrumento de la sección 4 («escalas de confianza de 0 a 100 % por ítem»). La sección 2.5 justifica medir con pruebas y no con autoevaluación: la confianza nunca mide el progreso."
   },
+  "minimo_items_calibracion_visual": {
+    "descripcion": "Número mínimo de ítems que tiene que haber para enseñar una silueta de calibración (por objetivo y por grupo: practicados o reservados) o las tarjetas «un mes después» de un objetivo. Con menos, la pantalla dice que aún no hay datos suficientes o no se enseña.",
+    "valor": 5,
+    "seccion": ["2.5", "4"],
+    "nivel_evidencia": "extrapolación del autor",
+    "extrapolacion": true,
+    "nota": "Ningún estudio prueba estas pantallas. La sección 2.5 dice que los juicios de aprendizaje están sesgados por la fluidez y que hay que medir con pruebas; comparar la confianza con el acierto de unos pocos ítems da porcentajes muy inestables (con 3 ítems, un acierto más mueve 33 puntos). Cinco, como «minimo_problemas_reservados», es decisión del autor, sin evidencia propia. Aun con cinco, cada acierto mueve 20 puntos: la diferencia que enseña la pantalla es un dato descriptivo, y la sección 2.5 avisa de que parte del patrón de desajuste puede ser regresión a la media y efectos de suelo y techo."
+  },
+  "confianza_alta_minima": {
+    "descripcion": "Confianza (en la escala de «escala_confianza») a partir de la cual un ítem se da por seguro y tiene una tarjeta tras la prueba de retención de la última semana configurada. La tarjeta existe por la confianza, no por el resultado: enseña si el ítem se acertó o no en la prueba.",
+    "valor": 80,
+    "seccion": ["2.5", "4"],
+    "nivel_evidencia": "extrapolación del autor",
+    "extrapolacion": true,
+    "nota": "Ningún estudio fija este umbral. La sección 2.5 solo justifica comparar la confianza con el acierto. Un 80 % como «dar por seguro» es decisión del autor, sin evidencia propia. La confianza no cambia el progreso (CALI-3)."
+  },
   "periodicidad_bucle_dias": {
     "descripcion": "Cada cuántos días se ejecuta el bucle de retroalimentación (medir, calibrar, ajustar ayuda, reprogramar, revisar).",
     "valor": 7,
