@@ -181,7 +181,7 @@ type AvisoDeReservados =
 
 **Escenarios en rojo (`config/alcance.json`).** Están en rojo MATE-2.1 a 2.11, 3.6, 3.7, 4.12 y 6.1. El dueño creía que eran 2.1, 2.3, 2.5, 2.6, 2.7, 3.5, 4.11 y 5.5; la ejecución del 01-11-2026 dice otra cosa: 3.5, 4.11 y 5.5 pasan, y fallan además 2.2, 2.4, 2.8 a 2.11, 3.6, 3.7, 4.12 y 6.1.
 
-- **MATE-6.1** falla en tres de sus cinco ejemplos por falta de aplicación de otras áreas, no por los pasos: los repasos de ítems llegan con el planificador (`consultarRepasos` solo da pruebas de retención), `iniciarSesion` da «Sin implementar» para el tipo `retencion` y la sesión intercalada no existe. Implementar MATE no lo pone en verde.
+- **MATE-6.1** falla en tres de sus cinco ejemplos por falta de aplicación de otras áreas, no por los pasos: los repasos de ítems llegan con el planificador (`consultarRepasos` solo da pruebas de retención), `iniciarSesion` da «Sin implementar» para el tipo `retencion` y la sesión intercalada no existe. Implementar MATE no lo pone en verde; el ticket `mate-sesiones-a-plan-inte` (specs) mueve esos tres ejemplos a PLAN e INTE, como MATE-6.3, y `mate-cierre` depende de él.
 - **MATE-6.5** fallaba por un fallo del paso: el «Dado» copiaba C1 y C2 al borrador y la revisión rechazaba el id repetido. Arreglado en `borradores-en-sesiones.ts`; ahora pasa.
 
 ## Interfaces descartadas y por qué

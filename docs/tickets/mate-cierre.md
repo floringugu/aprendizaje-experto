@@ -1,7 +1,7 @@
 ---
 fase: impl
 area: MATE
-depende: [mate-reservados, mate-mesa-y-dominio, mate-tarea-a-tare]
+depende: [mate-reservados, mate-mesa-y-dominio, mate-tarea-a-tare, mate-sesiones-a-plan-inte]
 toca: [config/alcance.json, docs/areas/MATE.md, docs/deuda-diseno.md]
 estado: abierto
 ---
