@@ -30,6 +30,7 @@ Característica: Instrumentación y exportación CSV
         | evaluaciones_externas.csv | fecha,dominio,tarea,percentil,a_ciegas,practicada,criterio,nivel                                 |
         | horas.csv                 | fecha,dominio,minutos                                                                            |
         | autoexplicaciones.csv     | fecha,dominio,objetivo,texto                                                                     |
+        | experimentos.csv          | fecha,dominio,objetivo,item,mitad,estudio_ms                                                     |
 
     @INST-1.2 @evidencia-4
     Escenario: Cada respuesta registra acierto, latencia y confianza
@@ -44,15 +45,17 @@ Característica: Instrumentación y exportación CSV
       Entonces su fila en respuestas.csv tiene el contexto «<contexto>»
 
       Ejemplos:
-        | dónde                                                  | contexto      |
-        | en el diagnóstico                                      | diagnostico   |
-        | en una sesión de práctica                              | practica      |
-        | en un repaso programado                                | repaso        |
-        | no reservado en una sesión intercalada                 | intercalado   |
-        | en una prueba de retención                             | retencion     |
-        | en un intento de exploración                           | exploracion   |
-        | reservado de tipo «problema» en una sesión intercalada | transferencia |
-        | reservado en una prueba de retención                   | transferencia |
+        | dónde                                                  | contexto            |
+        | en el diagnóstico                                      | diagnostico         |
+        | en una sesión de práctica                              | practica            |
+        | en un repaso programado                                | repaso              |
+        | no reservado en una sesión intercalada                 | intercalado         |
+        | en una prueba de retención                             | retencion           |
+        | en un intento de exploración                           | exploracion         |
+        | reservado de tipo «problema» en una sesión intercalada | transferencia       |
+        | reservado en una prueba de retención                   | transferencia       |
+        | en el estudio de la mitad recuperada de un experimento | experimento_estudio |
+        | en la prueba de un experimento                         | experimento_prueba  |
 
     @INST-1.4 @evidencia-4 @extrapolacion
     Escenario: Una evaluación externa ocupa una fila por criterio de la rúbrica
@@ -81,6 +84,31 @@ Característica: Instrumentación y exportación CSV
         | una coma          |
         | un salto de línea |
 
+    @INST-1.7 @extrapolacion
+    Escenario: Las respuestas de un experimento se registran como cualquier otra
+      Dado que el 2026-03-09 a las 10:00:00 se le presenta a la persona el ítem I1 de O2 en la prueba de un experimento
+      Y que O2 tiene 0 pasos retirados
+      Cuando la persona responde correctamente 6,5 segundos después y declara una confianza del 60 %
+      Entonces respuestas.csv tiene la fila «2026-03-09T10:00:06.500,ficticio,experimento_prueba,I1,O2,true,6500,false,0,60»
+
+    @INST-1.8 @extrapolacion
+    Escenario: Un ítem de la mitad releída no genera ninguna fila en respuestas.csv
+      Dado que I1 está en la mitad releída de un experimento en curso e I2, en la recuperada
+      Cuando la persona estudia una pasada del experimento y exporta respuestas.csv
+      Entonces tiene una fila de I2 con el contexto «experimento_estudio»
+      Y no tiene ninguna fila de I1
+
+    @INST-1.9 @extrapolacion
+    Escenario: Cada ítem de un experimento ocupa una fila al terminar el estudio
+      Dado que el estudio de un experimento en O2 terminó el 2026-03-02 a las 10:30:00
+      Y que I1 está en la mitad releída y se vio 18,4 segundos en total
+      Y que I2 está en la mitad recuperada y se estudió 21 segundos en total
+      Cuando la persona exporta experimentos.csv
+      Entonces tiene estas filas:
+        | fecha               | dominio  | objetivo | item | mitad     | estudio_ms |
+        | 2026-03-02T10:30:00 | ficticio | O2       | I1   | releer    | 18400      |
+        | 2026-03-02T10:30:00 | ficticio | O2       | I2   | recuperar | 21000      |
+
   @INST-2 @extrapolacion
   Regla: La exportación es completa y ordenada
 
@@ -99,6 +127,6 @@ Característica: Instrumentación y exportación CSV
       Y la segunda es la del 2026-03-03, del dominio «ficticio»
 
     @INST-2.3 @extrapolacion
-    Escenario: Se pueden exportar los siete CSV
+    Escenario: Se pueden exportar los ocho CSV
       Cuando la persona abre la exportación
-      Entonces puede descargar respuestas.csv, cambios_ayuda.csv, objetivos_dominados.csv, cambios_fase.csv, evaluaciones_externas.csv, horas.csv y autoexplicaciones.csv
+      Entonces puede descargar respuestas.csv, cambios_ayuda.csv, objetivos_dominados.csv, cambios_fase.csv, evaluaciones_externas.csv, horas.csv, autoexplicaciones.csv y experimentos.csv

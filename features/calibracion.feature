@@ -11,11 +11,21 @@ Característica: Calibración de la confianza
   ningún estudio prueba estas pantallas. Salen solo en el paso 2 del bucle semanal, una por bucle,
   y enseñan lo que digan los datos, sin textos escritos de antemano a favor de ningún método.
 
+  El experimento de releer frente a recuperar (CALI-7 a CALI-12) deja que la persona lo compruebe
+  con sus propios ítems: una mitad se estudia releyendo y la otra recuperando, y una prueba de las
+  dos enseña cuántos aciertos dio cada una junto a la confianza que declaró. Es opcional y la
+  persona lo elige desde «Ajustes». La sección 2.5 dice que releer da sensación de dominio sin
+  dominio y que hay que medir con pruebas; el experimento es esa medida con los ítems de la
+  persona. Que verlo cambie lo que la persona cree sobre cómo estudiar no lo prueba ningún estudio
+  del informe: el experimento es extrapolación del autor. Como las pantallas de CALI-4 a CALI-6,
+  enseña lo que digan los datos aunque no den la razón a la recuperación, y sus intentos no cuentan
+  para nada de lo demás (CALI-12).
+
   Antecedentes:
     Dado el dominio de prueba «ficticio» con los objetivos O1, O2 y O3, en ese orden
     Y que la escala de confianza configurada va del 0 al 100 %
 
-  @CALI-1 @evidencia-4 @extrapolacion
+  @CALI-1@evidencia-4 @extrapolacion
   Regla: La confianza se declara en cada ítem, antes del feedback
 
     @CALI-1.1 @evidencia-4 @extrapolacion
@@ -376,3 +386,424 @@ Característica: Calibración de la confianza
       Cuando ve las dos pantallas de calibración, una en cada bucle
       Entonces ningún texto de las pantallas contiene «fallas», «fallaste», «eres», «sabes», «te equivocas» ni «fracaso»
       Y las tarjetas se llaman «tarjetas» y los textos de las siluetas empiezan por el objetivo y el grupo de ítems
+
+  @CALI-7 @evidencia-2.5 @extrapolacion
+  Regla: El experimento es opcional: solo se ofrece en «Ajustes» y la aplicación nunca lo propone
+    Empezarlo es decisión de la persona. Mientras no lo empiece, ninguna pantalla de estudio habla
+    de él. Solo hay uno en curso a la vez. Que se ofrezca solo en «Ajustes» es decisión del autor.
+
+    Antecedentes:
+      Dado que los ítems por mitad configurados son 10
+      Y que las pasadas de estudio configuradas son 2
+      Y que el plazo de la prueba configurado es de 7 días
+
+    @CALI-7.1 @extrapolacion
+    Escenario: Sin haberlo empezado, el experimento no aparece fuera de «Ajustes»
+      Dado que la persona nunca ha empezado el experimento
+      Cuando abre la pantalla «Hoy», hace una sesión de práctica y se ejecuta el bucle semanal
+      Entonces ni «Hoy», ni la sesión de práctica, ni ningún paso del bucle semanal mencionan el experimento
+
+    @CALI-7.2 @extrapolacion
+    Escenario: «Ajustes» ofrece el experimento y dice en qué consiste
+      Dado que la persona nunca ha empezado el experimento
+      Cuando abre la pantalla «Ajustes»
+      Entonces ve la opción «Experimento: releer frente a recuperar»
+      Y su texto dice «Se estudian 10 ítems releyendo y 10 recuperando, y a los 7 días se hace una prueba de los 20.»
+
+    @CALI-7.3 @extrapolacion
+    Escenario: Con un experimento en curso no se puede empezar otro
+      Dado que hay un experimento en curso en O2 cuyo estudio terminó el 2026-03-02
+      Cuando abre la pantalla «Ajustes»
+      Entonces ve «Prueba disponible el 2026-03-09»
+      Y no ve ninguna opción para empezar otro experimento
+
+    @CALI-7.4 @extrapolacion
+    Escenario: La persona puede cancelar el experimento hasta terminar la prueba
+      Dado que hay un experimento en curso en O2 cuyo estudio terminó
+      Cuando la persona lo cancela desde «Ajustes»
+      Entonces el experimento deja de estar en curso y no tiene prueba ni resultado
+      Y respuestas.csv y experimentos.csv conservan todas sus filas
+      Y la persona puede empezar otro experimento
+
+  @CALI-8 @evidencia-2.5 @extrapolacion
+  Regla: Los ítems son de un objetivo no dominado y la aplicación los reparte al azar entre las dos mitades
+    La comparación solo es justa si las dos mitades son parecidas. Por eso la persona no elige los
+    ítems ni dice en qué mitad va cada uno (si lo hiciera, podría poner los fáciles en un lado) y los
+    ítems son de un objetivo aún no dominado y que ella todavía no ha respondido, para que haya algo
+    que aprender. Los reservados no entran: se presentan una sola vez (MAST-8.5). Cada tipo de ítem se
+    reparte a partes iguales entre las dos mitades, con diferencia de uno como máximo. Son decisión
+    del autor las condiciones de elección y que cada tipo se reparta por igual.
+
+    Antecedentes:
+      Dado que los ítems por mitad configurados son 10
+
+    @CALI-8.1 @extrapolacion
+    Escenario: Solo se puede elegir un objetivo que no esté dominado
+      Dado que O1 está dominado y que O2 y O3 no lo están
+      Cuando la persona empieza el experimento
+      Entonces puede elegir entre O2 y O3
+      Y no puede elegir O1
+
+    @CALI-8.2 @extrapolacion
+    Escenario: Los ítems salen de los no reservados que la persona aún no ha respondido
+      Dado que O2 tiene 35 ítems no reservados y 3 reservados
+      Y que la persona ha respondido 12 de los no reservados
+      Cuando la persona empieza el experimento en O2
+      Entonces los 20 ítems del experimento son 20 de los 23 ítems no reservados de O2 sin ningún intento
+      Y ninguno es reservado
+
+    @CALI-8.3 @extrapolacion
+    Esquema del escenario: Sin ítems suficientes el experimento no empieza
+      Dado que O2 tiene <sin_intento> ítems no reservados sin ningún intento
+      Cuando la persona empieza el experimento en O2
+      Entonces <resultado>
+
+      Ejemplos:
+        | sin_intento | resultado                                                                                     |
+        | 19          | el experimento no empieza y ve «O2 tiene 19 ítems sin practicar y el experimento necesita 20» |
+        | 20          | el experimento empieza con 20 ítems                                                           |
+
+    @CALI-8.4 @extrapolacion
+    Esquema del escenario: Cada mitad tiene 10 ítems y cada tipo se reparte por igual
+      Dado que los 20 ítems elegidos de O2 son <hechos> de tipo «hecho» y <problemas> de tipo «problema»
+      Cuando la aplicación los reparte en la mitad releída y la mitad recuperada
+      Entonces cada mitad tiene 10 ítems y ningún ítem está en las dos
+      Y las dos mitades se diferencian en <diferencia> ítems de tipo «hecho» como máximo
+      Y en <diferencia> ítems de tipo «problema» como máximo
+
+      Ejemplos:
+        | hechos | problemas | diferencia |
+        | 14     | 6         | 0          |
+        | 13     | 7         | 1          |
+        | 20     | 0         | 0          |
+
+    @CALI-8.5 @extrapolacion
+    Escenario: La persona no puede elegir los ítems ni cambiarlos de mitad
+      Cuando la persona empieza el experimento en O2
+      Entonces no tiene ninguna opción para elegir ítems, quitar ítems ni pasar un ítem de una mitad a la otra
+
+    @CALI-8.6 @extrapolacion
+    Escenario: El reparto es al azar
+      Dado los mismos 20 ítems elegidos de O2
+      Cuando la aplicación los reparte dos veces, con el azar fijado de dos maneras distintas
+      Entonces la mitad releída no es la misma en los dos repartos
+
+    @CALI-8.7 @extrapolacion
+    Escenario: Un ítem que ya se presentó en el estudio de un experimento no entra en otro
+      Dado que I1 de O2 se presentó en el estudio de un experimento anterior
+      Cuando la persona empieza otro experimento en O2
+      Entonces I1 no está entre los ítems del experimento
+
+  @CALI-9 @evidencia-2.5 @extrapolacion
+  Regla: Las dos mitades se estudian en una sola sesión, con las mismas pasadas y sin repasos entre medias
+    Para que la comparación sea justa las dos mitades reciben el mismo número de pasadas y el mismo
+    tiempo de estudio. En cada pasada las presentaciones alternan un ítem de la mitad recuperada
+    y uno de la releída, y el de la releída no se puede pasar antes de que haya transcurrido lo que
+    la persona tardó en el recuperado anterior. Dentro de cada mitad los ítems siguen el orden de
+    la práctica normal, sin agruparlos ni mezclarlos por tipo a propósito. La mitad recuperada se estudia como cualquier
+    práctica: recuerda, declara su confianza y recibe el feedback (CALI-1, RECU-2). La releída se ve
+    con la respuesta (RECU-5) y no es un intento: no hay respuesta ni confianza. Hasta la prueba,
+    los ítems del experimento no salen en ninguna otra parte: ni práctica ni repasos. Todo esto
+    es decisión del autor.
+
+    Antecedentes:
+      Dado que los ítems por mitad configurados son 10
+      Y que las pasadas de estudio configuradas son 2
+      Y que hay un experimento en curso en O2 con sus 20 ítems repartidos
+
+    @CALI-9.1 @extrapolacion
+    Escenario: Cada ítem de las dos mitades se presenta el mismo número de veces en una sola sesión
+      Cuando la persona estudia el experimento
+      Entonces cada ítem de las dos mitades se presenta 2 veces
+      Y las 40 presentaciones son de una sola sesión
+
+    @CALI-9.2 @extrapolacion
+    Escenario: Las presentaciones alternan un ítem recuperado y uno releído
+      Cuando la persona estudia una pasada del experimento
+      Entonces la pasada presenta 20 ítems alternando uno de la mitad recuperada y, a continuación, uno de la releída
+      Y presenta 10 ítems de cada mitad
+      Y dentro de cada mitad los ítems van en el orden de la práctica normal
+
+    @CALI-9.3 @extrapolacion
+    Escenario: Un ítem de la mitad recuperada se estudia como cualquier práctica
+      Dado que I2 está en la mitad recuperada
+      Cuando se le presenta I2 a la persona en el estudio
+      Entonces no ve ninguna de las respuestas aceptadas hasta haber respondido y declarado su confianza
+      Y después ve que su respuesta es correcta o incorrecta, la respuesta correcta y la explicación del contenido
+
+    @CALI-9.4 @extrapolacion
+    Escenario: Ver un ítem de la mitad releída no es un intento
+      Dado que I1 está en la mitad releída
+      Cuando la persona ve I1 en el estudio
+      Entonces respuestas.csv no gana ninguna fila
+      Y I1 sigue sin ningún intento ni ninguna confianza declarada
+
+    @CALI-9.5 @extrapolacion
+    Esquema del escenario: El ítem releído no se puede pasar antes del tiempo que tardó el recuperado anterior
+      Dado que la persona tardó <tardó> s en responder un ítem de la mitad recuperada, declarar su confianza y ver el feedback
+      Cuando se le presenta a continuación un ítem de la mitad releída y han pasado <pasan> s
+      Entonces la persona <resultado> pasar al ítem siguiente
+
+      Ejemplos:
+        | tardó | pasan | resultado |
+        | 9     | 8     | no puede  |
+        | 9     | 9     | puede     |
+        | 9     | 20    | puede     |
+
+    @CALI-9.6 @extrapolacion
+    Esquema del escenario: Hasta la prueba los ítems del experimento no salen en ninguna otra parte
+      Dado que I1 es uno de los ítems del experimento
+      Cuando la aplicación prepara <dónde>
+      Entonces I1 no se presenta
+      Y no hay ningún repaso de I1 programado
+
+      Ejemplos:
+        | dónde                   |
+        | una sesión de práctica  |
+        | un repaso programado    |
+        | una sesión intercalada  |
+        | una prueba de retención |
+
+    @CALI-9.7 @extrapolacion
+    Escenario: Mientras el experimento está en curso, el objetivo no se puede dar por dominado
+      Dado que O2 tiene 35 ítems no reservados, 15 respondidos y acertados, y 20 en el experimento sin ningún intento
+      Cuando la aplicación evalúa O2
+      Entonces O2 no queda dominado
+
+    @CALI-9.8 @extrapolacion
+    Escenario: Si el estudio no termina el mismo día, el experimento se cancela
+      Dado que el estudio empezó el 2026-03-02 y le quedan presentaciones
+      Cuando llega el 2026-03-03
+      Entonces el experimento deja de estar en curso y no tiene prueba ni resultado
+      Y los ítems del experimento vuelven a la práctica normal
+
+  @CALI-10 @evidencia-2.5 @extrapolacion
+  Regla: La prueba incluye los ítems de las dos mitades, se hace pasado el plazo y no caduca
+    La prueba se hace a los días configurados de terminar el estudio. Si la persona la hace más
+    tarde, vale igual: las dos mitades esperan lo mismo, y el resultado dice a los cuántos días se
+    hizo. Cada ítem se presenta una sola vez, sin decir de qué mitad es, sin su respuesta y con la
+    confianza declarada antes del feedback (CALI-1.1), en el formato de la práctica (RECU-4). El
+    plazo y que no caduque son decisión del autor.
+
+    Antecedentes:
+      Dado que los ítems por mitad configurados son 10
+      Y que el plazo de la prueba configurado es de 7 días
+      Y que el estudio del experimento terminó el 2026-03-02
+
+    @CALI-10.1 @extrapolacion
+    Escenario: La prueba queda programada a los días del plazo de terminar el estudio
+      Cuando termina el estudio
+      Entonces la prueba del experimento queda programada para el 2026-03-09
+
+    @CALI-10.2 @extrapolacion
+    Escenario: El plazo de la prueba se lee de la configuración
+      Dado que se cambia en config/parametros.json «experimento_plazo_prueba_dias» a 14
+      Cuando termina el estudio
+      Entonces la prueba del experimento queda programada para el 2026-03-16
+
+    @CALI-10.3 @extrapolacion
+    Escenario: Antes de la fecha no se puede hacer la prueba
+      Cuando el 2026-03-08 la persona abre la pantalla «Ajustes»
+      Entonces ve «Prueba disponible el 2026-03-09»
+      Y no tiene ninguna opción para hacer la prueba
+
+    @CALI-10.4 @extrapolacion
+    Esquema del escenario: Desde la fecha la prueba aparece en «Hoy» y en «Ajustes»
+      Cuando el 2026-03-09 la persona abre la pantalla «<pantalla>»
+      Entonces ve la prueba del experimento, de 20 ítems, lista para hacerse
+
+      Ejemplos:
+        | pantalla |
+        | Hoy      |
+        | Ajustes  |
+
+    @CALI-10.5 @extrapolacion
+    Escenario: La prueba hecha más tarde de la fecha vale igual
+      Cuando la persona hace y termina la prueba el 2026-03-12
+      Entonces el resultado se calcula igual que si se hubiera hecho el 2026-03-09
+      Y dice «Prueba a los 10 días del estudio»
+
+    @CALI-10.6 @extrapolacion
+    Escenario: La prueba presenta cada ítem una vez sin decir de qué mitad es
+      Cuando la persona hace la prueba
+      Entonces se presentan 20 ítems, uno por cada ítem de las dos mitades
+      Y cada ítem se presenta una sola vez
+      Y la persona no ve de qué mitad es cada ítem
+
+    @CALI-10.7 @extrapolacion
+    Esquema del escenario: Cada ítem se responde sin ayuda y con la confianza declarada, sea de la mitad que sea
+      Dado que I1 está en la mitad <mitad>
+      Cuando se le presenta I1 a la persona en la prueba del experimento
+      Entonces responde eligiendo entre las opciones «a», «b» y «c», como en la práctica
+      Y no ve cuál es la correcta ni el feedback hasta haber declarado su confianza
+
+      Ejemplos:
+        | mitad      |
+        | releída    |
+        | recuperada |
+
+  @CALI-11 @evidencia-2.5 @extrapolacion
+  Regla: El resultado enseña dos pilas de aciertos junto a la confianza declarada y lo que digan los datos
+    Pantalla del resultado, al responder el último ítem de la prueba. Una pila por mitad, con una
+    tarjeta por ítem, como las de CALI-5, y el recuento como frecuencia («4 de 10»). Junto a cada
+    pila va la confianza media que declaró en esos ítems en la prueba y la diferencia con el acierto,
+    con la misma frase y los mismos enteros que la silueta de CALI-4. También el tiempo de estudio de
+    cada mitad, y a los cuántos días se hizo la prueba. Como en
+    CALI-6, los textos son plantillas rellenas con los datos: ninguno defiende un método, ni siquiera
+    el de recuperar, y si los datos contradicen la idea de que recuperar es mejor, el resultado los
+    enseña igual. Los textos hablan de los ítems, no de la persona. Dos avisos son datos sobre
+    la prueba y no textos sobre cómo estudiar: que con tan pocos ítems un acierto más cambia
+    mucho el resultado (100 entre los ítems por mitad configurados, en puntos), y que el resultado
+    es de esos ítems, de ese objetivo y de una sola prueba. Todo esto es decisión del autor.
+
+    Antecedentes:
+      Dado que los ítems por mitad configurados son 10
+
+    @CALI-11.1 @evidencia-2.5 @extrapolacion
+    Escenario: El resultado enseña los aciertos de cada mitad en dos pilas de tarjetas
+      Dado que la persona acertó 4 de los 10 ítems de la mitad releída y 8 de los 10 de la mitad recuperada
+      Cuando responde el último ítem de la prueba
+      Entonces el resultado muestra la pila «releídas» con «4 de 10» y la pila «recuperadas» con «8 de 10»
+      Y cada pila tiene 10 tarjetas, una por ítem
+      Y en «releídas» hay 4 tarjetas «acertada» y 6 «fallada en la prueba»; en «recuperadas», 8 y 2
+
+    @CALI-11.2 @evidencia-2.5 @extrapolacion
+    Escenario: Junto a cada pila está la confianza media declarada en la prueba
+      Dado que la persona acertó 4 de 10 ítems releídos con una confianza media del 70 % en la prueba
+      Y que acertó 8 de 10 ítems recuperados con una confianza media del 60 % en la prueba
+      Cuando responde el último ítem de la prueba
+      Entonces la pila «releídas» muestra la confianza media del 70 % y la frase «La confianza supera al acierto en 30 puntos»
+      Y la pila «recuperadas» muestra la confianza media del 60 % y la frase «El acierto supera a la confianza en 20 puntos»
+
+    @CALI-11.3 @evidencia-2.5 @extrapolacion
+    Esquema del escenario: El resultado enseña los datos tal como salen
+      Dado que la persona acertó <releídas> de los 10 ítems de la mitad releída y <recuperadas> de los 10 de la mitad recuperada
+      Cuando responde el último ítem de la prueba
+      Entonces el resultado muestra «<releídas> de 10 releídas» y «<recuperadas> de 10 recuperadas»
+      Y la pantalla no muestra ningún otro texto sobre cómo estudiar
+
+      Ejemplos:
+        | releídas | recuperadas |
+        | 4        | 8           |
+        | 8        | 4           |
+        | 6        | 6           |
+
+    @CALI-11.4 @extrapolacion
+    Escenario: El resultado dice cuánto se estudió cada mitad y a los cuántos días se hizo la prueba
+      Dado que el estudio de la mitad releída duró 411 s y el de la recuperada, 372 s
+      Y que la prueba se hizo a los 7 días del estudio
+      Cuando responde el último ítem de la prueba
+      Entonces el resultado muestra «Tiempo de estudio: releídas, 7 min; recuperadas, 6 min»
+      Y «Prueba a los 7 días del estudio»
+
+    @CALI-11.5 @extrapolacion
+    Escenario: El resultado avisa de que con tan pocos ítems un acierto más cambia mucho
+      Cuando responde el último ítem de la prueba
+      Entonces el resultado muestra «Con 10 ítems por mitad, un acierto más cambia el resultado 10 puntos»
+      Y el número de puntos sale de dividir 100 entre los ítems por mitad configurados
+
+    @CALI-11.6 @extrapolacion
+    Escenario: Los textos del resultado hablan de los ítems, no de la persona
+      Cuando responde el último ítem de la prueba
+      Entonces ningún texto del resultado contiene «fallas», «fallaste», «eres», «sabes», «te equivocas» ni «fracaso»
+      Y las pilas se llaman «releídas» y «recuperadas»
+
+    @CALI-11.7 @extrapolacion
+    Escenario: Sin los 20 ítems respondidos no hay resultado
+      Dado que la persona ha respondido 19 de los 20 ítems de la prueba
+      Cuando abre la pantalla «Ajustes»
+      Entonces no ve ningún resultado
+      Y ve «Prueba en curso: 19 de 20 ítems»
+
+    @CALI-11.8 @extrapolacion
+    Escenario: El resultado se puede volver a ver en «Ajustes» y no sale en el bucle semanal
+      Dado que la persona terminó la prueba el 2026-03-09
+      Cuando abre la pantalla «Ajustes» el 2026-03-10 y se ejecuta el bucle semanal
+      Entonces «Ajustes» muestra el mismo resultado
+      Y ningún paso del bucle semanal lo muestra
+
+    @CALI-11.9 @extrapolacion
+    Escenario: Abrir una tarjeta del resultado enseña el ítem sin que sea un intento
+      Dado que el ítem I1 de O2 tiene una tarjeta «fallada en la prueba» en el resultado
+      Cuando la persona abre la tarjeta de I1
+      Entonces ve el enunciado de I1, su respuesta correcta y la confianza que declaró en la prueba
+      Y respuestas.csv no gana ninguna fila
+      Y los objetivos dominados, la fase y las fechas de repaso no cambian
+
+    @CALI-11.10 @extrapolacion
+    Escenario: El resultado dice que vale solo para esos ítems, de ese objetivo y de una sola prueba
+      Dado que el experimento se hizo con 20 ítems de O2
+      Cuando responde el último ítem de la prueba
+      Entonces el resultado muestra «Resultado de estos 20 ítems de O2, en una sola prueba»
+
+  @CALI-12 @evidencia-2.5 @extrapolacion
+  Regla: Los intentos del experimento no cuentan para el dominio ni para ninguna otra pantalla
+    Los intentos del estudio de la mitad recuperada y de la prueba llevan sus propios contextos
+    en respuestas.csv (INST-1.3). Se ven en el resultado del experimento y en ningún otro sitio:
+    no cuentan para el dominio (MAST-1), la fase, la ayuda, los repasos ni las pantallas de
+    calibración (CALI-2, CALI-4 y CALI-5). Los ítems pasan a la práctica normal sin ningún intento
+    cuando el experimento termina o se cancela. Es decisión del autor.
+
+    Antecedentes:
+      Dado que los ítems por mitad configurados son 10
+
+    @CALI-12.1 @extrapolacion
+    Escenario: Hacer el experimento no cambia el progreso
+      Dado dos personas con los mismos intentos y aciertos en el dominio «ficticio»
+      Pero una hizo un experimento en O2, con su estudio y su prueba, y la otra no
+      Cuando la aplicación evalúa a las dos
+      Entonces las dos tienen los mismos objetivos dominados y la misma fase
+      Y los mismos pasos retirados en cada objetivo
+      Y las mismas fechas de repaso
+
+    @CALI-12.2 @extrapolacion
+    Escenario: Las respuestas del experimento no entran en la calibración semanal
+      Dado que en la última semana la persona respondió estos ítems:
+        | ítem | contexto            | confianza | correcta |
+        | I1   | practica            | 80        | sí       |
+        | I2   | practica            | 60        | no       |
+        | I3   | experimento_estudio | 95        | no       |
+        | I4   | experimento_prueba  | 90        | no       |
+      Cuando se ejecuta el bucle semanal
+      Entonces el paso de calibración muestra una confianza media del 70 %
+      Y un acierto del 50 %
+
+    @CALI-12.3 @extrapolacion
+    Escenario: Las respuestas del experimento no entran en la silueta
+      Dado que el mínimo de ítems de las pantallas de calibración configurado es 2
+      Y que en O1 la persona respondió estos ítems:
+        | ítem | contexto           | confianza | correcta |
+        | I1   | practica           | 80        | sí       |
+        | I2   | practica           | 60        | no       |
+        | I3   | experimento_prueba | 95        | no       |
+      Cuando se ejecuta el bucle semanal
+      Entonces la silueta de los ítems practicados de O1 tiene el contorno al 70 % y el relleno al 50 %, «1 de 2»
+
+    @CALI-12.4 @extrapolacion
+    Escenario: Una confianza alta en el experimento no da tarjeta
+      Dado que el mínimo de ítems de las pantallas de calibración configurado es 1
+      Y que la persona hizo desde el último bucle la prueba de retención de O1 de la semana 4
+      Y que I1 estuvo en un experimento terminado, donde declaró una confianza del 95 % en la prueba
+      Y que declaró en I2 una confianza del 95 % en una sesión de práctica
+      Cuando se ejecuta el bucle semanal
+      Entonces solo I2 tiene tarjeta
+
+    @CALI-12.5 @extrapolacion
+    Escenario: Acertar la prueba del experimento no da ningún ítem por respondido
+      Dado que O2 tiene 35 ítems no reservados, 15 respondidos y acertados, y 20 en el experimento sin ningún intento
+      Cuando la persona acierta los 20 ítems de la prueba del experimento
+      Y la aplicación evalúa O2
+      Entonces O2 no queda dominado
+      Y los 20 ítems del experimento siguen sin ningún intento
+
+    @CALI-12.6 @extrapolacion
+    Esquema del escenario: Al terminar o cancelar el experimento los ítems vuelven a la práctica normal
+      Dado que el experimento de O2 <fin>
+      Cuando la aplicación prepara una sesión de práctica de O2
+      Entonces los ítems del experimento pueden presentarse como cualquier ítem sin ningún intento
+      Y se presentan sin su respuesta
+
+      Ejemplos:
+        | fin                              |
+        | terminó con la prueba respondida |
+        | se canceló antes de la prueba    |

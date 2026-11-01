@@ -2,8 +2,8 @@
 fase: specs
 area: CALI
 depende: [specs-calibracion-visual]
-toca: [features/calibracion.feature, features/recuperacion.feature, features/instrumentacion.feature, config/parametros.json]
-estado: abierto
+toca: [features/calibracion.feature, features/recuperacion.feature, features/instrumentacion.feature, config/parametros.json, docs/tickets/specs-registro-calibracion.md]
+estado: hecho
 ---
 # La persona puede hacer un miniexperimento: releer frente a recuperar, con sus propios ítems
 
@@ -28,9 +28,13 @@ Yan, Bjork y Bjork (2016, J Exp Psychol: General): el 72 % juzgó mejor estudiar
 
 La regla de RECU impide ver la respuesta sin responder. El experimento necesita una excepción limitada a la mitad «releída». Fuera del experimento, la regla no cambia.
 
-## Por decidir
+## Decidido
 
-- Tamaño de cada mitad (el boceto usa 10) y plazo de la prueba (el boceto usa una semana), en `config/parametros.json` como extrapolación del autor.
-- Si el resultado se enseña aunque contradiga lo esperado: sí (regla «los datos mandan» de specs-calibracion-visual).
-- Qué pasa después con los ítems del experimento: vuelven a la práctica normal.
-- Si la app propone el experimento o solo lo ofrece en Ajustes.
+- **Tamaño y plazo:** 10 ítems por mitad, 2 pasadas de estudio y prueba a los 7 días, en `config/parametros.json` como extrapolación del autor (`experimento_items_por_mitad`, `experimento_pasadas_de_estudio`, `experimento_plazo_prueba_dias`).
+- **Quién lo propone:** nadie. El experimento solo se ofrece en «Ajustes» y la app nunca lo propone (CALI-7).
+- **Resultado que contradice lo esperado:** se enseña igual (CALI-11).
+- **Después del experimento:** los ítems vuelven a la práctica normal sin ningún intento, al terminar o al cancelar (CALI-12).
+- **Coste:** los 20 ítems salen de la práctica hasta la prueba, así que el objetivo elegido no se puede dar por dominado durante al menos una semana (CALI-9.7).
+- **Registro:** CSV nuevo `experimentos.csv`; la mitad releída no genera filas en `respuestas.csv`, porque no es un intento (INST-1.7 a INST-1.9).
+- **Fuentes:** Yan, Bjork y Bjork (2016) y Kirk-Johnson et al. (2019) no están en `docs/investigacion.md`, así que ninguna feature ni parámetro las cita. Solo se citan las secciones 2.2 y 2.5.
+- **Pendiente:** la tabla de cobertura y el plan no mencionan la excepción a RECU-1: ticket `specs-cobertura-experimento`.
