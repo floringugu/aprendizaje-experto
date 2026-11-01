@@ -2,8 +2,8 @@
 fase: specs
 area: CALI
 depende: []
-toca: [features/calibracion.feature, features/bucle.feature, config/parametros.json]
-estado: abierto
+toca: [features/calibracion.feature, features/bucle.feature, config/parametros.json, docs/cobertura-investigacion.md]
+estado: hecho
 ---
 # La calibración se enseña con tus ítems, por objetivo y con el paso del tiempo, no con tres números sueltos
 
@@ -14,6 +14,8 @@ estado: abierto
 **Leer primero:** features/calibracion.feature (CALI-2.1, CALI-2.4, CALI-3.1); features/bucle.feature (paso 2 del bucle); docs/investigacion.md §2.5 (juicios de aprendizaje y fluidez).
 
 ## Evidencia (extrapolación del autor: ningún estudio prueba estas pantallas)
+
+Ninguna de estas fuentes está en `docs/investigacion.md` y no las he verificado: no pasan a ninguna feature ni a ningún parámetro. De `docs/investigacion.md` solo se usa la §2.5, que además avisa de que parte del patrón de desajuste puede ser regresión a la media.
 
 - **Visualización de alineamiento.** En la metasíntesis de modelos abiertos del estudiante (Robles Mucho et al., 2026, Frontiers in Education, 26 estudios), enseñar a la vez lo que el estudiante cree y lo que el modelo mide mejoró la precisión de sus juicios de confianza, sobre todo en los de peor rendimiento (Al-Shanfari et al., 2020). Dos tercios corrigieron su autoevaluación tras verlo. Límites: estudios cortos, mayoría STEM, resultados de aprendizaje mixtos.
 - **Frecuencias, no porcentajes.** Las frecuencias naturales («6 de 12») se entienden mejor que los porcentajes (Cochrane CD006776, 35 estudios, SMD 0,69 en pruebas diagnósticas). Aquí cada unidad es un ítem real de la persona.
@@ -33,8 +35,11 @@ estado: abierto
 - **La tarea, no la persona:** «estas tarjetas», no «fallas».
 - **La confianza no cambia el progreso** (CALI-3.1 sigue igual).
 
-## Por decidir
+## Decidido en la conversación de specs (extrapolación del autor, sin evidencia propia)
 
-- Umbral de «confianza alta» de la pantalla 2.
-- Si la pantalla 1 va en el paso 2 del bucle semanal o también fuera de él.
-- Qué se registra para medir si las pantallas cambian algo: diferencia de calibración semana a semana, antes y después de introducirlas.
+- **Confianza alta:** 80 %, en `confianza_alta_minima` (CALI-5.2, CALI-5.3). Cuenta la confianza del último intento antes de la prueba (CALI-5.4).
+- **Dónde salen:** solo en el paso 2 del bucle semanal, nunca fuera de él (BUCL-2.5, BUCL-2.6), y una pantalla por bucle: si hay tarjetas, esas; las siluetas esperan (CALI-6.1).
+- **Mínimo:** 5 ítems, en `minimo_items_calibracion_visual`, por objetivo y por grupo (CALI-4.5, CALI-4.6). Bajo el mínimo, la silueta dice «Aún no hay datos suficientes: 4 de 5 ítems»; las tarjetas no se enseñan y el paso 2 enseña las siluetas (CALI-5.7).
+- **Tarjetas:** solo de la prueba de retención de la última semana configurada (CALI-5.8), de un objetivo por bucle y una sola vez (CALI-5.9). Los reservados no tienen tarjeta (CALI-5.5).
+- **Silueta:** sobre el último intento de cada ítem, como el acierto sin ayuda de MAST, no sobre la última semana de CALI-2.1 (CALI-4). Sin margen de «bien calibrado»: la frase enseña la diferencia en puntos y «coinciden» solo si son iguales (CALI-4.2).
+- **Registro para medir si las pantallas cambian algo:** pasa a un ticket nuevo, `specs-registro-calibracion`, porque toca `features/instrumentacion.feature`, fuera del `toca` de este.

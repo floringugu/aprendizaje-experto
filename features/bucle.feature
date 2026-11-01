@@ -81,6 +81,20 @@ Característica: Bucle semanal de retroalimentación
       Cuando se ejecuta el bucle semanal
       Entonces el paso 1 muestra un acierto sin ayuda del 75 % en O4
 
+    @BUCL-2.5 @evidencia-2.5 @extrapolacion
+    Escenario: Las pantallas de calibración no salen fuera del bucle semanal
+      Dado que la persona tiene datos para la silueta de O1 (CALI-4) y las tarjetas de O1 por enseñar (CALI-5)
+      Cuando abre una sesión de práctica antes de que toque el bucle semanal
+      Entonces no ve ninguna silueta ni ninguna tarjeta de calibración
+
+    @BUCL-2.6 @evidencia-2.5 @extrapolacion
+    Escenario: Dentro del bucle, el paso 2 muestra una sola pantalla de calibración
+      Dado que la persona tiene datos para la silueta de O1 (CALI-4) y las tarjetas de O1 por enseñar (CALI-5)
+      Cuando se ejecuta el bucle semanal
+      Entonces el paso 2 muestra la confianza media, el acierto y la diferencia (CALI-2.1)
+      Y las tarjetas de O1 y ninguna silueta (CALI-6.1)
+      Y los pasos 1, 3, 4 y 5 no muestran ninguna silueta ni ninguna tarjeta
+
   @BUCL-3 @evidencia-4 @evidencia-2.4 @evidencia-2.1 @extrapolacion
   Regla: El quinto paso revisa el plan con intenciones de implementación y protege el sueño
     Las intenciones de implementación están «bien establecidas en conducta general» (tabla de la
