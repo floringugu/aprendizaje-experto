@@ -16,5 +16,5 @@ estado: abierto
 ## Qué se escribe en el archivo del área
 
 - «Interfaces descartadas y por qué»: las opciones descartadas de `mate-mesa-y-dominio` (punto 1, A; punto 2, B) y de `mate-tarea-a-tare` (a).
-- «Hallazgos» (`docs/areas/MATE.md:113`): MATE-6.3 ya no es de MATE.
+- «Hallazgos» (`docs/areas/MATE.md:113`): MATE-6.3 y tres ejemplos de MATE-6.1 ya no son de MATE.
 - «Pendiente»: se borra, si los tickets `mate-*` están hechos.

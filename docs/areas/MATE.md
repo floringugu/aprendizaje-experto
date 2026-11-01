@@ -110,7 +110,7 @@ Así, aprobar es `localizar` + `quitar` + `poner`; descartar, `quitar`; corregir
 
 - **pdftotext y MATE-3.4.** En su modo por defecto, y también con `-nodiag`, junta «tam-»/«bién» en «también». Con `-raw` y con `-layout` el guion se queda. El escenario espera la palabra entera.
 - **Todos los escenarios de MATE fallan en los antecedentes**, porque `anadirMaterial` lanza «Sin implementar». Los pasos de detrás no se han ejecutado nunca: algún fallo dentro de un paso puede salir al implementar.
-- **MATE-6.3** depende de `pedirTarea`. Las sesiones de repaso y de retención (MATE-6.1) aún no están implementadas en ningún área.
+- **MATE-6.3** depende de `pedirTarea`. Los ejemplos de MATE-6.1 que llamaban a repasos, pruebas de retención y sesiones intercaladas pasaron a PLAN-4.1, MAST-7.4 e INTE-6.1 (ticket `mate-sesiones-a-plan-inte`).
 
 **Decisiones sin registrar.** Aprobadas en la etapa 3 y aún no escritas en docs/plan.md §0 ni §17.8; van en «Mecanismo»:
 
@@ -179,9 +179,9 @@ type AvisoDeReservados =
 
 **Cómo los steps van por delante de la interfaz.** `reservado` no está aún en `ItemContenido`, ni en `PiezaPendiente`; `avisos` no está en `Revision` y `pedirMasReservados` no existe. Los steps declaran en `tests/aceptacion/soporte/escenario-material.ts` los tipos que faltan (`RevisionConAvisos`, `PiezaConReservado`, `PedirMasReservados`) por intersección o aparte, como ya hace `CategoriaDelBorrador`, y los comprueban en tiempo de ejecución: un escenario falla con «la aplicación aún no tiene `pedirMasReservados`», «la revisión no trae `avisos`» o «la revisión no dice si I7 es reservado», no con un error de tipos. Los ítems de los pasos reutilizan `ItemDePrueba` (`soporte/contenido.ts`), que ya tiene `reservado?: boolean`, y no hay un tipo `ItemConReservado`. Al implementar, se cambian por los tipos de `src/` y se borran.
 
-**Escenarios en rojo (`config/alcance.json`).** Están en rojo MATE-2.1 a 2.11, 3.6, 3.7, 4.12 y 6.1. El dueño creía que eran 2.1, 2.3, 2.5, 2.6, 2.7, 3.5, 4.11 y 5.5; la ejecución del 01-11-2026 dice otra cosa: 3.5, 4.11 y 5.5 pasan, y fallan además 2.2, 2.4, 2.8 a 2.11, 3.6, 3.7, 4.12 y 6.1.
+**Escenarios en rojo (`config/alcance.json`).** Están en rojo MATE-2.1 a 2.11, 3.6, 3.7 y 4.12; MATE-6.1 salió de la lista al mover tres de sus ejemplos (abajo). El dueño creía que eran 2.1, 2.3, 2.5, 2.6, 2.7, 3.5, 4.11 y 5.5; la ejecución del 01-11-2026 dice otra cosa: 3.5, 4.11 y 5.5 pasan, y fallan además 2.2, 2.4, 2.8 a 2.11, 3.6, 3.7, 4.12 y 6.1.
 
-- **MATE-6.1** falla en tres de sus cinco ejemplos por falta de aplicación de otras áreas, no por los pasos: los repasos de ítems llegan con el planificador (`consultarRepasos` solo da pruebas de retención), `iniciarSesion` da «Sin implementar» para el tipo `retencion` y la sesión intercalada no existe. Implementar MATE no lo pone en verde; el ticket `mate-sesiones-a-plan-inte` (specs) mueve esos tres ejemplos a PLAN e INTE, como MATE-6.3, y `mate-cierre` depende de él.
+- **MATE-6.1** fallaba en tres de sus cinco ejemplos por falta de aplicación de otras áreas, no por los pasos: los repasos de ítems llegan con el planificador (`consultarRepasos` solo da pruebas de retención), `iniciarSesion` da «Sin implementar» para el tipo `retencion` y la sesión intercalada no existe. El ticket `mate-sesiones-a-plan-inte` (specs) los movió, como MATE-6.3 a TARE-1.6: los repasos del día, a PLAN-4.1; la prueba de retención, a MAST-7.4, porque la sesión de tipo `retencion` la implementa MAST (los pasos de MAST-8.3 la usan y el ticket `mast-transferencia` toca `practica.ts`); y la sesión intercalada, a INTE-6.1. MATE-6.1 se queda con el diagnóstico y la práctica, que pasan, y ya no está en `escenarios_en_rojo`. Los pasos de los tres siguen en `borradores-en-sesiones.ts`; los de MAST-7.4 chocan con los 20 ítems por objetivo de sus antecedentes (ticket `mast-pasos-borrador`).
 - **MATE-6.5** fallaba por un fallo del paso: el «Dado» copiaba C1 y C2 al borrador y la revisión rechazaba el id repetido. Arreglado en `borradores-en-sesiones.ts`; ahora pasa.
 
 ## Interfaces descartadas y por qué
