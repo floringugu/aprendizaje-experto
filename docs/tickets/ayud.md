@@ -1,7 +1,7 @@
 ---
 fase: impl
 area: AYUD
-depende: [PANT]
+depende: [PANT, mast-pasos-fase-avanzada]
 toca: [src/aplicacion/sesiones.ts, src/aplicacion/respuestas.ts, src/aplicacion/practica.ts, src/aplicacion/aplicacion.ts, src/aplicacion/ayuda.ts, src/dominio/ayuda.ts, src/interfaz/, tests/unidad/ayuda*.test.ts, config/alcance.json, docs/areas/AYUD.md, docs/deuda-diseno.md]
 estado: abierto
 ---

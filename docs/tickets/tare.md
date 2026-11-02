@@ -1,7 +1,7 @@
 ---
 fase: impl
 area: TARE
-depende: [PANT, HORA]
+depende: [PANT, HORA, mast-pasos-fase-avanzada]
 toca: [src/aplicacion/tareas.ts, src/aplicacion/orden-de-las-tareas.ts, src/aplicacion/nivel-experto.ts, src/aplicacion/sesiones.ts, src/aplicacion/aplicacion.ts, src/dominio/tareas.ts, src/interfaz/, tests/unidad/tareas*.test.ts, tests/unidad/orden-de-las-tareas.test.ts, config/alcance.json, docs/areas/TARE.md, docs/deuda-diseno.md]
 estado: abierto
 ---
