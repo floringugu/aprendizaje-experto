@@ -175,6 +175,18 @@ export class BorradorContenido {
     }
   }
 
+  /** Añade `cantidad` ítems de tipo «hecho» con opciones al objetivo, con ids `H1`, `H2`… */
+  agregarHechosConOpciones(objetivo: string, cantidad: number): void {
+    for (let numero = 1; numero <= cantidad; numero += 1) {
+      this.agregarItem({
+        id: `H${String(numero)}`,
+        objetivo,
+        tipo: 'hecho',
+        respuesta: { opciones: ['a', 'b', 'c'], correcta: 'a' },
+      });
+    }
+  }
+
   /** Reparte los problemas que no tienen categoría de un grupo de parecidas entre las que lo tienen. */
   asignarCategoriasIntercalables(): void {
     this.hacerIntercalables(0);

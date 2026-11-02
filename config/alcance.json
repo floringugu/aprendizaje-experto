@@ -2,6 +2,6 @@
   "areas_cerradas": ["RECU", "DIAG"],
   "escenarios_en_rojo": {
     "MATE": [],
-    "MAST": []
+    "MAST": ["MAST-1.6", "MAST-1.7"]
   }
 }

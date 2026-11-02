@@ -3,7 +3,7 @@ fase: aceptacion
 area: MAST
 depende: []
 toca: [tests/aceptacion/pasos/prepreguntas.ts, tests/aceptacion/pasos/exploracion.ts, tests/aceptacion/soporte/contenido.ts, config/alcance.json, docs/areas/MAST.md]
-estado: abierto
+estado: hecho
 ---
 # Pasos de las prepreguntas en MAST (MAST-1.6 y 1.7)
 
