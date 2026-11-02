@@ -9,13 +9,13 @@
 // Las citas no son obligatorias: la tabla las muestra para encontrar el código de cada escenario.
 //
 // Con --solo-specs solo valida features/ y los parámetros (etapas 2 y 3: aún no hay código).
-// «En alcance» son las áreas cerradas; con --con-area-en-curso, también el área en curso del
-// checkout, que es lo que exige make cerrar-area.
+// «En alcance» son las áreas cerradas, sin sus pendientes; con --con-area-en-curso, también el área
+// en curso del checkout, con los suyos, que es lo que exige make cerrar-area.
 // Lee el resultado de Cucumber de reports/cucumber.ndjson: ejecútalo después de «npm run aceptacion»
 // (o de «npm run aceptacion-area», con --con-area-en-curso).
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
-import { areaDe, areasEnAlcance, leerAlcance } from './comun/alcance.ts';
+import { areaDe, leerAlcance, seleccionEnAlcance } from './comun/alcance.ts';
 import { buscarCitas } from './comun/citas.ts';
 import { construirInforme, formatearInforme } from './comun/cobertura.ts';
 import { estadosPorEscenario, RUTA_MENSAJES_CUCUMBER } from './comun/estados-cucumber.ts';
@@ -69,7 +69,7 @@ function informarCobertura(lectura: LecturaFeatures, conAreaEnCurso: boolean): n
     elementos: lectura.elementos,
     citas: buscarCitas(RAIZ),
     estados: estadosPorEscenario(ndjson, idsDeEscenario),
-    areasEnAlcance: areasEnAlcance(alcance, conAreaEnCurso),
+    alcance: seleccionEnAlcance(alcance, conAreaEnCurso),
   });
   console.log(informe.filas.length === 0 ? 'Aún no hay features con ID.' : formatearInforme(informe));
   if (informe.errores.length === 0) return 0;

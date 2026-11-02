@@ -1,6 +1,7 @@
 // El tablero de los tickets (estado-tickets.ts): en texto para «make tickets» y los avisos, y en un
 // HTML autónomo para «make tablero», con una columna por estado y el grafo de dependencias en Mermaid.
 // Mermaid se carga de jsdelivr con la versión fijada: sin red se ven las columnas, pero no el grafo.
+import { areaCumplida } from './alcance.ts';
 import { esArea } from './checkout.ts';
 import { detalle, estadoDeLosTickets } from './estado-tickets.ts';
 import type { Estado, Situacion } from './estado-tickets.ts';
@@ -93,14 +94,14 @@ function nodo(nombre: string): string {
 }
 
 /** El grafo en Mermaid: una flecha de cada dependencia a su ticket, coloreado por estado. Sin los descartados. */
-function grafo(filas: readonly Fila[], cerradas: readonly string[]): string {
+function grafo(filas: readonly Fila[], situacion: Situacion): string {
   const vivas = filas.filter(({ estado }) => estado.tipo !== 'descartado');
   const areas = [...new Set(vivas.flatMap(({ ticket }) => ticket.depende.filter(esArea)))];
   const nodos = [
     ...vivas.map(
       ({ ticket, estado }) => `  ${nodo(ticket.id)}["${ticket.id}<br/>${ticket.fase}/${ticket.area}"]:::${estado.tipo}`,
     ),
-    ...areas.map((area) => `  ${nodo(area)}(["área ${area}"]):::${cerradas.includes(area) ? 'hecho' : 'area'}`),
+    ...areas.map((area) => `  ${nodo(area)}(["área ${area}"]):::${areaCumplida(situacion, area) ? 'hecho' : 'area'}`),
   ];
   const flechas = vivas.flatMap(({ ticket }) =>
     ticket.depende.map((dependencia) => `  ${nodo(dependencia)} --> ${nodo(ticket.id)}`),
@@ -144,7 +145,7 @@ export function tableroEnHtml(situacion: Situacion, generado: string): string {
 ${avisos.length > 0 ? `<ul>${avisos.join('')}</ul>` : ''}
 <div class="columnas">${columnas.join('')}</div>
 <h2>Dependencias</h2>
-<pre class="mermaid">${escapar(grafo(filas, situacion.cerradas))}</pre>
+<pre class="mermaid">${escapar(grafo(filas, situacion))}</pre>
 <script type="module">import mermaid from '${MERMAID}'; mermaid.initialize({ startOnLoad: true });</script>
 </body></html>
 `;

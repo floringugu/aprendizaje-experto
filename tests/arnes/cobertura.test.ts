@@ -37,7 +37,7 @@ function datos(cambios: Partial<DatosCobertura> = {}): DatosCobertura {
       ['MAST-1.2', 'FAILED'],
       ['CALI-1.1', 'PASSED'],
     ]),
-    areasEnAlcance: ['MAST', 'CALI'],
+    alcance: { areas: ['MAST', 'CALI'], excluidos: [] },
     ...cambios,
   };
 }
@@ -79,9 +79,28 @@ describe('construirInforme', () => {
   });
 
   it('las áreas fuera de alcance no dan error', () => {
-    const informe = construirInforme(datos({ areasEnAlcance: ['CALI'] }));
+    const informe = construirInforme(datos({ alcance: { areas: ['CALI'], excluidos: [] } }));
     expect(informe.errores).toEqual([]);
     expect(informe.filas.find((fila) => fila.id === 'MAST-1.2')?.estado).toBe('FUERA_DE_ALCANCE');
+  });
+
+  it('un pendiente excluido no da error, y su Rule y su Feature agregan solo los demás', () => {
+    const informe = construirInforme(datos({ alcance: { areas: ['MAST', 'CALI'], excluidos: ['MAST-1.2'] } }));
+    expect(informe.errores).toEqual([]);
+    expect(informe.filas.map((fila) => [fila.id, fila.estado])).toEqual([
+      ['MAST', 'PASSED'],
+      ['MAST-1', 'PASSED'],
+      ['MAST-1.1', 'PASSED'],
+      ['MAST-1.2', 'PENDIENTE'],
+      ['CALI', 'PASSED'],
+      ['CALI-1.1', 'PASSED'],
+    ]);
+  });
+
+  it('una Rule con todos sus escenarios excluidos está pendiente', () => {
+    const alcance = { areas: ['MAST', 'CALI'], excluidos: ['MAST-1.1', 'MAST-1.2'] };
+    const filas = construirInforme(datos({ alcance })).filas;
+    expect(filas.find((fila) => fila.id === 'MAST-1')?.estado).toBe('PENDIENTE');
   });
 });
 

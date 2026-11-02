@@ -6,7 +6,8 @@
 // El frontmatter es un subconjunto mínimo de YAML, con un parser propio: «clave: valor» y listas «[a, b]».
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
-import { problemaDeArea } from './alcance.ts';
+import { areaCumplida, problemaDeArea } from './alcance.ts';
+import type { AreasCerradas } from './alcance.ts';
 import { esArea } from './checkout.ts';
 import { esFase, FASES } from './fases.ts';
 import type { Fase } from './fases.ts';
@@ -28,7 +29,8 @@ export interface Ticket {
   readonly area: string;
   /**
    * Lo que tiene que estar cumplido antes de abrir el carril: ids de tickets, en minúsculas, cumplidos
-   * con «estado: hecho», y áreas, en mayúsculas, cumplidas cuando están en areas_cerradas.
+   * con «estado: hecho», y áreas, en mayúsculas, cumplidas cuando están cerradas y sin pendientes
+   * (alcance.ts).
    */
   readonly depende: readonly string[];
   /** La huella prevista: rutas, carpetas (acaban en «/») y patrones con «*». Avisa de solapes; no prohíbe. */
@@ -183,12 +185,13 @@ function ficherosDelCommit(raiz: string, ref: string): FicheroDeTicket[] {
 /**
  * Por qué los tickets de `raiz` (su árbol de trabajo) no valen, en una lista vacía si valen: nombre de
  * carril, área con su feature, dependencias que existen y no están descartadas, carpetas de «toca» que
- * acaban en «/» y ningún ciclo entre las dependencias sin cumplir. `cerradas` son las areas_cerradas.
+ * acaban en «/» y ningún ciclo entre las dependencias sin cumplir. `alcance` dice qué áreas están
+ * cerradas y con qué pendientes.
  */
 export function problemasDeLosTickets(
   raiz: string,
   { tickets, problemas }: LecturaDeTickets,
-  cerradas: readonly string[],
+  alcance: AreasCerradas,
 ): string[] {
   const porId = new Map(tickets.map((ticket) => [ticket.id, ticket]));
   const deCadaTicket = tickets.flatMap((ticket) =>
@@ -201,7 +204,7 @@ export function problemasDeLosTickets(
       ...ticket.toca.map((entrada) => problemaDeEntrada(raiz, entrada)),
     ].flatMap((problema) => (problema === undefined ? [] : [`${rutaDelTicket(ticket.id)}: ${problema}`])),
   );
-  const ciclo = cicloDeDependencias(tickets, cerradas);
+  const ciclo = cicloDeDependencias(tickets, alcance);
   const delGrafo = ciclo === undefined ? [] : [`Ciclo de dependencias sin cumplir: ${ciclo.join(' → ')}.`];
   return [...problemas, ...deCadaTicket, ...delGrafo];
 }
@@ -230,11 +233,11 @@ function problemaDeEntrada(raiz: string, entrada: string): string | undefined {
  * de sus tickets se podría abrir nunca. Depender de un área sin cerrar es depender de cada ticket
  * abierto de esa área.
  */
-function cicloDeDependencias(tickets: readonly Ticket[], cerradas: readonly string[]): string[] | undefined {
+function cicloDeDependencias(tickets: readonly Ticket[], alcance: AreasCerradas): string[] | undefined {
   const abiertos = tickets.filter((ticket) => ticket.estado === 'abierto');
   const siguientes = (ticket: Ticket): Ticket[] =>
     abiertos.filter((otro) =>
-      ticket.depende.some((nombre) => nombre === otro.id || (nombre === otro.area && !cerradas.includes(nombre))),
+      ticket.depende.some((nombre) => nombre === otro.id || (nombre === otro.area && !areaCumplida(alcance, nombre))),
     );
   const terminados = new Set<string>();
   const camino: string[] = [];

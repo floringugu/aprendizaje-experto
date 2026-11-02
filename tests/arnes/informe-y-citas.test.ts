@@ -35,10 +35,16 @@ describe('alcance', () => {
   });
 
   it('solo las áreas en alcance se ejecutan en Cucumber, por etiqueta', () => {
-    expect(expresionEtiquetasCucumber(['CALI', 'HORA'])).toBe('@CALI or @HORA');
+    expect(expresionEtiquetasCucumber({ areas: ['CALI', 'HORA'], excluidos: [] })).toBe('@CALI or @HORA');
+  });
+
+  it('los escenarios excluidos se quitan por su etiqueta de ID', () => {
+    expect(expresionEtiquetasCucumber({ areas: ['CALI', 'HORA'], excluidos: ['CALI-1.1', 'CALI-2.3'] })).toBe(
+      '(@CALI or @HORA) and not (@CALI-1.1 or @CALI-2.3)',
+    );
   });
 
   it('sin áreas en alcance Cucumber no ejecuta nada (una expresión vacía ejecutaría todo)', () => {
-    expect(expresionEtiquetasCucumber([])).toBe('@SIN_AREAS_EN_ALCANCE');
+    expect(expresionEtiquetasCucumber({ areas: [], excluidos: [] })).toBe('@SIN_AREAS_EN_ALCANCE');
   });
 });

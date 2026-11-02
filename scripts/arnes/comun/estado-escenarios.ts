@@ -1,12 +1,13 @@
 // Qué se espera de un escenario en la etapa 3 (make check-aceptacion) y en qué falla.
 // Los pasos de cada escenario salen de estados-cucumber.ts.
 
-/** rojo: el área en curso, con steps pero sin aplicación; verde: un área cerrada o un escenario ya implementado de un área reabierta, que sigue pasando. */
+/** rojo: el área en curso, con steps pero sin aplicación; verde: un área cerrada o un escenario ya implementado del área en curso, que sigue pasando. */
 export type EstadoEsperado = 'rojo' | 'verde';
 
 /**
- * Qué se espera de un escenario del área en curso: rojo, salvo que el área esté reabierta
- * (`enRojo` es la lista de config/alcance.json) y el escenario no esté en ella: entonces ya pasaba.
+ * Qué se espera de un escenario del área en curso: rojo, salvo que el área tenga lista (`enRojo`, de
+ * escenarios_en_rojo en config/alcance.json; en un área cerrada, sus pendientes) y el escenario no
+ * esté en ella: entonces ya pasaba.
  */
 export function esperadoEnCurso(id: string, enRojo: readonly string[] | undefined): EstadoEsperado {
   return enRojo === undefined || enRojo.includes(id) ? 'rojo' : 'verde';
@@ -37,7 +38,7 @@ export function problemasDeEscenario(
     problemas.push(`@${id} no falla: algún Then debe comprobar un estado observable que la aplicación aún no produce.`);
   }
   if (esperado === 'verde' && (falla || pasos.includes('SKIPPED'))) {
-    problemas.push(`@${id} ya pasaba (área cerrada o reabierta) y ya no pasa: es una regresión.`);
+    problemas.push(`@${id} ya pasaba (área cerrada o escenario ya implementado) y ya no pasa: es una regresión.`);
   }
   return problemas;
 }

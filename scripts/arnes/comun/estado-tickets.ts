@@ -3,13 +3,17 @@
 //   hecho, descartado: el «estado» del ticket en origin/main;
 //   en revisión: su carril está abierto y su rama tiene un PR abierto;
 //   en curso: su carril está abierto;
-//   listo: todas sus dependencias están cumplidas y su «toca» no se solapa con ningún carril abierto;
-//   bloqueado: con las dependencias que faltan y los carriles con que se solapa.
+//   listo: se puede abrir: todas sus dependencias están cumplidas, su «toca» no se solapa con ningún
+//     carril abierto y su área vale para su fase (en un área cerrada, specs solo cuando no tiene
+//     pendientes de otro cambio, y aceptacion e impl solo cuando los tiene; alcance.ts);
+//   bloqueado: con las dependencias que faltan, el motivo del área y los carriles con que se solapa.
 // La huella de un carril abierto es el «toca» de su ticket más lo que ya ha commiteado su rama. Un
 // carril sin ticket solo cuenta por lo commiteado. Los ficheros COMPARTIDOS no cuentan como solape.
 import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
+import { areaCumplida, areasCerradasDe, problemaDeAreaCerrada, tienePendientes } from './alcance.ts';
+import type { AreasCerradas } from './alcance.ts';
 import { carrilesConRama, esArea, nombreDelCarril } from './checkout.ts';
 import { git } from './git.ts';
 import { estaFusionada, RAMA_DE_ORIGEN } from './ramas.ts';
@@ -32,6 +36,8 @@ export interface Situacion {
   readonly problemas: readonly string[];
   /** Las areas_cerradas de origin/main. */
   readonly cerradas: readonly string[];
+  /** Los pendientes de las áreas cerradas en origin/main (alcance.ts). */
+  readonly pendientes: readonly string[];
   readonly carriles: readonly CarrilAbierto[];
   /** Los ficheros del árbol de origin/main. */
   readonly ficheros: readonly string[];
@@ -47,7 +53,13 @@ export type Estado =
   | { readonly tipo: 'revision'; readonly pr: number }
   | { readonly tipo: 'curso' }
   | { readonly tipo: 'listo' }
-  | { readonly tipo: 'bloqueado'; readonly faltan: readonly string[]; readonly solapes: readonly Solape[] };
+  | {
+      readonly tipo: 'bloqueado';
+      readonly faltan: readonly string[];
+      /** Por qué su área no vale para su fase. */
+      readonly area: string | undefined;
+      readonly solapes: readonly Solape[];
+    };
 
 /** ¿Casa la ruta con la entrada de un «toca»? Una carpeta (acaba en «/») por prefijo; un patrón con «*», como glob. */
 function casa(ruta: string, entrada: string): boolean {
@@ -98,10 +110,27 @@ export function solapesDelCarril(nombre: string, situacion: Situacion): Solape[]
   return solapesCon(huellaDelCarril(carril, situacion.tickets), situacion, nombre);
 }
 
-function dependenciasQueFaltan(ticket: Ticket, { tickets, cerradas }: Situacion): string[] {
+function dependenciasQueFaltan(ticket: Ticket, situacion: Situacion): string[] {
   return ticket.depende.filter((nombre) =>
-    esArea(nombre) ? !cerradas.includes(nombre) : tickets.find((otro) => otro.id === nombre)?.estado !== 'hecho',
+    esArea(nombre)
+      ? !areaCumplida(situacion, nombre)
+      : situacion.tickets.find((otro) => otro.id === nombre)?.estado !== 'hecho',
   );
+}
+
+/**
+ * Por qué el área del ticket no vale para su fase, o undefined si vale. specs tampoco empieza en un
+ * área cerrada con pendientes: serían dos cambios a la vez en su lista de escenarios_en_rojo.
+ */
+function motivoDelArea({ fase, area }: Ticket, situacion: Situacion): string | undefined {
+  if (fase === 'specs') {
+    return situacion.cerradas.includes(area) && tienePendientes(situacion, area)
+      ? `${area} tiene pendientes de otro cambio`
+      : undefined;
+  }
+  return problemaDeAreaCerrada(situacion, fase, area) === undefined
+    ? undefined
+    : `${area} está cerrada y no tiene pendientes`;
 }
 
 export function estadoDelTicket(ticket: Ticket, situacion: Situacion): Estado {
@@ -109,8 +138,10 @@ export function estadoDelTicket(ticket: Ticket, situacion: Situacion): Estado {
   if (ticket.estado !== 'abierto') return { tipo: ticket.estado, carrilSinRetirar: carril !== undefined };
   if (carril !== undefined) return carril.pr === undefined ? { tipo: 'curso' } : { tipo: 'revision', pr: carril.pr };
   const faltan = dependenciasQueFaltan(ticket, situacion);
+  const area = motivoDelArea(ticket, situacion);
   const solapes = solapesCon(ticket.toca, situacion, ticket.id);
-  return faltan.length === 0 && solapes.length === 0 ? { tipo: 'listo' } : { tipo: 'bloqueado', faltan, solapes };
+  if (faltan.length === 0 && area === undefined && solapes.length === 0) return { tipo: 'listo' };
+  return { tipo: 'bloqueado', faltan, area, solapes };
 }
 
 /** Los tickets de origin/main con su estado, en el orden de la situación. */
@@ -128,14 +159,15 @@ export function detalle(estado: Estado): string {
   if (estado.tipo === 'revision') return `PR #${String(estado.pr)}`;
   if (estado.tipo !== 'bloqueado') return '';
   const faltan = estado.faltan.length > 0 ? [`falta ${estado.faltan.join(', ')}`] : [];
+  const area = estado.area === undefined ? [] : [estado.area];
   const solapes = estado.solapes.length > 0 ? [`se solapa con ${estado.solapes.map(textoDeSolape).join('; ')}`] : [];
-  return [...faltan, ...solapes].join('; ');
+  return [...faltan, ...area, ...solapes].join('; ');
 }
 
 /**
- * Lo que hay ahora, con lo último que trajo git fetch: tickets, areas_cerradas y árbol de origin/main,
- * y los carriles abiertos de `raiz`, con lo que ha commiteado cada rama sin fusionar. `prs` son los PR
- * abiertos por rama (prsAbiertos). Lo lee por refs, sin entrar en los carriles.
+ * Lo que hay ahora, con lo último que trajo git fetch: tickets, áreas cerradas con sus pendientes y
+ * árbol de origin/main, y los carriles abiertos de `raiz`, con lo que ha commiteado cada rama sin
+ * fusionar. `prs` son los PR abiertos por rama (prsAbiertos). Lo lee por refs, sin entrar en los carriles.
  */
 export function situacionDelRepositorio(raiz: string, prs: ReadonlyMap<string, number>): Situacion {
   const { tickets, problemas } = ticketsDe(raiz, RAMA_DE_ORIGEN);
@@ -148,7 +180,7 @@ export function situacionDelRepositorio(raiz: string, prs: ReadonlyMap<string, n
       pr: rama === undefined ? undefined : prs.get(rama),
     }));
   const ficheros = lineas(git(raiz, ['ls-tree', '-r', '--name-only', RAMA_DE_ORIGEN]).salida);
-  return { tickets, problemas, cerradas: areasCerradasDeOrigen(raiz), carriles, ficheros };
+  return { tickets, problemas, ...areasCerradasDeOrigen(raiz), carriles, ficheros };
 }
 
 function lineas(texto: string): string[] {
@@ -160,11 +192,9 @@ function commiteadosSinFusionar(raiz: string, rama: string): string[] {
   return lineas(git(raiz, ['diff', '--name-only', `${RAMA_DE_ORIGEN}...${rama}`]).salida);
 }
 
-function areasCerradasDeOrigen(raiz: string): string[] {
+function areasCerradasDeOrigen(raiz: string): AreasCerradas {
   const { codigo, salida } = git(raiz, ['show', `${RAMA_DE_ORIGEN}:config/alcance.json`]);
-  if (codigo !== 0) return [];
-  const areas = (JSON.parse(salida) as { areas_cerradas?: unknown }).areas_cerradas;
-  return Array.isArray(areas) ? areas.filter((area): area is string => typeof area === 'string') : [];
+  return areasCerradasDe(codigo === 0 ? salida : undefined);
 }
 
 /** Los PR abiertos del repositorio, por el nombre de su rama, según gh. Ninguno si gh falla o no está. */

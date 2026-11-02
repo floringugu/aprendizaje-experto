@@ -20,7 +20,7 @@ const RUTA_DEL_TABLERO = path.join(RAIZ, 'reports', 'tablero.html');
 
 function comprobar(): number {
   const lectura = ticketsDe(RAIZ);
-  const problemas = problemasDeLosTickets(RAIZ, lectura, leerAlcance(RAIZ).cerradas);
+  const problemas = problemasDeLosTickets(RAIZ, lectura, leerAlcance(RAIZ));
   for (const problema of problemas) console.error(problema);
   if (problemas.length > 0) return 1;
   console.log(`Tickets bien escritos en ${CARPETA_DE_TICKETS}/: ${String(lectura.tickets.length)}.`);

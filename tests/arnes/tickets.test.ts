@@ -63,9 +63,13 @@ function repositorioConTickets(ficheros: Readonly<Record<string, string>>): stri
   });
 }
 
-function problemasDe(ficheros: Readonly<Record<string, string>>, cerradas: readonly string[] = []): string[] {
+function problemasDe(
+  ficheros: Readonly<Record<string, string>>,
+  cerradas: readonly string[] = [],
+  pendientes: readonly string[] = [],
+): string[] {
   const raiz = repositorioConTickets(ficheros);
-  return problemasDeLosTickets(raiz, ticketsDe(raiz), cerradas);
+  return problemasDeLosTickets(raiz, ticketsDe(raiz), { cerradas, pendientes });
 }
 
 describe('problemasDeLosTickets', () => {
@@ -110,6 +114,13 @@ describe('problemasDeLosTickets', () => {
     const porArea = { uno: texto({ area: 'MAST', depende: '[dos]' }), dos: texto({ depende: '[MAST]' }) };
     expect(problemasDe(porArea, ['MAST'])).toEqual([]);
   });
+
+  it('un área cerrada con pendientes aún no cumple la dependencia: sigue habiendo ciclo', () => {
+    const porArea = { uno: texto({ area: 'MAST', depende: '[dos]' }), dos: texto({ depende: '[MAST]' }) };
+    expect(problemasDe(porArea, ['MAST'], ['MAST-1.1'])).toEqual([
+      'Ciclo de dependencias sin cumplir: dos → uno → dos.',
+    ]);
+  });
 });
 
 describe('seSolapan', () => {
@@ -153,6 +164,31 @@ describe('estadoDeLosTickets', () => {
       hecho: { tipo: 'hecho', carrilSinRetirar: false },
       listo: { tipo: 'listo' },
       espera: { tipo: 'bloqueado', faltan: ['listo', 'PANT'], solapes: [] },
+    });
+  });
+
+  it('una dependencia de área se cumple con el área cerrada y sin pendientes', () => {
+    const tickets = [ticket('uno', { depende: '[MAST]' })];
+    expect(estados(situacion({ tickets, cerradas: ['MAST'], pendientes: ['MAST-1.1'] }))).toEqual({
+      uno: { tipo: 'bloqueado', faltan: ['MAST'], solapes: [] },
+    });
+  });
+
+  it('en un área cerrada, specs está listo sin pendientes y bloqueado con ellos', () => {
+    const tickets = [ticket('uno', { fase: 'specs', area: 'RECU' })];
+    expect(estados(situacion({ tickets, cerradas: ['RECU'] }))).toEqual({ uno: { tipo: 'listo' } });
+    expect(estados(situacion({ tickets, cerradas: ['RECU'], pendientes: ['RECU-1.1'] }))).toEqual({
+      uno: { tipo: 'bloqueado', faltan: [], area: 'RECU tiene pendientes de otro cambio', solapes: [] },
+    });
+  });
+
+  it('en un área cerrada, aceptacion e impl están bloqueados sin pendientes y listos con ellos', () => {
+    const tickets = [ticket('uno', { fase: 'aceptacion', area: 'RECU' }), ticket('dos', { area: 'RECU' })];
+    const bloqueado = { tipo: 'bloqueado', faltan: [], area: 'RECU está cerrada y no tiene pendientes', solapes: [] };
+    expect(estados(situacion({ tickets, cerradas: ['RECU'] }))).toEqual({ uno: bloqueado, dos: bloqueado });
+    expect(estados(situacion({ tickets, cerradas: ['RECU'], pendientes: ['RECU-1.1'] }))).toEqual({
+      uno: { tipo: 'listo' },
+      dos: { tipo: 'listo' },
     });
   });
 
@@ -204,9 +240,9 @@ describe('solapesDelCarril', () => {
 });
 
 describe('situacionDelRepositorio', () => {
-  it('lee los tickets y las áreas cerradas de origin/main, y lo commiteado sin fusionar de cada carril', () => {
+  it('lee los tickets y las áreas cerradas con sus pendientes de origin/main, y lo commiteado sin fusionar de cada carril', () => {
     const raiz = principalConOrigen({
-      'config/alcance.json': JSON.stringify({ areas_cerradas: ['DIAG'] }),
+      'config/alcance.json': JSON.stringify({ areas_cerradas: ['DIAG'], escenarios_en_rojo: { DIAG: ['DIAG-1.1'] } }),
       'docs/tickets/uno.md': texto(),
     });
     escribirFicheros(raiz, { 'docs/tickets/sin-subir.md': texto() });
@@ -216,6 +252,7 @@ describe('situacionDelRepositorio', () => {
     const datos = situacionDelRepositorio(raiz, new Map([['impl/MATE/uno', 7]]));
     expect(datos.tickets.map(({ id }) => id)).toEqual(['uno']);
     expect(datos.cerradas).toEqual(['DIAG']);
+    expect(datos.pendientes).toEqual(['DIAG-1.1']);
     expect(datos.carriles).toEqual([{ nombre: 'uno', rama: 'impl/MATE/uno', commiteados: ['src/b.ts'], pr: 7 }]);
     expect(datos.ficheros).toContain('docs/tickets/uno.md');
   });
