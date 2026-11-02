@@ -2,7 +2,7 @@
 fase: aceptacion
 area: MATE
 depende: [mate-reservados]
-toca: [tests/aceptacion/soporte/escenario-material.ts]
+toca: [tests/aceptacion/soporte/escenario-material.ts, tests/aceptacion/pasos/reservados.ts, docs/areas/MATE.md]
 estado: hecho
 ---
 # Los pasos de los reservados usan los tipos de `src/`

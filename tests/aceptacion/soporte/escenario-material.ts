@@ -12,6 +12,7 @@ import type {
 import type { BorradorDominio, CasosDeMaterial, EjemploDeObjetivoAprobado } from '../../../src/aplicacion/material.ts';
 import type { Aplicacion } from '../../../src/aplicacion/aplicacion.ts';
 import type { Resultado } from '../../../src/aplicacion/resultado.ts';
+import type { Revision } from '../../../src/aplicacion/revision.ts';
 import { BorradorContenido, criterioPorDefecto, ejemploPorDefecto } from './contenido.ts';
 import type { ItemDePrueba } from './contenido.ts';
 import type { Externos } from './externos.ts';
@@ -19,8 +20,10 @@ import type { Externos } from './externos.ts';
 // Estado y utilidades de los escenarios de MATE: el borrador que ya estaba en el disco, el PDF de los
 // apuntes y lo que la persona vio en la revisión, en «Ver fuente» y en Ajustes.
 
+export type { AvisoDeReservados } from '../../../src/aplicacion/avisos-de-reservados.ts';
+export type { Revision } from '../../../src/aplicacion/revision.ts';
+
 type Aceptado<T> = Extract<T, { readonly ok: true }> extends { readonly valor: infer V } ? V : never;
-export type Revision = Aceptado<ReturnType<CasosDeMaterial['abrirRevision']>>;
 export type FuenteAbierta = Aceptado<ReturnType<CasosDeMaterial['verFuente']>>;
 export type BorradorRedactado = Aceptado<Awaited<ReturnType<CasosDeMaterial['redactarBorrador']>>>;
 export type InicioSesionEnCurso = Aceptado<Awaited<ReturnType<CasosDeClaudeCode['consultarInicioSesion']>>>;
@@ -31,11 +34,6 @@ export type InicioSesionEnCurso = Aceptado<Awaited<ReturnType<CasosDeClaudeCode[
 export type CategoriaDelBorrador = CategoriaContenido & { readonly fuente?: Fuente };
 export type Pieza =
   ObjetivoContenido | EjemploResueltoContenido | ItemContenido | TareaContenido | CategoriaDelBorrador;
-
-/** Lo que avisa la revisión para poder medir la transferencia (MATE-3.6, MATE-3.7). */
-export type AvisoDeReservados =
-  | { readonly tipo: 'categoria_sin_reservado'; readonly objetivo: string; readonly categoria: string }
-  | { readonly tipo: 'pocos_reservados'; readonly hay: number; readonly hacen_falta: number };
 
 /**
  * Lo que usan estas utilidades del mundo del escenario. Se declara aquí en vez de importar `Mundo`
@@ -273,11 +271,6 @@ export async function pedirMasReservados(actual: Escenario, objetivo: string, do
   actual.material.redaccion = await actual
     .aplicacion()
     .pedirMasReservados({ dominio: actual.dominio, objetivo, documento });
-}
-
-/** Lo que avisa la revisión (MATE-3.6, MATE-3.7). */
-export function avisosDeLaRevision(revision: Revision): readonly AvisoDeReservados[] {
-  return revision.avisos;
 }
 
 /** Si la revisión dice que la pieza es reservada (MATE-4.12). */
