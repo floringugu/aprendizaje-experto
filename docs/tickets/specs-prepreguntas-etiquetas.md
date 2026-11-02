@@ -3,7 +3,7 @@ fase: specs
 area: AYUD
 depende: [specs-prepreguntas-cierre]
 toca: [features/ayuda.feature]
-estado: abierto
+estado: hecho
 ---
 # AYUD-8 cita el escenario correcto del bucle y etiqueta bien su procedencia
 

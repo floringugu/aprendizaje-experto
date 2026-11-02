@@ -472,7 +472,7 @@ Característica: Ayuda adaptativa con retirada progresiva
         | intermedio       |
         | avanzado_experto |
 
-  @AYUD-8 @evidencia-2.2 @evidencia-3 @evidencia-4 @extrapolacion
+  @AYUD-8 @extrapolacion
   Regla: En la fase intermedia, un objetivo nuevo empieza con unas prepreguntas de opción múltiple
     Unas pocas preguntas breves de opción múltiple antes de la clase mejoraron, en un curso
     universitario real, el examen final, tanto en el material preguntado como en el relacionado no
@@ -506,13 +506,13 @@ Característica: Ayuda adaptativa con retirada progresiva
     declararla (CALI-1.1); se registra, pero no entra en la calibración (CALI-2.5, CALI-4.9). Lo que
     se intenta antes de la instrucción no mide lo aprendido, aunque se fallen casi todas. Por eso una prepregunta no cuenta como intento del ítem (MAST-1.6 y MAST-1.7), ni para
     el dominio ni para el paso de fase, ni para el ajuste semanal (AYUD-8.12), ni en el paso 1 del
-    bucle (BUCL-2.4). Es decisión del autor.
+    bucle (BUCL-2.7). Es decisión del autor.
 
     Antecedentes:
       Dado que O4 se aprobó en la revisión del material, sin dominarlo ni practicarlo, con la instrucción «La regla R4 se aplica cuando el caso cumple A y B.» y el ejemplo resuelto E4
       Y que el número de prepreguntas configurado es 3
 
-    @AYUD-8.1 @evidencia-3 @evidencia-4 @extrapolacion
+    @AYUD-8.1 @extrapolacion
     Escenario: En la fase novato no hay prepreguntas
       Dado que la persona está en la fase «novato»
       Y que O1 tiene los ítems H1, H2 y H3 de tipo «hecho» con opciones
@@ -612,7 +612,7 @@ Característica: Ayuda adaptativa con retirada progresiva
       Cuando la persona practica O4 y responde la prepregunta H1
       Entonces su fila en respuestas.csv tiene el contexto «prepregunta»
 
-    @AYUD-8.12 @evidencia-4 @extrapolacion
+    @AYUD-8.12 @extrapolacion
     Escenario: Las prepreguntas no cuentan para el ajuste semanal de la ayuda
       Dado que el umbral de retirada de ayuda configurado es del 85 %
       Y que la persona está en la fase «intermedio» con O1, O2 y O3 dominados
