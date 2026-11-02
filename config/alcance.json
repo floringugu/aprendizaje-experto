@@ -1,8 +1,34 @@
 {
   "areas_cerradas": ["RECU", "DIAG"],
   "escenarios_en_rojo": {
-    "RECU": ["RECU-2.2", "RECU-4.2", "RECU-5.1", "RECU-5.2", "RECU-5.3", "RECU-5.4", "RECU-5.5", "RECU-5.6", "RECU-5.7", "RECU-5.8", "RECU-5.9", "RECU-5.10", "RECU-5.11", "RECU-5.12", "RECU-5.13"],
+    "RECU": [
+      "RECU-2.2",
+      "RECU-4.2",
+      "RECU-5.1",
+      "RECU-5.2",
+      "RECU-5.3",
+      "RECU-5.4",
+      "RECU-5.5",
+      "RECU-5.6",
+      "RECU-5.7",
+      "RECU-5.8",
+      "RECU-5.9",
+      "RECU-5.10",
+      "RECU-5.11",
+      "RECU-5.12",
+      "RECU-5.13",
+      "RECU-6.1",
+      "RECU-6.2",
+      "RECU-6.3",
+      "RECU-6.4",
+      "RECU-6.5",
+      "RECU-6.6",
+      "RECU-6.7",
+      "RECU-6.8",
+      "RECU-6.9",
+      "RECU-6.10"
+    ],
     "MATE": [],
-    "MAST": ["MAST-1.6", "MAST-1.7"]
+    "MAST": ["MAST-1.2", "MAST-1.6", "MAST-1.7", "MAST-1.8", "MAST-4.2"]
   }
 }

@@ -56,7 +56,7 @@ Característica: Servidor y pantallas
 
   @PANT-2 @extrapolacion
   Regla: El progreso sobrevive a un reinicio del servidor
-    Los intentos se guardan al declarar la confianza, que es cuando el intento está completo (CALI-1.1) y antes de que la persona vea el feedback.
+    Los intentos se guardan al declarar la confianza, que es cuando el intento está completo (CALI-1.1) y antes de que la persona vea el feedback. Un reintento (RECU-6) no declara confianza: se guarda al responderlo, también antes del feedback.
 
     @PANT-2.1 @extrapolacion
     Escenario: Tras un reinicio siguen los intentos, el dominio, la fase y los repasos
@@ -77,7 +77,7 @@ Característica: Servidor y pantallas
       Y es el intento de I1
 
     @PANT-2.3 @extrapolacion
-    Escenario: Una respuesta sin confianza declarada no se guarda
+    Escenario: Una respuesta sin confianza declarada no se guarda, salvo un reintento
       Dado que la persona responde I1 de O1 sin declarar su confianza
       Cuando se reinicia el servidor
       Entonces O1 no tiene ningún intento registrado

@@ -79,6 +79,22 @@
     "extrapolacion": true,
     "nota": "El informe no recoge las prepreguntas: la evidencia es Soderstrom y Bjork (2023, Educational Psychology Review), que en un curso universitario real vieron que unas preguntas breves de opción múltiple antes de algunas clases mejoraron en el examen final el material preguntado y el relacionado no preguntado. Sus límites: un solo curso, mecanismos inferidos en parte por autoinforme y la petición de más investigación. La cita viene del ticket y no se ha comprobado contra el artículo. Las secciones 2.2 (feedback correctivo), 3 y 4 (exploración antes de la instrucción) son solo contexto cercano: el informe no trata las prepreguntas. Pasarlo de clases a objetivos de una aplicación, limitarlo a la fase intermedia (el estudio fue con estudiantes nuevos en el tema, más cerca de la fase novato) y fijar tres preguntas son decisiones del autor, sin evidencia propia: ni el estudio ni el informe fijan cuántas; tres es poco para no alargar mucho el inicio de cada objetivo."
   },
+  "aciertos_para_cerrar_item_en_sesion": {
+    "descripcion": "Reintentos acertados que cierran, dentro de una sesión, un ítem que la persona falló en su primer intento de esa sesión. No hace falta que sean seguidos.",
+    "valor": 1,
+    "seccion": ["2.2", "3", "4"],
+    "nivel_evidencia": "extrapolación del autor",
+    "extrapolacion": true,
+    "nota": "El informe no recoge el reaprendizaje sucesivo: la evidencia es Rawson, Dunlosky y Sciartelli (2013), en dos experimentos en un curso real de introducción a la psicología, donde el reaprendizaje sucesivo subió la nota del examen en torno a una letra (de C a B) frente al reestudio espaciado y a la línea base, y tres sesiones espaciadas dieron más beneficio que una. Que el ítem fallado vuelva dentro de la sesión hasta acertarlo es la forma que le da el autor. La cita viene del ticket (resumen de retrievalpractice.org) y no se ha comprobado contra el artículo. Las secciones 2.2 (práctica de recuperación y espaciado), 3 y 4 son solo contexto cercano. Fijar un acierto por sesión como criterio es decisión del autor, sin evidencia propia: el ticket no lo fija, y con uno el ítem fallado vuelve lo mínimo para no alargar la sesión."
+  },
+  "items_entre_intento_y_reintento": {
+    "descripcion": "Cuántos ítems de otros se presentan, como mínimo, entre un intento de un ítem que aún no está cerrado en la sesión (falló, o no ha llegado a los aciertos que lo cierran) y su siguiente reintento. Si la sesión no tiene tantos, el ítem vuelve cuando se acaban.",
+    "valor": 3,
+    "seccion": ["2.2", "3", "4"],
+    "nivel_evidencia": "extrapolación del autor",
+    "extrapolacion": true,
+    "nota": "La evidencia del reaprendizaje sucesivo es la de «aciertos_para_cerrar_item_en_sesion» (Rawson et al., 2013, sin comprobar contra el artículo), y el ticket no recoge ninguna separación dentro de la sesión. Que volver justo después mida la memoria de trabajo es razonamiento del autor: el informe no lo trata. Tres ítems es decisión del autor, sin evidencia propia: deja varias respuestas entre el fallo y su reintento sin alargar la sesión."
+  },
   "intervalo_repaso_por_horizonte": {
     "descripcion": "Intervalo entre repasos de los ítems de tipo «problema», como fracción del horizonte de retención que elige la persona. Los ítems de tipo «hecho» los programa el algoritmo de repetición espaciada.",
     "valor": [

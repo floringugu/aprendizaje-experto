@@ -7,6 +7,11 @@ Característica: Planificación de repasos espaciados
   «problema» se repasan cada «fracción × horizonte», con la fracción de Cepeda et al. (2008) para el
   horizonte de retención que elige la persona.
 
+  El planificador recibe de cada ítem solo su primer intento de cada sesión: los reintentos de la
+  misma sesión (RECU-6) no cuentan como repaso y no lo mueven. Es razonamiento del autor, y el informe
+  no lo trata: el reintento llega con la respuesta recién vista y no dice cuánto tarda la persona
+  en olvidar.
+
   Antecedentes:
     Dado el dominio de prueba «ficticio» con los objetivos O1, O2 y O3, en ese orden
     Y que O1 tiene el ítem H1 de tipo «hecho» y el ítem Q1 de tipo «problema»
@@ -47,6 +52,13 @@ Característica: Planificación de repasos espaciados
       Y que otra vez, en el mismo estado, acierta H1 con una confianza del 0 %
       Entonces las dos veces el siguiente repaso de H1 cae en la misma fecha
 
+    @PLAN-1.5 @extrapolacion
+    Escenario: Un reintento acertado en la misma sesión no cambia lo que recibe FSRS
+      Dado que la persona falla H1 en su primer intento de la sesión
+      Cuando acierta H1 en un reintento de esa misma sesión
+      Entonces FSRS solo recibió la calificación «Again», la del primer intento
+      Y el siguiente repaso de H1 es el que calculó FSRS para esa calificación con una retención del 90 %
+
   @PLAN-2 @evidencia-4 @evidencia-2.5 @extrapolacion
   Regla: SM-2 es la alternativa configurable a FSRS
 
@@ -63,6 +75,13 @@ Característica: Planificación de repasos espaciados
     Escenario: Con SM-2 un fallo reinicia el intervalo
       Dado que H1 tiene un intervalo de repaso de 6 días
       Cuando la persona falla H1 el 2026-03-09
+      Entonces el siguiente repaso de H1 es el 2026-03-10
+
+    @PLAN-2.3 @extrapolacion
+    Escenario: Con SM-2 un reintento acertado en la misma sesión no cuenta como primer acierto
+      Dado que H1 tiene un intervalo de repaso de 6 días
+      Y que la persona falla H1 el 2026-03-09
+      Cuando acierta H1 en un reintento ese mismo día
       Entonces el siguiente repaso de H1 es el 2026-03-10
 
   @PLAN-3 @evidencia-2.2 @extrapolacion
@@ -94,6 +113,13 @@ Característica: Planificación de repasos espaciados
       Cuando la persona responde Q1
       Entonces el siguiente repaso de Q1 no depende de FSRS ni de SM-2
       Y es el mismo tanto si acierta como si falla
+
+    @PLAN-3.4 @extrapolacion
+    Escenario: Un reintento de un problema en la misma sesión no mueve su siguiente repaso
+      Dado que la persona ha elegido el horizonte de retención de 1 semana
+      Y que la persona falla Q1 el 2026-02-02 a las 10:00, en su primer intento de la sesión
+      Cuando responde Q1 el 2026-02-02 a las 10:20, en un reintento de esa sesión
+      Entonces el siguiente repaso de Q1 sigue siendo el 2026-02-04 a las 12:24
 
   @PLAN-4 @extrapolacion
   Regla: Un ítem del borrador no se repasa

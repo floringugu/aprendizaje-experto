@@ -62,6 +62,7 @@ Característica: Instrumentación y exportación CSV
         | en una prueba de retención                             | retencion           |
         | en un intento de exploración                           | exploracion         |
         | en una prepregunta                                     | prepregunta         |
+        | en un reintento de la misma sesión                     | reintento           |
         | reservado de tipo «problema» en una sesión intercalada | transferencia       |
         | reservado en una prueba de retención                   | transferencia       |
         | en el estudio de la mitad recuperada de un experimento | experimento_estudio |
@@ -206,8 +207,8 @@ Característica: Instrumentación y exportación CSV
     La aplicación no calcula ni enseña esta comparación: la persona la saca de la exportación
     (respuestas.csv y pantallas_calibracion.csv). Cada semana es la que cierra un bucle semanal,
     como en CALI-2.1, y su diferencia es la de CALI-2: confianza media menos acierto, en puntos, con
-    las filas de respuestas.csv de esa semana salvo las de exploración y las de los experimentos
-    (CALI-2.3, CALI-12.2). El corte es de cada dominio: la primera fila de pantallas_calibracion.csv
+    las filas de respuestas.csv de esa semana salvo las de exploración, las de los reintentos y las
+    de los experimentos (CALI-2.3, CALI-2.6, CALI-12.2). El corte es de cada dominio: la primera fila de pantallas_calibracion.csv
     de ese dominio. La semana que cierra el bucle que enseñó esa primera pantalla cuenta como
     «antes», porque la persona aún no la había visto durante ella; las siguientes, como «después».
     Se compara la diferencia media con signo (de qué lado se desvía) y la distancia media sin signo
@@ -228,6 +229,7 @@ Característica: Instrumentación y exportación CSV
         | transferencia      | 70        | true     |
         | retencion          | 60        | false    |
         | exploracion        | 95        | false    |
+        | reintento          |           | true     |
         | experimento_prueba | 90        | false    |
       Cuando se calcula la diferencia de la semana del bucle del 2026-03-16
       Entonces es de +25 puntos, con una confianza media del 75 % y un acierto del 50 %

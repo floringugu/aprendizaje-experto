@@ -8,7 +8,12 @@ Característica: Criterio de dominio
   extrapolación del autor (sección 4).
 
   El acierto sin ayuda de un objetivo es la fracción de sus ítems no reservados cuyo último intento
-  fue correcto. Los ítems reservados miden la transferencia a casos nuevos y no cuentan (MAST-8).
+  fue correcto. De cada sesión cuenta solo el primer intento de cada ítem: los reintentos de la
+  misma sesión (RECU-6) no cuentan, porque la persona acaba de ver la respuesta y un objetivo se
+  daría por dominado justo después de enseñársela. Es decisión del autor. Los ítems reservados miden
+  la transferencia a casos nuevos y no cuentan (MAST-8). Este es también el acierto sin ayuda que
+  usan el ajuste de la ayuda (AYUD-2) y el bucle semanal (BUCL-2): los reintentos tampoco cuentan
+  allí.
   Un intento es sin ayuda cuando, mientras la persona responde, no ve ningún ejemplo resuelto ni la
   respuesta, aunque haya estudiado un ejemplo justo antes. Esta definición es decisión del autor.
   Hay una excepción: el intento de exploración de un objetivo nuevo (AYUD-5) y sus prepreguntas
@@ -40,9 +45,9 @@ Característica: Criterio de dominio
         | 16       | no queda dominado |
 
     @MAST-1.2 @evidencia-2.3 @extrapolacion
-    Escenario: Cuenta el último intento de cada ítem, no el primero
+    Escenario: Cuenta el intento de la última sesión, no el de la primera
       Dado que la persona falló el ítem I1 de O1 en su primer intento
-      Y que acertó I1 en su segundo intento
+      Y que acertó I1 en su segundo intento, en una sesión posterior
       Y que en su último intento acertó otros 16 ítems de O1
       Cuando la aplicación evalúa O1
       Entonces el acierto sin ayuda de O1 es del 85 %
@@ -92,6 +97,15 @@ Característica: Criterio de dominio
       Cuando la persona responde de nuevo H1 de O4 y lo acierta
       Entonces ese intento cuenta como el primero de H1
       Y la aplicación indica que faltan 19 ítems de O4
+
+    @MAST-1.8 @extrapolacion
+    Escenario: El reintento acertado en la misma sesión no cuenta
+      Dado que en una sesión de práctica la persona acertó 16 ítems de O1 en su primer intento
+      Y que falló I17, I18, I19 e I20 en su primer intento de esa sesión
+      Y que los reintentó en esa misma sesión y los acertó
+      Cuando la aplicación evalúa O1
+      Entonces el acierto sin ayuda de O1 es del 80 %
+      Y O1 no queda dominado
 
   @MAST-2 @evidencia-2.3 @evidencia-3 @extrapolacion
   Regla: No se avanza sin dominar
@@ -146,6 +160,14 @@ Característica: Criterio de dominio
       Y O1 vuelve a la cola de práctica
       Y O2 sigue abierto y la fase sigue siendo «novato»
       Y el cambio queda registrado en objetivos_dominados.csv
+
+    @MAST-4.2 @extrapolacion
+    Escenario: Acertar el ítem al volver a él en el mismo repaso no devuelve el dominio
+      Dado que O1 está dominado con un acierto sin ayuda del 85 %
+      Cuando la persona falla un repaso de un ítem de O1 que había acertado
+      Y lo acierta al volver a él en esa misma sesión
+      Entonces el acierto sin ayuda de O1 es del 80 %
+      Y O1 deja de estar dominado
 
   @MAST-5 @extrapolacion
   Regla: El umbral de dominio se lee de la configuración

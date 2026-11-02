@@ -1,7 +1,7 @@
 ---
 fase: impl
 area: CALI
-depende: [PANT, BUCL]
+depende: [PANT, BUCL, RECU]
 toca: [src/aplicacion/respuestas.ts, src/aplicacion/calibracion.ts, src/dominio/calibracion.ts, src/interfaz/, tests/unidad/calibracion*.test.ts, config/alcance.json, docs/areas/CALI.md, docs/deuda-diseno.md]
 estado: abierto
 ---
