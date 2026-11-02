@@ -110,9 +110,9 @@ Así, aprobar es `localizar` + `quitar` + `poner`; descartar, `quitar`; corregir
 
 - **pdftotext y MATE-3.4.** En su modo por defecto, y también con `-nodiag`, junta «tam-»/«bién» en «también». Con `-raw` y con `-layout` el guion se queda. El escenario espera la palabra entera.
 - **Todos los escenarios de MATE fallan en los antecedentes**, porque `anadirMaterial` lanza «Sin implementar». Los pasos de detrás no se han ejecutado nunca: algún fallo dentro de un paso puede salir al implementar.
-- **MATE-6.3** depende de `pedirTarea`. Los ejemplos de MATE-6.1 que llamaban a repasos, pruebas de retención y sesiones intercaladas pasaron a PLAN-4.1, MAST-7.4 e INTE-6.1 (ticket `mate-sesiones-a-plan-inte`).
+- **MATE-6.3 y tres ejemplos de MATE-6.1 ya no son de MATE.** MATE-6.3 llamaba a `pedirTarea`, de TARE, y pasó a TARE-1.6 (ticket `mate-tarea-a-tare`). Los ejemplos de MATE-6.1 que llamaban a repasos, pruebas de retención y sesiones intercaladas pasaron a PLAN-4.1, MAST-7.4 e INTE-6.1 (ticket `mate-sesiones-a-plan-inte`). MATE cierra con 6.1 (el diagnóstico y la práctica), 6.2, 6.4 y 6.5.
 
-**Decisiones sin registrar.** Aprobadas en la etapa 3 y aún no escritas en docs/plan.md §0 ni §17.8; van en «Mecanismo»:
+**Decisiones de la etapa 3.** Están en «Mecanismo» (puntos 2 y 4) y en docs/plan.md §0 (filas «Texto de una página web» y «Borradores»):
 
 - el texto de un HTML se saca con código propio, sin dependencia;
 - el formato del borrador descrito arriba.
@@ -230,11 +230,37 @@ Las dos interfaces que se compararon («diseñarlo dos veces»): cuál se eligi�
 - **Elegida:** funciones sobre `(ficheros, dominio)`: `guardarDocumento`, `documentosDelMaterial` y `textosDelMaterial`. Las rutas y el índice no salen del módulo.
 - **Descartada:** una clase `MaterialGuardado` que carga el índice en memoria y lo escribe con un `guardar()` explícito. Motivo: quien la usa tiene que acordarse de llamar a `guardar()`, y con dos personas en la misma carpeta de datos el índice en memoria quedaría viejo.
 
+**Lectura del contenido aprobado** (ticket `mate-mesa-y-dominio`, punto 1; `src/aplicacion/mesa-guardada.ts`):
+
+- **Elegida (25-10-2026):** B, un solo sitio para las rutas y los bytes de la mesa, `mesa-guardada.ts`. `leerContenido` pasó a ser `contenidoDeFicheros(ficheros)`, y se lo daba quien arranca la aplicación.
+- **Descartada:** A, un solo lector: `enDominio` lee el aprobado por `mesa-guardada.ts` y se quita `leerContenido`. Motivo: cambiaba `Dependencias`, y `tests/aceptacion/soporte/mundo.ts`, de otra fase, ya no podría tener `contenidoEscrito ?? contenidos.get` y escribiría el contenido por `Ficheros`. Se dejó para PANT, y la etapa 3 de PANT lo hizo el 01-11-2026 (aaaef10): `Dependencias` ya no tiene `leerContenido`, y `estado.ts` lee el aprobado con `contenidoDeFicheros(dependencias.ficheros)`.
+
+**Rutas fuera de la carpeta de datos** (ticket `mate-mesa-y-dominio`, punto 2; `src/aplicacion/dominio-valido.ts`):
+
+- **Elegida:** A, `dominioValido(dominio)`, que rechaza con `campo` `dominio` y que llaman los casos de uso que reciben un dominio.
+- **Descartada:** B, que el puerto `Ficheros` rechace las rutas que salen de la carpeta de datos. Motivo: el puerto lanzaría un error en vez de rechazar con `campo`, y el doble de `Ficheros` de `mundo.ts`, de otra fase, tendría que imitarlo. Queda como defensa del adaptador real de PANT (ticket `pant`).
+
+**Pedir más reservados** («Reservados», punto 1; `pedirMasReservados`, `src/aplicacion/material.ts`):
+
+- **Elegida:** A, una operación aparte, con el cuerpo compartido con `redactarBorrador`.
+- **Descartada:** B, un parámetro opcional `soloReservadosDe` de `redactarBorrador`. Motivo: es un modo que cambia qué pieza es válida dentro de una operación que ya valida otra cosa, y `objetivo_no_encontrado` solo valdría con el modo puesto. Escondería dos operaciones en una.
+
+**Avisos de los reservados** («Reservados», punto 2; `avisos` de `Revision`):
+
+- **Elegida:** A, `avisos` en la raíz de `Revision`, a la altura de `grupos`.
+- **Descartada:** B, un `avisos` en cada `GrupoRevision` y otro global. Motivo: en MATE-3.6 el borrador está vacío, así que no hay grupo de O1 donde colgar el aviso, y habría que inventar uno vacío.
+
+**MATE-6.3, que pide una tarea** (ticket `mate-tarea-a-tare`):
+
+- **Elegida:** b, pasar el escenario a `features/tareas.feature` (TARE-1.6) y cerrar MATE sin él.
+- **Descartada:** a, implementar `pedirTarea` en MATE. Motivo: TARE-1.1, 1.4 y 1.5 pasarían en verde antes de su área, y en su etapa 3 `estado-aceptacion` exige que los escenarios del área en curso fallen.
+
 ## Deuda pagada
 
 Partidas de `docs/deuda-diseno.md` que se pagaron en esta área, con el commit que las cierra. Si no se pagó ninguna, «Ninguna».
 
-- **D16** y **D17**, en el commit «refactor: validate domain content when it is read (D16, D17)». El contenido se valida en `enDominio`, que rechaza la petición si no cumple el formato; `respuestaMostrada` ya no lanza, y `respuestasAceptadas` deja de exportarse.
+- **D16** y **D17** (dd1a24a, «refactor: validate domain content when it is read»). El contenido se valida en `enDominio`, que rechaza la petición si no cumple el formato; `respuestaMostrada` ya no lanza, y `respuestasAceptadas` deja de exportarse.
+- Sin partida en la tabla, dos hallazgos del revisor de código del 24-10-2026, en 51ec117 (ticket `mate-mesa-y-dominio`): las rutas y los bytes de la mesa en un solo sitio, y el dominio validado antes de entrar en una ruta.
 
 ## Mutación
 
@@ -245,12 +271,15 @@ Puntuación de `make mutacion` al cerrar el área, y los mutantes supervivientes
 
 ## Bloqueos de los hooks
 
-Salida de `make bloqueos A=<ÁREA>` al cerrar el área, y una frase sobre el bloqueo que más costó, si lo hubo.
+Salida de `make bloqueos A=MATE` al cerrar el área (02-11-2026):
 
 ```text
-…
+MATE: 191 anotaciones en 87 conversaciones, desde 2026-10-22T23:07:13.581Z.
+  - Carriles: cambio2, cambio3, ci, contexto, cuenta, mate-diagrama-al-aprobar, mate-mesa-y-dominio, mate-reservados, mutacion, principal, rutas, solapes, tickets, tickets-specs.
+  - Push: 18 en verde y 0 bloqueos; la comprobación tarda 17 s de mediana.
+  - Implementador: 4 bloqueos (tipos 2, lint 2).
+  - Paradas del hook Stop: 56 con [DECISIÓN PENDIENTE], 41 con [RELEVO], 9 esperando a subagentes, 57 sin cambios y 0 con cambios sin commitear.
+  - Comprobación en el Stop, ya retirada: 5 en verde y 1 bloqueos (cobertura-ids 1).
 ```
 
-## Pendiente
-
-Lo que queda de MATE está en los tickets `mate-*` de `docs/tickets/`, y `make tickets` dice cuáles están listos: `mate-pasos-reservados` (el relevo de etapa 3 del carril `mate-pasos`), `mate-mesa-y-dominio` (las decisiones B y A del dueño, 25-10-2026), `mate-tarea-a-tare` (la decisión b), `mate-reservados` y `mate-cierre`.
+Los cuatro bloqueos del implementador fueron en el carril `mate-reservados`, el 01-11-2026: dos de `tipos` en una conversación y dos de `lint` en la siguiente, y los arregló cada encargo antes de volver. El push no se bloqueó nunca. Las 87 conversaciones incluyen las de los carriles del arnés que se abrieron mientras MATE era el área en curso de la carpeta principal.
