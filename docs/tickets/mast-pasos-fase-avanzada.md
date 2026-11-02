@@ -1,7 +1,7 @@
 ---
 fase: aceptacion
 area: MAST
-depende: [mast-transferencia]
+depende: [mast-transferencia, mast-pasos-prepreguntas]
 toca: [tests/aceptacion/soporte/acciones.ts, tests/aceptacion/pasos/contenido.ts, docs/areas/MAST.md]
 estado: abierto
 ---
@@ -17,4 +17,5 @@ estado: abierto
 
 - Lo encontró la conversación de impl de `mast-transferencia`, que comparó todas las features antes y después del cambio: ninguna pasa de verde a rojo, pero el paso de la fase avanzada ya no la alcanza.
 - Los reservados que se añadan no deben cambiar lo que cuentan otros escenarios: un reservado no cuenta para el dominio ni entra en la práctica ni en los repasos (MAST-8.1, 8.2), pero sí en la sesión intercalada de su grupo (INTE).
+- Depende de `mast-pasos-prepreguntas` (02-11-2026): mientras MAST-1.6 y 1.7 no tengan pasos, `make check-aceptacion` falla en el área MAST por escenarios sin definir, y este ticket no puede añadirlos a `escenarios_en_rojo` porque `config/alcance.json` no está en su `toca`.
 - `EvaluacionFase` ya tiene en `src/` los tres campos que `tests/aceptacion/pasos/transferencia.ts` declara por intersección. Se puede quitar la intersección si este ticket toca ese fichero; si no, se queda como está.
