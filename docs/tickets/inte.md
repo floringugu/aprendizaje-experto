@@ -1,7 +1,7 @@
 ---
 fase: impl
 area: INTE
-depende: [PANT]
+depende: [PANT, mast-pasos-fase-avanzada]
 toca: [src/aplicacion/sesiones.ts, src/aplicacion/respuestas.ts, src/aplicacion/practica.ts, src/aplicacion/intercalado.ts, src/dominio/intercalado.ts, src/interfaz/, tests/unidad/intercalado*.test.ts, config/alcance.json, docs/areas/INTE.md, docs/deuda-diseno.md]
 estado: abierto
 ---
