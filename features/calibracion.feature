@@ -25,11 +25,14 @@ Característica: Calibración de la confianza
     Dado el dominio de prueba «ficticio» con los objetivos O1, O2 y O3, en ese orden
     Y que la escala de confianza configurada va del 0 al 100 %
 
-  @CALI-1@evidencia-4 @extrapolacion
+  @CALI-1 @evidencia-4 @extrapolacion
   Regla: La confianza se declara en cada ítem, antes del feedback
+    Hay una excepción: el reintento de un ítem en la misma sesión (RECU-6) no pide confianza. La
+    persona acaba de ver la respuesta, y declarar entonces su confianza mediría lo que acaba de
+    leer más que lo que recuerda. Es razonamiento del autor: el informe no lo trata.
 
     @CALI-1.1 @evidencia-4 @extrapolacion
-    Escenario: Sin declarar la confianza no hay feedback
+    Escenario: Sin declarar la confianza no hay feedback, salvo en un reintento
       Dado que la persona ha respondido el ítem I1
       Cuando aún no ha declarado su confianza
       Entonces no ve si ha acertado ni el feedback de I1
@@ -50,6 +53,13 @@ Característica: Calibración de la confianza
     Escenario: La confianza se registra junto a la respuesta
       Cuando la persona responde I1 y declara una confianza del 70 %
       Entonces respuestas.csv registra ese intento con la confianza 70
+
+    @CALI-1.4 @extrapolacion
+    Escenario: El reintento no pide confianza y su fila no la lleva
+      Dado que la persona falló I1 en su primer intento de la sesión
+      Cuando responde I1 en un reintento
+      Entonces ve el feedback sin declarar ninguna confianza
+      Y respuestas.csv registra ese intento con el contexto «reintento» y la confianza vacía
 
   @CALI-2 @evidencia-4 @evidencia-2.5 @extrapolacion
   Regla: El bucle semanal compara la confianza con el acierto
@@ -109,6 +119,17 @@ Característica: Calibración de la confianza
       Entonces el paso de calibración muestra una confianza media del 70 %
       Y un acierto del 50 %
 
+    @CALI-2.6 @evidencia-4 @extrapolacion
+    Escenario: Los reintentos de la misma sesión no entran en la calibración
+      Dado que en la última semana la persona respondió estos ítems:
+        | ítem | contexto  | confianza | correcta |
+        | I1   | practica  | 80        | sí       |
+        | I2   | practica  | 60        | no       |
+        | I2   | reintento |           | sí       |
+      Cuando se ejecuta el bucle semanal
+      Entonces el paso de calibración muestra una confianza media del 70 %
+      Y un acierto del 50 %
+
   @CALI-3 @evidencia-2.5 @evidencia-5
   Regla: La confianza nunca afecta al progreso
 
@@ -137,7 +158,8 @@ Característica: Calibración de la confianza
     discontinuo es la confianza media y el relleno, el acierto sin ayuda. Los dos se calculan sobre
     el último intento de cada ítem, como el acierto sin ayuda de MAST, y no sobre la última semana
     como CALI-2.1: con pocas respuestas por semana no se llegaría al mínimo. El intento de
-    exploración y las prepreguntas no entran (CALI-2.3, CALI-2.5). «Sin ayuda» es la definición de MAST, y la confianza de cada
+    exploración, las prepreguntas y los reintentos de la misma sesión no entran (CALI-2.3, CALI-2.5,
+    CALI-2.6): el último intento es el primero de la última sesión en que se respondió el ítem. «Sin ayuda» es la definición de MAST, y la confianza de cada
     ítem es la de ese último intento. Los ítems practicados (no reservados) y los reservados
     (MAST-8) tienen cada uno su silueta: la lectura de lo que significa un hueco en los reservados
     es de la persona, no de la pantalla. Los porcentajes se muestran enteros y la diferencia se
@@ -243,13 +265,24 @@ Característica: Calibración de la confianza
       Cuando se ejecuta el bucle semanal
       Entonces la silueta de los ítems practicados de O1 tiene el contorno al 70 % y el relleno al 50 %, «1 de 2»
 
+    @CALI-4.10 @extrapolacion
+    Escenario: Los reintentos no entran en la silueta
+      Dado que el mínimo de ítems de las pantallas de calibración configurado es 2
+      Y que en O1 la persona respondió estos ítems:
+        | ítem | contexto  | confianza | correcta |
+        | I1   | practica  | 80        | sí       |
+        | I2   | practica  | 60        | no       |
+        | I2   | reintento |           | sí       |
+      Cuando se ejecuta el bucle semanal
+      Entonces la silueta de los ítems practicados de O1 tiene el contorno al 70 % y el relleno al 50 %, «1 de 2»
+
   @CALI-5 @evidencia-2.5 @extrapolacion
   Regla: Las tarjetas de la prueba de retención enseñan cuáles de los ítems dados por seguros se aciertan
     Pantalla 2 de las pantallas de calibración. Tras la prueba de retención de la última de las
     semanas configuradas (MAST-7), el siguiente bucle enseña las tarjetas de ese objetivo: una por
     cada ítem no reservado que la persona dio por seguro y que esa prueba incluye. «Seguro» es una
     confianza igual o mayor que la confianza alta configurada, en su último intento antes de la
-    prueba (sin contar la exploración ni las prepreguntas). Una tarjeta «sigue en pie» si el ítem se acertó en la
+    prueba (sin contar la exploración, las prepreguntas ni los reintentos). Una tarjeta «sigue en pie» si el ítem se acertó en la
     prueba y «fallada en la prueba» si no: los ítems se eligen por su confianza, no porque antes se
     acertaran, así que la etiqueta no dice que se haya perdido nada. El recuento es descriptivo y,
     como en CALI-4, parte de la diferencia puede ser regresión a la media (sección 2.5). Los

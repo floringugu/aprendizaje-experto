@@ -2,8 +2,8 @@
 fase: specs
 area: RECU
 depende: []
-toca: [features/recuperacion.feature, features/dominio.feature, features/calibracion.feature, config/parametros.json]
-estado: abierto
+toca: [features/recuperacion.feature, features/dominio.feature, features/calibracion.feature, features/planificador.feature, features/instrumentacion.feature, features/pantallas.feature, config/parametros.json, config/alcance.json]
+estado: hecho
 ---
 # Un ítem fallado vuelve en la misma sesión hasta acertarlo (reaprendizaje sucesivo)
 

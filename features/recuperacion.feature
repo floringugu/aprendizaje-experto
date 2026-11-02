@@ -250,3 +250,112 @@ Característica: Práctica de recuperación con feedback correctivo
     Escenario: Si un ítem sin unidades se responde con una unidad, el feedback dice que sobra
       Cuando la persona escribe «12 m» como respuesta a I5
       Entonces ve que sobra la unidad
+
+  @RECU-6 @evidencia-2.2 @extrapolacion
+  Regla: Un ítem fallado vuelve en la misma sesión hasta acertarlo
+    El informe no recoge el reaprendizaje sucesivo: la evidencia es Rawson, Dunlosky y Sciartelli
+    (2013), que en un curso real vieron mejor nota en el examen con el reaprendizaje sucesivo, y más
+    con tres sesiones espaciadas que con una (cita del ticket, sin comprobar contra el artículo).
+    Que el ítem fallado vuelva dentro de la sesión hasta acertarlo es la forma que le da el autor.
+    Las sesiones siguen espaciadas por el planificador (PLAN). Cuántos aciertos cierran un ítem y
+    cuántos ítems pasan antes de que vuelva son decisiones del autor, sin evidencia propia. Que
+    volver justo después del feedback mediría la memoria de trabajo y no la recuperación es
+    razonamiento del autor: el informe no lo trata.
+
+    Vuelven los ítems de las sesiones de práctica, de los repasos y de las sesiones intercaladas. No
+    vuelven los del diagnóstico ni los de las pruebas de retención, porque miden y no enseñan, ni los
+    reservados, que se presentan una sola vez (MAST-8), ni los intentos de exploración y las
+    prepreguntas (AYUD-5, AYUD-8), ni los de los experimentos (CALI-12, CALI-13). Los reintentos son
+    prácticas: no cuentan para el dominio (MAST-1.8), ni para la calibración (CALI-2.6), ni mueven el
+    planificador (PLAN-1.5, PLAN-3.4).
+
+    Antecedentes:
+      Dado que O1 tiene también los ítems I3, I4, I5, I6 e I7 con las opciones «a», «b» y «c», la correcta «b»
+      Y que los ítems entre un intento y su reintento configurados son 3
+      Y que los aciertos que cierran un ítem en la sesión configurados son 1
+
+    @RECU-6.1 @extrapolacion
+    Escenario: Un ítem fallado vuelve después de tres ítems de otros
+      Dado que la sesión de práctica de O1 presenta los ítems I1 a I7, en ese orden
+      Cuando la persona falla I1 y responde I2, I3 e I4
+      Entonces lo siguiente que se le presenta es I1 otra vez, antes de I5
+
+    @RECU-6.2 @extrapolacion
+    Escenario: Un ítem acertado en su primer intento de la sesión no vuelve
+      Dado que la sesión de práctica de O1 presenta los ítems I1 a I7, en ese orden
+      Cuando la persona acierta I1 y responde el resto de los ítems
+      Entonces I1 no vuelve a presentarse en esa sesión
+
+    @RECU-6.3 @extrapolacion
+    Escenario: El reintento tiene el mismo feedback y no pide confianza
+      Dado que la persona falló I1 en su primer intento de la sesión y respondió tres ítems de otros
+      Cuando se le presenta I1 otra vez
+      Entonces no ve cuál es la correcta ni el feedback hasta haber respondido
+      Y no se le pide que declare su confianza
+      Y al responder ve si su respuesta es correcta, que la respuesta correcta es «b» y el feedback «Porque b cumple la regla R1.»
+
+    @RECU-6.4 @extrapolacion
+    Esquema del escenario: El ítem deja de volver al llegar a los aciertos configurados
+      Dado que los aciertos que cierran un ítem en la sesión configurados son <aciertos>
+      Y que la persona falló I1 en su primer intento de la sesión
+      Cuando acierta I1 en su primer reintento
+      Entonces I1 <resultado>
+
+      Ejemplos:
+        | aciertos | resultado                                      |
+        | 1        | no vuelve a presentarse en esa sesión          |
+        | 2        | vuelve a presentarse una vez más en esa sesión |
+
+    @RECU-6.10 @extrapolacion
+    Escenario: Los aciertos que cierran un ítem no hace falta que sean seguidos
+      Dado que los aciertos que cierran un ítem en la sesión configurados son 2
+      Y que la persona falló I1 en su primer intento de la sesión
+      Cuando acierta I1 en su primer reintento, falla en el segundo y acierta en el tercero
+      Entonces I1 no vuelve a presentarse en esa sesión
+
+    @RECU-6.5 @extrapolacion
+    Escenario: Un reintento fallado vuelve otra vez
+      Dado que la persona falló I1 en su primer intento de la sesión
+      Cuando falla también su primer reintento y responde tres ítems de otros
+      Entonces lo siguiente que se le presenta es I1 otra vez
+
+    @RECU-6.6 @extrapolacion
+    Escenario: Si la sesión no tiene tantos ítems de otros, el ítem vuelve cuando se acaban
+      Dado que la sesión de práctica de O1 presenta solo los ítems I1, I3 e I4, en ese orden
+      Cuando la persona falla I1 y responde I3 e I4
+      Entonces lo siguiente que se le presenta es I1 otra vez
+      Y la sesión no termina antes de ese reintento
+
+    @RECU-6.7 @extrapolacion
+    Escenario: Si la persona termina la sesión sin acertarlo, el ítem no se arrastra a la siguiente
+      Dado que la persona falló I1 en su primer intento de la sesión
+      Cuando termina la sesión antes de acertarlo en un reintento
+      Entonces la aplicación la deja terminar sin pedirle que acierte I1 antes
+      Y I1 no entra en la sesión siguiente por haber quedado sin acertar
+      Y su siguiente repaso es el que decide el planificador con el resultado de su primer intento (PLAN-1.5, PLAN-3.4)
+
+    @RECU-6.8 @extrapolacion
+    Esquema del escenario: Solo vuelven los ítems de las sesiones que enseñan
+      Cuando la persona falla I1 <dónde>
+      Entonces I1 <vuelve>
+
+      Ejemplos:
+        | dónde                                                  | vuelve                                    |
+        | en una sesión de práctica                              | vuelve a presentarse en esa sesión        |
+        | en un repaso programado                                | vuelve a presentarse en ese repaso        |
+        | no reservado en una sesión intercalada                 | vuelve a presentarse en esa sesión        |
+        | en el diagnóstico                                      | no vuelve a presentarse en el diagnóstico |
+        | en una prueba de retención                             | no vuelve a presentarse en la prueba      |
+        | reservado en una sesión intercalada                    | no vuelve a presentarse en esa sesión     |
+        | en un intento de exploración                           | no vuelve por haberlo fallado             |
+        | en una prepregunta                                     | no vuelve por haberlo fallado             |
+        | en el estudio de la mitad recuperada de un experimento | no vuelve a presentarse en el experimento |
+        | en la prueba de un experimento                         | no vuelve a presentarse en el experimento |
+
+    @RECU-6.9 @extrapolacion
+    Escenario: Los ítems entre un intento y su reintento y los aciertos se leen de la configuración
+      Dado que se cambia en config/parametros.json «items_entre_intento_y_reintento» a 1 y «aciertos_para_cerrar_item_en_sesion» a 2
+      Y que la sesión de práctica de O1 presenta los ítems I1 a I7, en ese orden
+      Cuando la persona falla I1, responde I2, acierta I1 en su primer reintento y responde I3
+      Entonces I1 vuelve a presentarse una vez más antes de I4
+      Y si lo acierta de nuevo, ya no vuelve a presentarse en esa sesión
