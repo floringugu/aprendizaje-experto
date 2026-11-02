@@ -1,4 +1,5 @@
 import { esCorrecta, respuestaMostrada } from '../dominio/correccion.ts';
+import { esReservado } from '../dominio/transferencia.ts';
 import type { ItemContenido, ItemValidado } from './contenido.ts';
 import { registrarIntentoYReevaluar } from './criterio-dominio.ts';
 import type { Entorno, Situacion } from './estado.ts';
@@ -24,7 +25,8 @@ function buscarItem(situacion: Situacion, id: string): ItemValidado | undefined 
 
 /**
  * Mientras el diagnóstico está pendiente solo se responden sus ítems; después ya no se responde
- * ninguno como parte del diagnóstico (@DIAG-1.1).
+ * ninguno como parte del diagnóstico (@DIAG-1.1). Un reservado no es del diagnóstico aunque esté
+ * marcado para él (@MAST-8.1), y se responde una sola vez (@MAST-8.5).
  */
 function motivoParaNoResponder(
   situacion: Situacion,
@@ -38,8 +40,11 @@ function motivoParaNoResponder(
   if (!enDiagnostico && contexto === 'diagnostico') {
     return MOTIVO_DIAGNOSTICO_TERMINADO;
   }
-  if (contexto === 'diagnostico' && !item.diagnostico) {
+  if (contexto === 'diagnostico' && (!item.diagnostico || esReservado(item))) {
     return `El ítem ${item.id} no forma parte del diagnóstico.`;
+  }
+  if (esReservado(item) && situacion.estado.ultimoIntentoDeCadaItem().has(item.id)) {
+    return `El ítem ${item.id} ya se ha presentado: es un caso nuevo y se presenta una sola vez.`;
   }
   return undefined;
 }
@@ -93,7 +98,9 @@ export function responderItem(
  * Corrige la respuesta comparándola con el contenido y registra el intento. La confianza que declare
  * la persona no cambia la corrección (@DIAG-1.2) ni cuenta para el dominio: solo se guarda
  * (@MAST-3.1). El feedback sale siempre, acierte o falle (@RECU-2.1), y su explicación es el
- * `feedback` del autor tal cual (@RECU-2.2).
+ * `feedback` del autor tal cual (@RECU-2.2). El intento de un reservado se registra como
+ * `transferencia`, sea cual sea el contexto en que se respondió (@MAST-8.4, @INTE-5.4): así se
+ * gasta al declarar la confianza, no al presentarlo (@MAST-8.6).
  */
 export function declararConfianza(entorno: Entorno, peticion: PeticionConfianza): Resultado<Feedback> {
   return enDominio(entorno, peticion.dominio, (situacion) => {
@@ -106,7 +113,7 @@ export function declararConfianza(entorno: Entorno, peticion: PeticionConfianza)
     const respuestaCorrecta = respuestaMostrada(item.respuesta);
     registrarIntentoYReevaluar(entorno, situacion, {
       fecha: pendiente.fecha,
-      contexto: pendiente.contexto,
+      contexto: esReservado(item) ? 'transferencia' : pendiente.contexto,
       item: item.id,
       objetivo: item.objetivo,
       correcta,

@@ -1,8 +1,13 @@
 import type { PeticionDominio } from './peticiones.ts';
 import type { Resultado } from './resultado.ts';
 
-/** De dónde sale una respuesta. Es la columna `contexto` de respuestas.csv (INST-1.3). */
-export type ContextoRespuesta = 'diagnostico' | 'practica' | 'repaso' | 'intercalado' | 'retencion';
+/**
+ * De dónde sale una respuesta. Es la columna `contexto` de respuestas.csv (INST-1.3). La respuesta a
+ * un ítem reservado se registra siempre como `transferencia`, se haya presentado donde se haya
+ * presentado (MAST-8.4, INTE-5.4).
+ */
+export type ContextoRespuesta =
+  'diagnostico' | 'practica' | 'repaso' | 'intercalado' | 'retencion' | 'exploracion' | 'transferencia';
 
 type TipoSesion = 'diagnostico' | 'practica' | 'repaso' | 'retencion';
 

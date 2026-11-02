@@ -61,6 +61,12 @@ export interface EvaluacionObjetivo {
 export interface EvaluacionFase {
   readonly fase: Fase;
   readonly aciertoProblemasSinPista?: number;
+  /** Acierto sobre todos los problemas reservados respondidos, los viejos y los nuevos (MAST-6.12). */
+  readonly aciertoProblemasReservados?: number;
+  /** En la fase intermedia, faltan problemas reservados para medir la transferencia (MAST-6.9). */
+  readonly faltanCasosNuevos?: boolean;
+  /** Se ofrece pedir más problemas reservados (MATE-2.10); va siempre con `faltanCasosNuevos`. */
+  readonly ofrecePedirMasReservados?: boolean;
 }
 
 export interface CasosDeDominio {
@@ -70,6 +76,6 @@ export interface CasosDeDominio {
   consultarObjetivo(peticion: PeticionObjetivo): Resultado<ObjetivoConsultado>;
   /** Recalcula si el objetivo está dominado con el último intento de cada ítem (MAST-1). */
   evaluarObjetivo(peticion: PeticionObjetivo): Resultado<EvaluacionObjetivo>;
-  /** Recalcula la fase con el acierto en problemas intercalados sin pista (MAST-6). */
+  /** Recalcula la fase con el acierto en problemas intercalados sin pista y en los reservados (MAST-6). */
   evaluarFase(peticion: PeticionDominio): Resultado<EvaluacionFase>;
 }

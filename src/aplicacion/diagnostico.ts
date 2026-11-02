@@ -1,5 +1,6 @@
 import type { EntradaDiagnostico } from '../dominio/diagnostico.ts';
 import { evaluarDiagnostico, pasosRetiradosIniciales, problemasIntercalables } from '../dominio/diagnostico.ts';
+import { sinReservados } from '../dominio/transferencia.ts';
 import { intercalarPorTurnos } from '../dominio/turnos.ts';
 import type { ContenidoDominio, ItemContenido } from './contenido.ts';
 import { itemsDelObjetivo } from './contenido.ts';
@@ -14,9 +15,12 @@ import type { Resultado } from './resultado.ts';
 import { aceptar, rechazar } from './resultado.ts';
 import type { Sesion } from './sesiones.ts';
 
-/** Solo los ítems que el autor marcó para el diagnóstico, en el orden del contenido. */
+/**
+ * Solo los ítems que el autor marcó para el diagnóstico, en el orden del contenido. Un reservado no
+ * entra aunque esté marcado: solo se presenta donde se mide la transferencia (@MAST-8.1).
+ */
 function itemsDeDiagnostico(contenido: ContenidoDominio): readonly ItemContenido[] {
-  return contenido.items.filter((item) => item.diagnostico);
+  return sinReservados(contenido.items).filter((item) => item.diagnostico);
 }
 
 /**

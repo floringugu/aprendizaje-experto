@@ -2,8 +2,8 @@
 fase: impl
 area: MAST
 depende: [mast-pasos-transferencia, mast-pasos-borrador, mate-reservados]
-toca: [src/dominio/fases.ts, src/dominio/criterio-dominio.ts, src/dominio/transferencia.ts, src/aplicacion/criterio-dominio.ts, src/aplicacion/practica.ts, src/aplicacion/respuestas.ts, tests/unidad/fases.test.ts, tests/unidad/criterio-dominio.test.ts, tests/unidad/transferencia.test.ts, config/alcance.json, docs/areas/MAST.md]
-estado: abierto
+toca: [src/dominio/fases.ts, src/dominio/criterio-dominio.ts, src/dominio/transferencia.ts, src/aplicacion/criterio-dominio.ts, src/aplicacion/practica.ts, src/aplicacion/respuestas.ts, src/aplicacion/sesiones.ts, src/aplicacion/estado.ts, src/aplicacion/dominio.ts, src/aplicacion/diagnostico.ts, src/aplicacion/progreso.ts, src/aplicacion/avisos-de-reservados.ts, tests/unidad/fases.test.ts, tests/unidad/criterio-dominio.test.ts, tests/unidad/transferencia.test.ts, config/alcance.json, docs/areas/MAST.md, docs/tickets/mast-pasos-fase-avanzada.md, docs/tickets/tare.md, docs/tickets/ayud.md, docs/tickets/inte.md]
+estado: hecho
 ---
 # La transferencia y los casos nuevos en MAST
 

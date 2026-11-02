@@ -1,4 +1,5 @@
 import { problemasIntercalables } from '../dominio/diagnostico.ts';
+import { esReservado } from '../dominio/transferencia.ts';
 import type { ContenidoDominio, ItemContenido } from './contenido.ts';
 import { itemsDelObjetivo } from './contenido.ts';
 
@@ -59,9 +60,4 @@ function categoriasSinReservado(
       return suyos.length > 0 && !suyos.some(esReservado);
     })
     .map((categoria) => ({ tipo: 'categoria_sin_reservado', objetivo, categoria }));
-}
-
-/** Un ítem es reservado solo con `reservado: true`; sin el campo, o con `false`, no lo es. */
-function esReservado({ reservado }: ItemContenido): boolean {
-  return reservado === true;
 }
