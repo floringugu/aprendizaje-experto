@@ -22,7 +22,7 @@ function responderExploracion(actual: Mundo, item: string): void {
 }
 
 /** O4 se aprueba cuando la persona ya está en la fase: se añade a la cola, después de llegar a ella. */
-function aprobarObjetivo(actual: Mundo, objetivo: string, anadir: () => void): void {
+export function aprobarObjetivo(actual: Mundo, objetivo: string, anadir: () => void): void {
   actual.preparar(() => {
     actual.contenido().agregarObjetivo(objetivo);
     anadir();
@@ -84,7 +84,8 @@ When('la persona hace el intento de exploración de {objetivo}', (objetivo: stri
   actual.presentaciones.push(...itemsDe(iniciarSesionDePractica(actual, { objetivo })));
 });
 
-// Para que este intento sea el primero del ítem, el de exploración no ha debido contar.
+// Para que este intento sea el primero del ítem, el de exploración o el de la prepregunta no ha debido
+// contar (MAST-1.5, MAST-1.7).
 When('la persona responde de nuevo {item} de {objetivo} y lo acierta', (item: string, objetivo: string) => {
   const actual = mundo();
   actual.listo();
@@ -92,7 +93,7 @@ When('la persona responde de nuevo {item} de {objetivo} y lo acierta', (item: st
   assert.equal(
     progresoDe(actual, objetivo).itemsSinIntento,
     total,
-    `El intento de exploración de ${item} ya cuenta como intento`,
+    `El intento previo de ${item} (exploración o prepregunta) ya cuenta como intento`,
   );
   responder(actual, { item, correcta: true, contexto: 'practica' });
 });

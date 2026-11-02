@@ -122,8 +122,11 @@ Los pasos de MAST-1.4, 1.5, 6.2, 6.4, 6.7 a 6.14 y 8.1 a 8.6 son del ticket `mas
   - `ofrecePedirMasReservados?: boolean`: se ofrece pedir más reservados (MATE-2.10).
 - `ContextoRespuesta` gana `'exploracion'` (AYUD-5, INST-1.3): la respuesta al intento de exploración se da con ese contexto (`tests/aceptacion/pasos/exploracion.ts`). Una respuesta con ese contexto no cuenta como intento del ítem: no baja `itemsSinIntento` (MAST-1.4, 1.5) ni entra en el acierto de los problemas intercalados (MAST-6.6).
 
+- `ContextoRespuesta` gana `'prepregunta'` (AYUD-8): la respuesta a una prepregunta se da con ese contexto (`tests/aceptacion/pasos/prepreguntas.ts`). Una respuesta con ese contexto no cuenta como intento del ítem: no baja `itemsSinIntento` (MAST-1.6), y el intento posterior sí cuenta como el primero (MAST-1.7). Es el mismo tratamiento que `'exploracion'` en `ultimoIntentoDeCadaItem()`.
+
 **Decisiones de los pasos (etapa 3):**
 
+- **MAST-1.6 y 1.7** (ticket `mast-pasos-prepreguntas`) no tenían pasos y `make cerrar-area A=MAST` los daba sin definir. Están en `escenarios_en_rojo` hasta que lo implemente la etapa 4. O4 se aprueba con 20 ítems de tipo «hecho» con opciones, H1 a H20 (`agregarHechosConOpciones`), que no chocan con los I1 a I60 del contenido de partida. Los pasos «responde de nuevo», «cuenta como el primero» y «faltan {int} ítems» son los de `exploracion.ts`. Hoy fallan porque una prepregunta cuenta como intento: H1, H2 y H3 bajan `itemsSinIntento` de 20 a 17 (MAST-1.6), y H1 ya cuenta antes de responderlo de nuevo (MAST-1.7).
 - **El intento de exploración (MAST-8.1)** es la primera sesión de práctica del objetivo: AYUD-5 aún no tiene pasos ni código.
 - **MAST-1.4 y 1.5:** I1 es de O1 en el contenido de partida; se le da otro `id` (`liberarId`) y O4 se aprueba con un I1 de tipo «problema» y 19 ítems más. Que el segundo intento «cuenta como el primero» se comprueba antes de responder: `itemsSinIntento` de O4 aún es 20.
 - **MAST-6.6** ya estaba en verde antes de este ticket, porque los problemas de O4 no tienen ningún intento intercalado y la fase no se evalúa. No estuvo en `escenarios_en_rojo`.

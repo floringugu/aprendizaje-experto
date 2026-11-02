@@ -3,6 +3,6 @@
   "escenarios_en_rojo": {
     "RECU": ["RECU-2.2", "RECU-4.2", "RECU-5.1", "RECU-5.2", "RECU-5.3", "RECU-5.4", "RECU-5.5", "RECU-5.6", "RECU-5.7", "RECU-5.8", "RECU-5.9", "RECU-5.10", "RECU-5.11", "RECU-5.12", "RECU-5.13"],
     "MATE": [],
-    "MAST": []
+    "MAST": ["MAST-1.6", "MAST-1.7"]
   }
 }
