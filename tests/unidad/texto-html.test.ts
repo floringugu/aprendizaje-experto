@@ -226,6 +226,10 @@ describe('textoDelHtml, regla 5: las entidades', () => {
     expect(texto('<p>a &foo; b &#12a; c &#x; d</p>')).toBe('a &foo; b &#12a; c &#x; d');
   });
 
+  it('una entidad hexadecimal con un carácter que no es hexadecimal se queda tal cual (regla que la feature no cubre)', () => {
+    expect(texto('<p>&#x41g;</p>')).toBe('&#x41g;');
+  });
+
   it('los nombres de entidad distinguen mayúsculas y no heredan las propiedades de un objeto (regla que la feature no cubre)', () => {
     expect(texto('<p>&AMP; &Ntilde; &NTILDE; &constructor; &toString;</p>')).toBe(
       '&AMP; Ñ &NTILDE; &constructor; &toString;',
