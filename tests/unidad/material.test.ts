@@ -159,8 +159,9 @@ describe('anadirMaterial: un fichero', () => {
     ['TEMA1.PDF', 0],
     ['Clase2.PPTX', 1],
     ['RESUMEN.DocX', 1],
+    ['informe.pdf.docx', 1],
   ])(
-    '@MATE-1.1 la extensión de %s se reconoce aunque vaya en mayúsculas (%i conversiones)',
+    '@MATE-1.1 la extensión de %s se reconoce por el final del nombre, aunque vaya en mayúsculas (%i conversiones)',
     async (nombre, conversiones) => {
       const { mesa, llamadas } = entornoConLibreOffice(pdfDePrueba([['Texto']]));
 
@@ -284,6 +285,20 @@ describe('anadirMaterial: una URL', () => {
 
     expect(await anadirUrl(mesa, URL_TEMA3)).toEqual({ ok: true, valor: null });
   });
+
+  it.each([
+    ['text/html', 'html', bytesDe(HTML_TEMA3)],
+    ['application/pdf', 'pdf', pdfDePrueba([['Página web']])],
+  ])(
+    '@MATE-1.5 la copia de una URL con Content-Type «%s» se guarda como web-1.%s',
+    async (tipoContenido, extension, copia) => {
+      const mesa = entornoConLaPagina(tipoContenido, copia);
+
+      await anadirUrl(mesa, URL_TEMA3);
+
+      expect(mesa.contenidos.get(`material/${DOMINIO}/web-1.${extension}`)).toEqual(copia);
+    },
+  );
 
   it.each(['application/pdf', 'Application/PDF; foo=bar'])(
     '@MATE-1.5 una URL con Content-Type «%s» es un PDF: sus páginas salen de pdftotext y se guarda la copia',

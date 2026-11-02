@@ -286,6 +286,17 @@ describe('guardarDocumento: el número de la copia de una URL', () => {
     ]);
   });
 
+  it('@MATE-1.5 el número de la URL nueva se lee entero, también con dos cifras', () => {
+    const { ficheros, guardados } = ficherosEnMemoria();
+    const ruta = `material/${DOMINIO}/web-10`;
+    const entrada = { documento: URL_TEMA4, original: `${ruta}.html`, texto: `${ruta}.texto.json` };
+    ficheros.escribir(INDICE, bytesDe(JSON.stringify([entrada])));
+
+    guardarDocumento(ficheros, DOMINIO, web(URL_TEMA3, 'html', 'la nueva'));
+
+    expect(textoDe(guardados, `material/${DOMINIO}/web-11.html`)).toBe('la nueva');
+  });
+
   it('@MATE-1.5 los ficheros con nombre no cuentan para el número: la primera URL sigue siendo la 1', () => {
     const { ficheros, guardados } = ficherosEnMemoria();
     guardarDocumento(ficheros, DOMINIO, pdf('web-7.pdf'));

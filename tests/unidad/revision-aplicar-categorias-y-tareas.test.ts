@@ -55,6 +55,17 @@ describe('aplicar: categorías', () => {
     },
   );
 
+  it('un ítem de una categoría pendiente no se aprueba aunque el aprobado tenga otras categorías: categoria_pendiente (regla que la feature no cubre)', () => {
+    const mesa = mesaDe(
+      { categorias: [categoria('C2')], items: [itemDeCategoria('I7', 'C2')] },
+      { objetivos: [objetivo('O1')], categorias: [categoria('C1')] },
+    );
+    expect(rechazado(mesa, { tipo: 'aprobar', pieza: 'I7' })).toMatchObject({
+      ok: false,
+      causa: 'categoria_pendiente',
+    });
+  });
+
   it('un ítem con su objetivo y su categoría pendientes se rechaza primero por el objetivo (regla que la feature no cubre)', () => {
     const mesa = mesaDe({
       objetivos: [objetivo('O4')],
@@ -85,6 +96,13 @@ describe('aplicar: categorías', () => {
   it('@MATE-4.6 una categoría corregida ocupa el mismo sitio del borrador y sigue pendiente', () => {
     const mesa = mesaDe({ categorias: [categoria('C1'), categoria('C2')] });
     const corregida = { ...categoria('C1'), descripcion: 'Nueva descripción', grupo_parecidas: 'G1' };
+    const nueva = aplicado(mesa, { tipo: 'corregir', pieza: 'C1', corregida });
+    expect(nueva.borrador.categorias).toStrictEqual([corregida, categoria('C2')]);
+  });
+
+  it('@MATE-4.6 el «antes de» solo se comprueba en las tareas: una categoría corregida con uno se guarda (regla que la feature no cubre)', () => {
+    const mesa = mesaDe({ categorias: [categoria('C1'), categoria('C2')] });
+    const corregida = { ...categoria('C1'), antes_de: 'T9' };
     const nueva = aplicado(mesa, { tipo: 'corregir', pieza: 'C1', corregida });
     expect(nueva.borrador.categorias).toStrictEqual([corregida, categoria('C2')]);
   });

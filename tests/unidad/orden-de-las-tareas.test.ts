@@ -68,6 +68,10 @@ describe('conLaTareaAprobada: la cadena de tareas pendientes', () => {
     expect(aprobadasEnOrden(CADENA, ['T3'])).toStrictEqual(['T3', 'T1', 'T2']);
   });
 
+  it('@MATE-4.11 la cadena sigue el «antes de» de la tarea a la que llega, no la primera del borrador', () => {
+    expect(aprobadasTras(T3_ANTES_DE_T4, [tarea('T5'), tareaAntesDe('T4', 'T1')])).toStrictEqual(['T3', 'T1', 'T2']);
+  });
+
   it.each([
     ['un ciclo T3, T4, T3', [tareaAntesDe('T4', 'T3')]],
     ['un ciclo al que T3 no pertenece', [tareaAntesDe('T4', 'T5'), tareaAntesDe('T5', 'T4')]],

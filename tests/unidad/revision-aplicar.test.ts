@@ -252,6 +252,13 @@ describe('aplicar: corregir', () => {
     expect(nueva.borrador.ejemplos_resueltos).toStrictEqual([{ ...corregida, objetivo: 'O1' }]);
   });
 
+  it('@MATE-4.6 un ejemplo que va aparte conserva su objetivo aunque la corrección traiga otro que no existe', () => {
+    const mesa = mesaDe({ ejemplos_resueltos: [{ ...ejemplo('E2'), objetivo: 'O1' }] });
+    const corregida = { id: 'E2', pasos: ['Nuevo paso'], objetivo: 'O9' };
+    const nueva = aplicado(mesa, { tipo: 'corregir', pieza: 'E2', corregida });
+    expect(nueva.borrador.ejemplos_resueltos).toStrictEqual([{ id: 'E2', pasos: ['Nuevo paso'], objetivo: 'O1' }]);
+  });
+
   it('@MATE-4.6 un ejemplo de dentro de su objetivo se corrige en su sitio, sin `objetivo`', () => {
     const mesa = mesaDe({ objetivos: [objetivo('O1', [ejemplo('E1'), ejemplo('E2')])] });
     const corregida = { id: 'E1', pasos: ['Nuevo paso'] };
