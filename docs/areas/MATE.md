@@ -266,8 +266,22 @@ Partidas de `docs/deuda-diseno.md` que se pagaron en esta área, con el commit q
 
 Puntuación de `make mutacion` al cerrar el área, y los mutantes supervivientes que se aceptaron con su motivo.
 
-- **Puntuación:** … %
-- **Supervivientes aceptados:** …
+- **Puntuación:** 97,74 % en total (2021 mutantes eliminados, 13 por tiempo, 42 supervivientes y 5 sin cobertura), y 97,56 % en los 15 ficheros donde quedan mutantes de MATE; el más bajo es `redaccion-ids.ts`, con 91,67 %. Antes del cierre era 97,31 %: nueve tests nuevos mataron 11 mutantes, en `material-guardado.test.ts`, `material.test.ts`, `mesa-guardada.test.ts` (nuevo), `orden-de-las-tareas.test.ts`, `revision-aplicar-categorias-y-tareas.test.ts`, `revision-aplicar.test.ts` y `texto-html.test.ts`.
+- **Con `--force`:** `make mutacion` es incremental y reutilizó 1448 de 2081 resultados. Los cuatro mutantes de constantes del módulo (`material-guardado.ts:134`, `material.ts:148` y `:153`, `texto-html.ts:32`) siguieron vivos aunque ya había tests que los matan. Con `npx stryker run --force`, que vuelve a ejecutarlos todos, murieron.
+- **Supervivientes aceptados**, los 44 de MATE (los de `acierto.ts:50`, `diagnostico.ts:60` y `correccion.ts:30` ya están aceptados en DIAG y RECU):
+  - **Equivalentes (28).**
+    - Guardas que solo están para TypeScript: `material.ts:250:42` (`?? ''` tras un `split`, que siempre da un elemento), `revision.ts:233:89` y `citas.ts:179:42` (`?? []`), y `redaccion-ids.ts:53:22` y `:53:63` (el valor por defecto solo se usa si `exec` da `null`, y entonces no se lee).
+    - Lo comprueba otra cosa antes: `formato-contenido.ts:256:24`, `:256:56` y `:257:25` (la regla anterior ya deja las opciones en una lista de textos), `redaccion-formato.ts:138:20` (`listaDe` ya da `[]`), `redaccion.ts:238:19` y `:239:18` (un `antes_de` que no es texto, o que falta, no está en `existentes`), `orden-de-las-tareas.ts:44:27` y `:46:10`, y `revision.ts:328:40` y `:397:20`.
+    - Anclas de una expresión regular que no cambian nada: `formato-contenido.ts:339:50` (va tras `startsWith('el ')`) y el `^` de `texto-html.ts:32:29` y `:33:25` (`ENTIDAD` solo deja `#` en la primera posición).
+    - Mismo resultado por otro camino: `material.ts:183:25` (añade `pdfConvertido: undefined`, que `guardarDocumento` trata como ausente), `redaccion.ts:245:29` (solo cambia la identidad de la lista), `revision.ts:150:10`, `:151:5` y `:151:10` (caer del `switch` también da `undefined`), `texto-html.ts:138:11` (un `catch {}` vacío también da `undefined`), `revision-del-material.ts:155:80`, `:155:91` y `:155:103` (`buscarPieza` no encuentra un id en un texto) y `citas.ts:117:27` (un texto en `tramos` nunca se usa).
+  - **Código defensivo (6).** `mesa-guardada.ts:55:11`, `:55:44`, `:139:9` y `:139:42`: el `throw error` que relanza lo que no es `SyntaxError`, y `JSON.parse` sobre texto ya decodificado solo lanza ese. Se deja porque dice el contrato y no se traga un fallo inesperado. `revision.ts:331:18` y `:331:37`: `dentro` sobra, porque el objetivo de un ejemplo de dentro está en el borrador y `idRepetido` impide que esté también en el aprobado. Se deja porque escribe la regla que cuenta el comentario.
+  - **Solo los mata una entrada que el formato o el puerto no dan (10).** No llevan test, para no fijar un comportamiento que nada pide:
+    - `avisos-de-reservados.ts:32:20` y `:32:79`: dos categorías del aprobado con el mismo id.
+    - `inicio-sesion.ts:107:3` y `:120:3`: un `iniciarSesion` que lanza, que el puerto no prevé; el `?.` es defensivo.
+    - `material-guardado.ts:134:26`, sin el `$`: un PDF de la persona que se llame `web-7.texto.json.pdf`.
+    - `redaccion-formato.ts:145:10` y `:148:21`: un id que no es texto. Por `incorporarEntrega` no se distingue, y solo se vería en `revisarEntrega(...).ids`, que solo se consulta con ids de texto.
+    - `redaccion-ids.ts:31:23`: un id con un salto de línea.
+    - `revision.ts:157:21` y `:311:21`: una pieza que no es un ítem y trae de más `reservado` o `categoria`.
 
 ## Bloqueos de los hooks
 

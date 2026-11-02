@@ -2,8 +2,8 @@
 fase: impl
 area: MATE
 depende: [mate-reservados, mate-mesa-y-dominio, mate-tarea-a-tare, mate-sesiones-a-plan-inte, mate-diagrama-al-aprobar, mate-pasos-tipos-de-src]
-toca: [config/alcance.json, docs/areas/MATE.md, docs/deuda-diseno.md, docs/tickets/pant.md]
-estado: abierto
+toca: [config/alcance.json, docs/areas/MATE.md, docs/deuda-diseno.md, docs/tickets/pant.md, docs/tickets/specs-mate-evidencia.md, docs/tickets/recu-aceptacion-item-numerico.md, tests/unidad/material-guardado.test.ts, tests/unidad/material.test.ts, tests/unidad/mesa-guardada.test.ts, tests/unidad/orden-de-las-tareas.test.ts, tests/unidad/revision-aplicar-categorias-y-tareas.test.ts, tests/unidad/revision-aplicar.test.ts, tests/unidad/texto-html.test.ts]
+estado: hecho
 ---
 # Cierre de MATE
 
