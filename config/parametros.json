@@ -129,6 +129,14 @@
     "extrapolacion": true,
     "nota": "Métrica de la Fase 1 en la propuesta de framework (sección 4). Los plazos de 1 y 4 semanas no salen de un estudio citado."
   },
+  "tolerancia_numerica_relativa": {
+    "descripcion": "Margen relativo con el que se acepta la respuesta a un ítem numérico (0,01 es el 1 %) cuando el ítem no trae el suyo: vale la respuesta cuyo valor está a una distancia del valor del ítem no mayor que este margen por el valor absoluto del ítem.",
+    "valor": 0.01,
+    "seccion": ["2.5"],
+    "nivel_evidencia": "extrapolación del autor",
+    "extrapolacion": true,
+    "nota": "El informe no trata las respuestas numéricas: su sección 2.5 solo respalda que la persona no se corrija sola (RECU-3.3); que la corrección sea automática y la tolerancia numérica son decisión del autor (plan §17.6, I8 e I11). El 1 % deja pasar el redondeo habitual (9,8 por 9,81, un 0,1 % de diferencia) y rechaza un valor con otro orden de error (10 por 9,81, un 2 %). Es decisión del autor, sin evidencia propia, y cada ítem puede traer el suyo."
+  },
   "escala_confianza": {
     "descripcion": "Escala en la que la persona declara su confianza en cada respuesta. Solo sirve para calibrar.",
     "valor": {
