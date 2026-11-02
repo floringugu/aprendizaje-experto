@@ -106,6 +106,12 @@ describe('abrirWorktree', () => {
     expect(ramasDelCarril(raiz, 'pasos')).toEqual([]);
   });
 
+  it('abre specs en un área cerrada, para cambiarla', () => {
+    const raiz = principal();
+    expect(abrirWorktree(raiz, { ...PASOS, fase: 'specs', area: 'DIAG' }).ok).toBe(true);
+    expect(ramaDe(directorioDeWorktree(raiz, 'pasos'))).toBe('specs/DIAG/pasos');
+  });
+
   it('se niega si el carril ya tiene ramas o ya existe su directorio', () => {
     const conRama = principal();
     gitBien(conRama, ['branch', 'specs/MATE/pasos-3']);
@@ -157,6 +163,16 @@ describe('abrirWorktree con ticket', () => {
     const forzado = abrirWorktree(raiz, { ...SOLO_NOMBRE, forzar: true });
     expect(forzado.mensajes[1]).toBe('Abierto con FORZAR=1.');
     expect(ramaDe(directorioDeWorktree(raiz, 'pasos'))).toBe('impl/MATE/pasos');
+  });
+
+  it('no da por listo un ticket specs de un área cerrada con pendientes, y lo abre con FORZAR=1', () => {
+    const raiz = conTickets({ pasos: { fase: 'specs', area: 'DIAG' } });
+    const conPendientes = { areas_cerradas: ['DIAG'], escenarios_en_rojo: { DIAG: ['DIAG-1.1'] } };
+    commit(raiz, 'pendientes', { 'config/alcance.json': JSON.stringify(conPendientes) });
+    gitBien(raiz, ['push', '--quiet', 'origin', 'main']);
+    expect(negativa(abrirWorktree(raiz, SOLO_NOMBRE))).toMatch(/no está listo: DIAG tiene pendientes de otro cambio\./);
+    expect(abrirWorktree(raiz, { ...SOLO_NOMBRE, forzar: true }).ok).toBe(true);
+    expect(ramaDe(directorioDeWorktree(raiz, 'pasos'))).toBe('specs/DIAG/pasos');
   });
 
   it('no abre un ticket hecho, ni con FORZAR=1', () => {

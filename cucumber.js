@@ -1,9 +1,9 @@
 // Cucumber: features en español, steps en TypeScript (Node los carga sin compilar).
-// Solo se ejecutan las áreas en alcance (scripts/arnes/comun/alcance.ts), seleccionadas por etiqueta:
-//   perfil por defecto: las áreas cerradas, que deben seguir en verde (regresión);
-//   perfil «area» (--profile area): las cerradas y el área en curso del checkout.
+// Solo se ejecutan los escenarios en alcance (scripts/arnes/comun/alcance.ts), seleccionados por etiqueta:
+//   perfil por defecto: los de las áreas cerradas, que deben seguir en verde (regresión), sin sus pendientes;
+//   perfil «area» (--profile area): además, los del área en curso del checkout, con sus pendientes.
 // strict: un paso pendiente o sin definir hace fallar la ejecución.
-import { areasEnAlcance, expresionEtiquetasCucumber, leerAlcance } from './scripts/arnes/comun/alcance.ts';
+import { expresionEtiquetasCucumber, leerAlcance, seleccionEnAlcance } from './scripts/arnes/comun/alcance.ts';
 
 const alcance = leerAlcance(import.meta.dirname);
 
@@ -15,6 +15,6 @@ const comun = {
   format: ['progress', 'message:reports/cucumber.ndjson'],
 };
 
-export default { ...comun, tags: expresionEtiquetasCucumber(areasEnAlcance(alcance, false)) };
+export default { ...comun, tags: expresionEtiquetasCucumber(seleccionEnAlcance(alcance, false)) };
 
-export const area = { ...comun, tags: expresionEtiquetasCucumber(areasEnAlcance(alcance, true)) };
+export const area = { ...comun, tags: expresionEtiquetasCucumber(seleccionEnAlcance(alcance, true)) };

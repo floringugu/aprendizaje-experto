@@ -4,12 +4,13 @@
 // En la etapa 3 los steps del área en curso existen pero su aplicación no. Cada escenario debe
 // tener todos sus pasos definidos y fallar de verdad: ni pendiente, ni saltado, ni en verde.
 // Un escenario en verde sin aplicación indica un Then que no comprueba nada.
-// Las áreas cerradas ya tienen aplicación: su regresión sigue en verde. Lo mismo vale para los
-// escenarios que un área reabierta no lista en `escenarios_en_rojo` (config/alcance.json).
+// Las áreas cerradas ya tienen aplicación: su regresión sigue en verde, salvo sus pendientes, que
+// no se comprueban (alcance.ts). Si el área en curso está cerrada, o en su etapa 4 ya implementó
+// algo, solo están en rojo los escenarios de su lista de `escenarios_en_rojo` (config/alcance.json).
 import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, rmSync } from 'node:fs';
 import path from 'node:path';
-import { areaDe, escenariosEnRojo, leerAlcance } from './comun/alcance.ts';
+import { areaDe, escenariosEnRojo, estaEnAlcance, leerAlcance, seleccionEnAlcance } from './comun/alcance.ts';
 import type { Alcance } from './comun/alcance.ts';
 import { enRojoSinEscenario, esperadoEnCurso, problemasDeEscenario } from './comun/estado-escenarios.ts';
 import { pasosPorEscenario, RUTA_MENSAJES_CUCUMBER } from './comun/estados-cucumber.ts';
@@ -50,14 +51,18 @@ function principal(): number {
   return 1;
 }
 
-/** Los escenarios del área en curso (rojo, salvo los ya implementados de un área reabierta) y los de las cerradas (verde). */
+/**
+ * Los escenarios del área en curso (rojo, salvo los que no están en su lista de escenarios_en_rojo) y
+ * los de las cerradas (verde), sin los pendientes de estas.
+ */
 function escenariosEnAlcance(alcance: Alcance, enRojo: readonly string[] | undefined): Map<string, 'rojo' | 'verde'> {
+  const seleccion = seleccionEnAlcance(alcance, true);
   const ids = leerFeatures(RAIZ).elementos.flatMap((elemento) =>
     elemento.tipo === 'Scenario' ? (idDe(elemento) ?? []) : [],
   );
   const esperados = ids.flatMap((id): [string, 'rojo' | 'verde'][] => {
-    if (areaDe(id) === alcance.enCurso) return [[id, esperadoEnCurso(id, enRojo)]];
-    return alcance.cerradas.includes(areaDe(id)) ? [[id, 'verde']] : [];
+    if (!estaEnAlcance(seleccion, id)) return [];
+    return [[id, areaDe(id) === alcance.enCurso ? esperadoEnCurso(id, enRojo) : 'verde']];
   });
   return new Map(esperados);
 }

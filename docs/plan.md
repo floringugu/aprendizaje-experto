@@ -479,6 +479,7 @@ Además, specs y aceptacion escriben rutas con dueño, así que sus PR siempre t
 **Área en curso y áreas cerradas.** Lo que se comprueba depende de ellas, no de una lista de áreas pendientes:
 
 - **Cerradas** (`areas_cerradas` en `config/alcance.json`, §8): su aceptación debe seguir en verde. Es la regresión.
+- **Pendientes de un área cerrada** (02-11-2026): un área cerrada se cambia sin reabrirla. Sigue en `areas_cerradas`, y specs apunta los escenarios que le añade o le cambia en su lista de `escenarios_en_rojo` (§8). Son una mini área: pasan por specs, aceptación e impl, y la regresión y la tabla de cobertura se los saltan, salvo donde el área es la en curso, hasta que impl vacía la lista y pasa `make cerrar-area A=<ÁREA>`. `make abrir` y `make fase` dejan entrar en un área cerrada a specs siempre, y a aceptacion e impl solo si tiene pendientes. Cada área tiene una sola mini área a la vez, porque `estado-aceptacion` exige que fallen todos los escenarios de la lista. Un ticket specs que cambia varias áreas apunta los IDs de cada una en su lista y crea un ticket de aceptación y otro de impl por área.
 - **En curso** (`ARNES_AREA`): la de la conversación. En la fase `impl`, `make check` no le exige la aceptación, porque mientras se implementa está a medias; `make cerrar-area A=<ÁREA>` sí, y es lo último que se ejecuta al cerrarla. En la fase `aceptacion`, `estado-aceptacion` le exige rojo, y verde a las cerradas.
 - El resto de las áreas no se comprueba. Cuando una área se cierra, Claude la añade a `areas_cerradas` en el PR del cierre, que espera a tu visto bueno.
 
@@ -501,19 +502,19 @@ Además, specs y aceptacion escriben rutas con dueño, así que sus PR siempre t
 **Tickets** (`docs/tickets/<id>.md`, 31-10-2026). Son opcionales. Un ticket es el trabajo de un carril: su `<id>` es el nombre del carril, y lleva una fase y un área. Hay un fichero por ticket, para que dos carriles no choquen al crearlos; los que empiezan por `_`, como `_plantilla.md`, no son tickets. El frontmatter (`scripts/arnes/comun/tickets.ts`, con un parser propio de `clave: valor` y listas `[a, b]`):
 
 - `fase` y `area`;
-- `depende`: un id en minúsculas es un ticket, cumplido cuando tiene `estado: hecho` en `origin/main`; un área en mayúsculas, cumplida cuando está en `areas_cerradas` de `origin/main`. Así, las dependencias entre áreas no se rompen cuando un ticket grueso se divide;
+- `depende`: un id en minúsculas es un ticket, cumplido cuando tiene `estado: hecho` en `origin/main`; un área en mayúsculas, cumplida cuando está en `areas_cerradas` de `origin/main` y no tiene pendientes («Área en curso y áreas cerradas», arriba). Así, las dependencias entre áreas no se rompen cuando un ticket grueso se divide;
 - `toca`: la huella prevista, con rutas, carpetas (acaban en `/`) y patrones con `*`. Avisa de los solapes, no los prohíbe;
 - `estado`: `abierto`, `hecho` o `descartado`. Es lo único de estado que se escribe a mano.
 
-El cuerpo empieza por el título (`# …`) y lleva «Qué», «Hecho cuando» y «Leer primero». El resto del estado no se guarda: lo calcula `scripts/arnes/comun/estado-tickets.ts` con los tickets y las `areas_cerradas` de `origin/main`, los carriles abiertos (`git worktree list`), lo que ha commiteado cada uno sin fusionar y los PR abiertos (`gh pr list`; si falla, se omiten):
+El cuerpo empieza por el título (`# …`) y lleva «Qué», «Hecho cuando» y «Leer primero». El resto del estado no se guarda: lo calcula `scripts/arnes/comun/estado-tickets.ts` con los tickets, las `areas_cerradas` y sus pendientes de `origin/main`, los carriles abiertos (`git worktree list`), lo que ha commiteado cada uno sin fusionar y los PR abiertos (`gh pr list`; si falla, se omiten):
 
 | Estado | Cuándo |
 |---|---|
 | hecho, descartado | Su `estado` en `origin/main`. Si su carril sigue abierto, el tablero avisa de que está para retirar. |
 | en revisión | Su carril está abierto y su rama tiene un PR abierto. |
 | en curso | Su carril está abierto. |
-| listo | Todas sus dependencias están cumplidas y su `toca` no se solapa con ningún carril abierto. |
-| bloqueado | Dice qué dependencias faltan y con qué carriles y ficheros se solapa. |
+| listo | Se puede abrir: todas sus dependencias están cumplidas, su `toca` no se solapa con ningún carril abierto y su área vale para su fase. En un área cerrada, specs vale si no tiene pendientes, y aceptacion e impl, si los tiene. |
+| bloqueado | Dice qué dependencias faltan, por qué no vale su área y con qué carriles y ficheros se solapa. `FORZAR=1` lo abre igual, por ejemplo un ticket specs que corrige la spec de los pendientes de su área; no salta la comprobación del área de `make abrir`. |
 
 La huella de un carril abierto es el `toca` de su ticket más lo que ya ha commiteado. Un carril sin ticket solo cuenta por lo commiteado, y el tablero lo avisa. Dos huellas se solapan si algún fichero del árbol de `origin/main`, o alguna ruta sin `*` de las dos, casa con una entrada de cada una.
 
@@ -614,10 +615,11 @@ Hasta el 31-10-2026 también fallaba si nadie citaba en `src/` ni en `tests/unid
 
 **`config/alcance.json`**
 
-- `areas_cerradas` lista los prefijos de las áreas ya implementadas y cerradas, por ejemplo `["DIAG", "RECU"]`. Cambia una vez por área, al cerrarla.
+- `areas_cerradas` lista los prefijos de las áreas ya implementadas y cerradas, por ejemplo `["DIAG", "RECU"]`. Cambia una vez por área, al cerrarla, y no se quita nunca.
 - El área en curso no está en el fichero: es la de cada conversación (`ARNES_AREA`, §6).
-- `escenarios_en_rojo` (opcional) va por área: `{"DIAG": ["DIAG-2.4"]}`. Al reabrir un área ya implementada para cambiar unos pocos escenarios, el resto sigue pasando y no puede fallar en la etapa 3. `estado-aceptacion` exige rojo solo a los listados y mantiene en verde a los demás. Sin entrada, falla toda el área en curso, que es lo normal. Al cerrar el área se borra la entrada.
-- En alcance están las cerradas más el área en curso. Cucumber (perfil por defecto, el de `make check`) ejecuta solo las cerradas, por etiqueta; el perfil `area` (`make cerrar-area`, `estado-aceptacion`) suma el área en curso. `--con-area-en-curso` hace lo mismo en la tabla; el resto de las áreas se marca como `FUERA_DE_ALCANCE`.
+- `escenarios_en_rojo` (opcional) va por área: `{"DIAG": ["DIAG-2.4"]}`. Son los escenarios del área que aún no pasan: `estado-aceptacion` exige rojo solo a los listados y mantiene en verde a los demás, e impl quita cada uno al implementarlo. Sin entrada, en un área sin cerrar falla toda el área en curso, que es lo normal.
+- En un área cerrada, la lista son sus pendientes (§6, 02-11-2026): los escenarios que specs le ha añadido o cambiado. Antes, para cambiar un área cerrada se la quitaba de `areas_cerradas`, como DIAG el 25-10-2026 (`0439009` y `2927e70`, 9 horas sin su regresión). El 02-11-2026, `make abrir N=specs-reaprendizaje-sucesivo` se negaba porque RECU estaba cerrada, también con `FORZAR=1`, y sacarla habría dejado días sin la regresión de todo RECU. Con la lista, solo se saltan los pendientes.
+- En alcance están las cerradas, sin sus pendientes, más el área en curso. Cucumber (perfil por defecto, el de `make check`) ejecuta solo las cerradas, por etiqueta, y quita los pendientes por la etiqueta de su ID; el perfil `area` (`make cerrar-area`, `estado-aceptacion`) suma el área en curso, con sus pendientes. `--con-area-en-curso` hace lo mismo en la tabla; el resto de las áreas se marca como `FUERA_DE_ALCANCE`, y los pendientes que se saltan, como `PENDIENTE`.
 - Así `make check` puede estar en verde mientras se avanza área por área en la etapa 4, y varias conversaciones pueden trabajar en áreas distintas a la vez.
 - Solo lo cambias tú.
 
@@ -873,7 +875,7 @@ Para cada área:
 5. Dejo `make check` en verde, que no incluye la aceptación del área en curso.
 6. Cierro el área con `make cerrar-area A=<ÁREA>`: además de lo anterior, exige en verde la aceptación y la cobertura de sus escenarios. Ejecuto los dos revisores, `make mutacion` y `make bloqueos A=<ÁREA>`, este desde la carpeta principal, que tiene el registro de los hooks (§5).
 7. Completo el archivo del área: mecanismo, interfaces descartadas y por qué, deuda pagada, puntuación de mutación y bloqueos de los hooks.
-8. Apunto en `docs/deuda-diseno.md` las partidas nuevas del revisor, las pagadas y la línea del área. Añado el área a `areas_cerradas` en `config/alcance.json` (§6) y abro el PR, que espera a tu visto bueno porque `config/` tiene dueño. Te doy un resumen breve y, si la línea de trabajo ha terminado, el comando para retirar el carril (`make retirar`) después de la fusión.
+8. Apunto en `docs/deuda-diseno.md` las partidas nuevas del revisor, las pagadas y la línea del área. Añado el área a `areas_cerradas` en `config/alcance.json` (§6); si ya estaba cerrada y el cambio eran sus pendientes, solo vacío su lista de `escenarios_en_rojo`. Abro el PR, que espera a tu visto bueno porque `config/` tiene dueño. Te doy un resumen breve y, si la línea de trabajo ha terminado, el comando para retirar el carril (`make retirar`) después de la fusión.
 
 Antes del código de cada fichero nuevo de `src/`, de cualquier capa (`docs/arnes.md`, §6, y skill `codebase-design`):
 

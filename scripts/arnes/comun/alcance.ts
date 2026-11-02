@@ -1,6 +1,8 @@
-// Qué áreas se comprueban: las cerradas (config/alcance.json) y el área en curso del checkout
-// (faseYAreaDelCheckout en checkout.ts). El resto de las áreas está fuera de alcance. Cada worktree
-// tiene su propia área en curso.
+// Qué escenarios se comprueban: los de las áreas cerradas (config/alcance.json) y los del área en
+// curso del checkout (faseYAreaDelCheckout en checkout.ts). El resto de las áreas está fuera de
+// alcance. Cada worktree tiene su propia área en curso. Un área cerrada se cambia sin reabrirla: los
+// escenarios que specs le añade o le cambia son sus pendientes (su lista de escenarios_en_rojo), y
+// solo se comprueban donde es el área en curso, hasta que impl vacía la lista (docs/plan.md §6).
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { esArea, faseYAreaDelCheckout } from './checkout.ts';
@@ -9,39 +11,62 @@ import { idDe, leerFeatures } from './gherkin.ts';
 
 const RUTA_ALCANCE = 'config/alcance.json';
 
-export interface Alcance {
-  /** Áreas implementadas y aceptadas: sus escenarios deben seguir en verde. */
+export interface AreasCerradas {
+  /** Áreas implementadas y aceptadas: sus escenarios deben seguir en verde, salvo los pendientes. */
   readonly cerradas: readonly string[];
+  /** Los IDs de escenarios_en_rojo de las áreas cerradas: los que specs ha añadido o cambiado y aún no pasan. */
+  readonly pendientes: readonly string[];
+}
+
+export interface Alcance extends AreasCerradas {
   /** Área que se implementa en el checkout, si el dueño la fijó. */
   readonly enCurso: string | undefined;
 }
 
-/** Las áreas cerradas del fichero (ninguna si no existe) y el área en curso del checkout `raiz`. */
+/** Las áreas cerradas del fichero (ninguna si no existe), sus pendientes y el área en curso del checkout `raiz`. */
 export function leerAlcance(raiz: string): Alcance {
-  return { cerradas: leerAreasCerradas(raiz), enCurso: faseYAreaDelCheckout(raiz).area };
+  return { ...leerAreasCerradas(raiz), enCurso: faseYAreaDelCheckout(raiz).area };
 }
 
-function leerDatos(raiz: string): Record<string, unknown> {
+function leerTexto(raiz: string): string | undefined {
   const ruta = path.join(raiz, RUTA_ALCANCE);
-  return existsSync(ruta) ? (JSON.parse(readFileSync(ruta, 'utf8')) as Record<string, unknown>) : {};
+  return existsSync(ruta) ? readFileSync(ruta, 'utf8') : undefined;
 }
 
-function leerAreasCerradas(raiz: string): string[] {
-  if (!existsSync(path.join(raiz, RUTA_ALCANCE))) return [];
-  const areas = leerDatos(raiz)['areas_cerradas'];
-  if (!Array.isArray(areas) || !areas.every((area) => typeof area === 'string' && esArea(area))) {
+function datosDe(texto: string | undefined): Record<string, unknown> {
+  return texto === undefined ? {} : (JSON.parse(texto) as Record<string, unknown>);
+}
+
+function leerAreasCerradas(raiz: string): AreasCerradas {
+  return areasCerradasDe(leerTexto(raiz));
+}
+
+/**
+ * Las áreas cerradas y sus pendientes según el texto de config/alcance.json, de este checkout o de
+ * origin/main; ninguna sin texto (no hay fichero). Lanza si el fichero no vale.
+ */
+export function areasCerradasDe(texto: string | undefined): AreasCerradas {
+  if (texto === undefined) return { cerradas: [], pendientes: [] };
+  const datos = datosDe(texto);
+  const cerradas = datos['areas_cerradas'];
+  if (!Array.isArray(cerradas) || !cerradas.every((area) => typeof area === 'string' && esArea(area))) {
     throw new Error(`${RUTA_ALCANCE}: «areas_cerradas» debe ser una lista de prefijos, p. ej. ["MAST"].`);
   }
-  return areas as string[];
+  const areas = cerradas as string[];
+  return { cerradas: areas, pendientes: areas.flatMap((area) => listaEnRojo(datos, area) ?? []) };
 }
 
 /**
  * Los escenarios de `area` que deben fallar en la etapa 3 (`escenarios_en_rojo` en config/alcance.json),
- * o undefined si el área no está reabierta y fallan todos. Reabrir un área ya implementada para cambiar
- * unos pocos escenarios deja el resto pasando, y eso no es un Then vacío: esos siguen en verde.
+ * o undefined si el área no tiene lista y fallan todos. En un área cerrada son sus pendientes: el resto
+ * ya pasaba, y eso no es un Then vacío.
  */
 export function escenariosEnRojo(raiz: string, area: string): readonly string[] | undefined {
-  const lista = (leerDatos(raiz)['escenarios_en_rojo'] as Record<string, unknown> | undefined)?.[area];
+  return listaEnRojo(datosDe(leerTexto(raiz)), area);
+}
+
+function listaEnRojo(datos: Record<string, unknown>, area: string): string[] | undefined {
+  const lista = (datos['escenarios_en_rojo'] as Record<string, unknown> | undefined)?.[area];
   if (lista === undefined) return undefined;
   if (!Array.isArray(lista) || !lista.every((id) => typeof id === 'string' && areaDe(id) === area)) {
     throw new Error(
@@ -51,10 +76,38 @@ export function escenariosEnRojo(raiz: string, area: string): readonly string[] 
   return lista as string[];
 }
 
-/** Áreas cerradas más la del área en curso, sin repetir. Con `conEnCurso` false, solo las cerradas (regresión). */
-export function areasEnAlcance(alcance: Alcance, conEnCurso: boolean): string[] {
-  const enCurso = conEnCurso && alcance.enCurso !== undefined ? [alcance.enCurso] : [];
-  return [...new Set([...alcance.cerradas, ...enCurso])];
+/** ¿Tiene `area` pendientes, escenarios que specs le ha añadido o cambiado después de cerrarla? */
+export function tienePendientes(alcance: AreasCerradas, area: string): boolean {
+  return alcance.pendientes.some((id) => areaDe(id) === area);
+}
+
+/** Una dependencia de área se cumple con el área cerrada y sin pendientes. */
+export function areaCumplida(alcance: AreasCerradas, area: string): boolean {
+  return alcance.cerradas.includes(area) && !tienePendientes(alcance, area);
+}
+
+/** Qué escenarios se comprueban: los de `areas`, salvo los `excluidos`. */
+export interface Seleccion {
+  readonly areas: readonly string[];
+  readonly excluidos: readonly string[];
+}
+
+/**
+ * Las áreas cerradas más la del área en curso, sin repetir, y fuera los pendientes de las cerradas,
+ * salvo los del área en curso: los demás aún no pasan. Con `conEnCurso` false, solo las cerradas y
+ * sin ningún pendiente (regresión).
+ */
+export function seleccionEnAlcance(alcance: Alcance, conEnCurso: boolean): Seleccion {
+  const enCurso = conEnCurso ? alcance.enCurso : undefined;
+  return {
+    areas: [...new Set([...alcance.cerradas, ...(enCurso === undefined ? [] : [enCurso])])],
+    excluidos: alcance.pendientes.filter((id) => areaDe(id) !== enCurso),
+  };
+}
+
+/** ¿Se comprueba el ID `id` (de un Feature, una Rule o un Scenario)? */
+export function estaEnAlcance(seleccion: Seleccion, id: string): boolean {
+  return seleccion.areas.includes(areaDe(id)) && !seleccion.excluidos.includes(id);
 }
 
 /** Prefijo de área de un ID: «MAST» en «MAST-1.2». */
@@ -63,12 +116,14 @@ export function areaDe(id: string): string {
 }
 
 /**
- * Expresión de etiquetas para Cucumber que deja solo las áreas en alcance. Sin ninguna, una etiqueta
- * que no existe: una expresión vacía ejecutaría todas.
+ * Expresión de etiquetas para Cucumber que deja solo la selección: sus áreas, sin los excluidos. Sin
+ * áreas, una etiqueta que no existe: una expresión vacía ejecutaría todas.
  */
-export function expresionEtiquetasCucumber(areas: readonly string[]): string {
+export function expresionEtiquetasCucumber({ areas, excluidos }: Seleccion): string {
   if (areas.length === 0) return '@SIN_AREAS_EN_ALCANCE';
-  return areas.map((area) => `@${area}`).join(' or ');
+  const deLasAreas = areas.map((area) => `@${area}`).join(' or ');
+  if (excluidos.length === 0) return deLasAreas;
+  return `(${deLasAreas}) and not (${excluidos.map((id) => `@${id}`).join(' or ')})`;
 }
 
 /** Prefijos de los Feature de features/, ordenados. */
@@ -81,16 +136,23 @@ function areasDeFeatures(raiz: string): string[] {
 
 /**
  * Por qué la fase y el área en curso no valen para una conversación nueva, o undefined si valen.
- * La fase aceptacion necesita área; el área tiene que existir en features/ y no estar cerrada.
+ * La fase aceptacion necesita área; el área tiene que existir en features/ y, si está cerrada, valer
+ * para la fase (problemaDeAreaCerrada).
  */
 export function problemaDeFaseYArea(raiz: string, fase: Fase, area: string | undefined): string | undefined {
   if (area === undefined) {
     return fase === 'aceptacion' ? 'La fase aceptacion necesita el área en curso (A=<ÁREA>).' : undefined;
   }
-  const problema = problemaDeArea(raiz, area);
-  if (problema !== undefined) return problema;
-  if (leerAreasCerradas(raiz).includes(area)) return `El área ${area} ya está cerrada (config/alcance.json).`;
-  return undefined;
+  return problemaDeArea(raiz, area) ?? problemaDeAreaCerrada(leerAreasCerradas(raiz), fase, area);
+}
+
+/**
+ * Por qué no se trabaja en el área cerrada `area` en la fase `fase`, o undefined si se puede o si no
+ * está cerrada. specs la cambia cuando quiere; aceptacion e impl, solo si tiene pendientes.
+ */
+export function problemaDeAreaCerrada(alcance: AreasCerradas, fase: Fase, area: string): string | undefined {
+  if (fase === 'specs' || !alcance.cerradas.includes(area) || tienePendientes(alcance, area)) return undefined;
+  return `El área ${area} ya está cerrada y no tiene pendientes (escenarios_en_rojo en ${RUTA_ALCANCE}): para cambiarla, empieza por specs.`;
 }
 
 /**

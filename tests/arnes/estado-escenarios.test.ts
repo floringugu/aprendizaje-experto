@@ -37,7 +37,9 @@ describe('problemasDeEscenario', () => {
     });
 
     it('que falle o se salte un paso es una regresión', () => {
-      const regresion = ['@MAST-1.1 ya pasaba (área cerrada o reabierta) y ya no pasa: es una regresión.'];
+      const regresion = [
+        '@MAST-1.1 ya pasaba (área cerrada o escenario ya implementado) y ya no pasa: es una regresión.',
+      ];
       expect(problemasDeEscenario('MAST-1.1', ['PASSED', 'FAILED'], 'verde')).toEqual(regresion);
       expect(problemasDeEscenario('MAST-1.1', ['SKIPPED'], 'verde')).toEqual(regresion);
     });
@@ -52,7 +54,7 @@ describe('problemasDeEscenario', () => {
       expect(esperadoEnCurso('DIAG-1.1', undefined)).toBe('rojo');
     });
 
-    it('en un área reabierta, solo los escenarios de la lista van en rojo y el resto sigue en verde', () => {
+    it('en un área con lista, solo sus escenarios van en rojo y el resto sigue en verde', () => {
       expect(esperadoEnCurso('DIAG-2.4', ['DIAG-2.4'])).toBe('rojo');
       expect(esperadoEnCurso('DIAG-2.3', ['DIAG-2.4'])).toBe('verde');
     });

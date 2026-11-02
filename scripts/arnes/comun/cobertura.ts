@@ -1,5 +1,6 @@
 // Informe de cobertura de IDs: cada @ID de features/, dónde se cita y si pasa.
-import { areaDe } from './alcance.ts';
+import { areaDe, estaEnAlcance } from './alcance.ts';
+import type { Seleccion } from './alcance.ts';
 import type { Cita } from './citas.ts';
 import { peorEstado } from './estados-cucumber.ts';
 import type { Estado } from './estados-cucumber.ts';
@@ -23,10 +24,13 @@ export interface DatosCobertura {
   readonly elementos: readonly ElementoGherkin[];
   readonly citas: readonly Cita[];
   readonly estados: ReadonlyMap<string, Estado>;
-  readonly areasEnAlcance: readonly string[];
+  /** Lo que se comprueba: fuera de sus áreas, FUERA_DE_ALCANCE; un escenario excluido, PENDIENTE. */
+  readonly alcance: Seleccion;
 }
 
 const FUERA_DE_ALCANCE = 'FUERA_DE_ALCANCE';
+/** Un pendiente de un área cerrada que no es el área en curso: aún no pasa (alcance.ts). */
+const PENDIENTE = 'PENDIENTE';
 
 interface ElementoConId {
   readonly elemento: ElementoGherkin;
@@ -52,13 +56,16 @@ export function construirInforme(datos: DatosCobertura): InformeCobertura {
 function estadoDeFila(actual: ElementoConId, conId: readonly ElementoConId[], datos: DatosCobertura): string {
   const { id } = actual;
   const tipo = actual.elemento.tipo;
-  if (!datos.areasEnAlcance.includes(areaDe(id))) return FUERA_DE_ALCANCE;
-  if (tipo === 'Scenario') return datos.estados.get(id) ?? 'NO_EJECUTADO';
-  // Un Feature o una Rule agregan el peor estado de sus escenarios.
+  if (!datos.alcance.areas.includes(areaDe(id))) return FUERA_DE_ALCANCE;
+  if (tipo === 'Scenario')
+    return estaEnAlcance(datos.alcance, id) ? (datos.estados.get(id) ?? 'NO_EJECUTADO') : PENDIENTE;
+  // Un Feature o una Rule agregan el peor estado de sus escenarios, sin contar los pendientes.
   const prefijo = tipo === 'Feature' ? `${id}-` : `${id}.`;
   const escenarios = conId.filter(({ elemento, id: otro }) => elemento.tipo === 'Scenario' && otro.startsWith(prefijo));
   if (escenarios.length === 0) return 'SIN_ESCENARIOS';
-  return peorEstado(escenarios.map(({ id: otro }) => datos.estados.get(otro) ?? 'UNKNOWN'));
+  const comprobados = escenarios.filter(({ id: otro }) => estaEnAlcance(datos.alcance, otro));
+  if (comprobados.length === 0) return PENDIENTE;
+  return peorEstado(comprobados.map(({ id: otro }) => datos.estados.get(otro) ?? 'UNKNOWN'));
 }
 
 function erroresDeCitas(citas: readonly Cita[], idsConocidos: ReadonlySet<string>): string[] {
@@ -68,7 +75,7 @@ function erroresDeCitas(citas: readonly Cita[], idsConocidos: ReadonlySet<string
 }
 
 function erroresDeEscenario(fila: FilaCobertura): string[] {
-  if (fila.tipo !== 'Scenario' || fila.estado === FUERA_DE_ALCANCE || fila.estado === 'PASSED') return [];
+  if (fila.tipo !== 'Scenario' || [FUERA_DE_ALCANCE, PENDIENTE, 'PASSED'].includes(fila.estado)) return [];
   return [`@${fila.id} no pasa (estado: ${fila.estado}).`];
 }
 

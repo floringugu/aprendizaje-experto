@@ -35,6 +35,7 @@ export function situacion(campos: Partial<Situacion>): Situacion {
     tickets: [],
     problemas: [],
     cerradas: [],
+    pendientes: [],
     carriles: [],
     ficheros: ['src/a.ts', 'config/alcance.json'],
     ...campos,
