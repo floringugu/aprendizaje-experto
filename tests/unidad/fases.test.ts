@@ -21,21 +21,32 @@ describe('faseTrasDominio', () => {
 });
 
 describe('faseTrasProblemas', () => {
+  /** Las métricas del paso: por defecto, con la transferencia superada. */
+  function metricas(aciertoProblemas: number | undefined, umbralPasoAAvanzado: number, transferenciaSuperada = true) {
+    return { aciertoProblemas, umbralPasoAAvanzado, transferenciaSuperada };
+  }
+
   it('@MAST-6.2 de intermedio pasa a avanzado/experto con el acierto justo en el umbral, no por debajo', () => {
-    expect(faseTrasProblemas('intermedio', 17 / 20, UMBRAL)).toBe('avanzado_experto');
-    expect(faseTrasProblemas('intermedio', 16 / 20, UMBRAL)).toBe('intermedio');
+    expect(faseTrasProblemas('intermedio', metricas(17 / 20, UMBRAL))).toBe('avanzado_experto');
+    expect(faseTrasProblemas('intermedio', metricas(16 / 20, UMBRAL))).toBe('intermedio');
   });
 
   it('@MAST-6.2 sin acierto medido en problemas intercalados no cambia', () => {
-    expect(faseTrasProblemas('intermedio', undefined, 0)).toBe('intermedio');
+    expect(faseTrasProblemas('intermedio', metricas(undefined, 0))).toBe('intermedio');
   });
 
   it('@MAST-6.2 solo cambia desde intermedio', () => {
-    expect(faseTrasProblemas('novato', 1, UMBRAL)).toBe('novato');
-    expect(faseTrasProblemas('diagnostico', 1, UMBRAL)).toBe('diagnostico');
+    expect(faseTrasProblemas('novato', metricas(1, UMBRAL))).toBe('novato');
+    expect(faseTrasProblemas('diagnostico', metricas(1, UMBRAL))).toBe('diagnostico');
+    expect(faseTrasProblemas('avanzado_experto', metricas(0, UMBRAL))).toBe('avanzado_experto');
   });
 
   it('@MAST-6.4 el umbral de paso es el que se le da', () => {
-    expect(faseTrasProblemas('intermedio', 16 / 20, 0.75)).toBe('avanzado_experto');
+    expect(faseTrasProblemas('intermedio', metricas(16 / 20, 0.75))).toBe('avanzado_experto');
+  });
+
+  it('@MAST-6.7 con el acierto en problemas sobre el umbral, pero sin superar la transferencia, sigue en intermedio', () => {
+    expect(faseTrasProblemas('intermedio', metricas(1, UMBRAL, false))).toBe('intermedio');
+    expect(faseTrasProblemas('intermedio', metricas(1, UMBRAL, true))).toBe('avanzado_experto');
   });
 });

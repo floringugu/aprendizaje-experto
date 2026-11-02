@@ -49,3 +49,19 @@ export function evaluarDominio(entrada: EntradaDominio): EvaluacionDominio {
 export function fechasDeRetencion(dominadoEl: Date, semanas: readonly number[]): readonly Date[] {
   return semanas.map((semana) => new Date(dominadoEl.getTime() + semana * MS_POR_SEMANA));
 }
+
+/**
+ * La prueba de retención que toca ahora: la posición en `fechas` de la más reciente cuya fecha ya ha
+ * llegado, también el mismo instante. `undefined` antes de la primera. Una prueba sigue tocando hasta
+ * que llega la siguiente, así que lo que quedó sin hacer se puede hacer después (@MAST-8.6).
+ */
+export function pruebaDeRetencionEnCurso(fechas: readonly Date[], ahora: Date): number | undefined {
+  const instanteAhora = ahora.getTime();
+  const llegadas = fechas.map((fecha) => fecha.getTime()).filter((instante) => instante <= instanteAhora);
+  if (llegadas.length === 0) {
+    return undefined;
+  }
+  // Se busca el instante más reciente y luego su posición: `fechas` puede venir sin ordenar.
+  const masReciente = Math.max(...llegadas);
+  return fechas.findIndex((fecha) => fecha.getTime() === masReciente);
+}

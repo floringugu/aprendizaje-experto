@@ -112,10 +112,15 @@ export class EstadoDominio {
     return this.pasosRetirados.get(objetivo) ?? 0;
   }
 
-  /** Último intento de cada ítem (`true` si lo acertó); con `contexto`, solo entre los de ese contexto. */
+  /**
+   * Último intento de cada ítem (`true` si lo acertó); con `contexto`, solo entre los de ese contexto.
+   * Sin `contexto` no cuenta el intento de exploración: lo que se intenta antes de la instrucción no
+   * es un intento del ítem (@MAST-1.4, @MAST-1.5).
+   */
   ultimoIntentoDeCadaItem(contexto?: ContextoRespuesta): Map<string, boolean> {
-    const contados =
-      contexto === undefined ? this.intentos : this.intentos.filter((intento) => intento.contexto === contexto);
+    const contados = this.intentos.filter((intento) =>
+      contexto === undefined ? intento.contexto !== 'exploracion' : intento.contexto === contexto,
+    );
     return ultimoIntentoPorItem(contados);
   }
 

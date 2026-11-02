@@ -10,6 +10,7 @@ import type { EvaluacionDominio } from '../dominio/criterio-dominio.ts';
 import { evaluarDominio } from '../dominio/criterio-dominio.ts';
 import { problemasIntercalables } from '../dominio/diagnostico.ts';
 import { faseTrasDominio, faseTrasProblemas } from '../dominio/fases.ts';
+import { evaluarTransferencia, sinReservados } from '../dominio/transferencia.ts';
 import { objetivosPendientes } from '../dominio/ruta.ts';
 import { itemsDelObjetivo } from './contenido.ts';
 import type { CasosDeDominio, EvaluacionFase, EvaluacionObjetivo, ObjetivoConsultado } from './dominio.ts';
@@ -36,15 +37,15 @@ function leerUmbralYMomento(entorno: Entorno): UmbralYMomento {
 }
 
 /**
- * Decide si el objetivo está dominado con el último intento de cada uno de sus ítems, sea cual sea
- * el contexto (@MAST-7.2). Registra el cambio, si lo hay, y con él la fase: dominar el último
+ * Decide si el objetivo está dominado con el último intento de cada uno de sus ítems no reservados,
+ * sea cual sea el contexto (@MAST-7.2, @MAST-8.2). Registra el cambio, si lo hay, y con él la fase: dominar el último
  * objetivo pasa de novato a intermedio (@MAST-6.1), y perder uno no devuelve a ninguna fase anterior
  * (@MAST-6.3).
  */
 function reevaluarObjetivo(situacion: Situacion, objetivo: string, momento: UmbralYMomento): EvaluacionDominio {
   const { contenido, estado } = situacion;
   const evaluacion = evaluarDominio({
-    items: itemsDelObjetivo(contenido.items, objetivo).map((item) => item.id),
+    items: itemsDelObjetivo(sinReservados(contenido.items), objetivo).map((item) => item.id),
     ultimoIntento: estado.ultimoIntentoDeCadaItem(),
     umbral: momento.umbral,
     dominadoAntes: estado.dominados.has(objetivo),
@@ -92,20 +93,39 @@ export function evaluarObjetivo(entorno: Entorno, peticion: PeticionObjetivo): R
 
 /**
  * De intermedio se pasa a avanzado/experto solo aquí, con el último intento intercalado de cada
- * problema intercalable (@MAST-6.2, @MAST-6.4). Responder problemas no cambia la fase hasta evaluarla.
+ * problema intercalable que se practica (@MAST-6.2, @MAST-6.4) y con la transferencia a los
+ * problemas reservados (@MAST-6.7). Responder problemas no cambia la fase hasta evaluarla. Si en la
+ * fase intermedia faltan reservados para medir la transferencia, se avisa y se ofrece pedir más
+ * (@MAST-6.9, @MAST-6.11, @MAST-6.13).
  */
 export function evaluarFase(entorno: Entorno, peticion: PeticionDominio): Resultado<EvaluacionFase> {
   return enDominio(entorno, peticion.dominio, ({ contenido, estado }) => {
     if (diagnosticoPendiente(estado)) {
       return rechazar(MOTIVO_DIAGNOSTICO_PENDIENTE);
     }
-    const umbral = parametroNumerico(entorno.dependencias.leerParametros(), 'umbral_paso_a_avanzado');
-    const problemas = problemasIntercalables(contenido.items, contenido.categorias);
+    const parametros = entorno.dependencias.leerParametros();
+    const problemas = problemasIntercalables(sinReservados(contenido.items), contenido.categorias);
     const acierto = aciertoSinAyuda(problemas, estado.ultimoIntentoDeCadaItem('intercalado'));
-    estado.cambiarFase(entorno.dependencias.reloj.ahora(), faseTrasProblemas(estado.fase, acierto, umbral));
-    return aceptar(
-      acierto === undefined ? { fase: estado.fase } : { fase: estado.fase, aciertoProblemasSinPista: acierto },
-    );
+    const transferencia = evaluarTransferencia({
+      items: contenido.items,
+      categorias: contenido.categorias,
+      ultimoIntento: estado.ultimoIntentoDeCadaItem(),
+      umbral: parametroNumerico(parametros, 'umbral_transferencia'),
+      minimo: parametroNumerico(parametros, 'minimo_problemas_reservados'),
+    });
+    const fase = faseTrasProblemas(estado.fase, {
+      aciertoProblemas: acierto,
+      umbralPasoAAvanzado: parametroNumerico(parametros, 'umbral_paso_a_avanzado'),
+      transferenciaSuperada: transferencia.superada,
+    });
+    estado.cambiarFase(entorno.dependencias.reloj.ahora(), fase);
+    const faltan = fase === 'intermedio' && transferencia.faltanCasosNuevos;
+    return aceptar({
+      fase,
+      ...(acierto === undefined ? {} : { aciertoProblemasSinPista: acierto }),
+      ...(transferencia.acierto === undefined ? {} : { aciertoProblemasReservados: transferencia.acierto }),
+      ...(faltan ? { faltanCasosNuevos: true, ofrecePedirMasReservados: true } : {}),
+    });
   });
 }
 
