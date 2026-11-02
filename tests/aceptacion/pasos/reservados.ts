@@ -4,7 +4,6 @@ import { presente } from '../soporte/comprobar.ts';
 import type { ItemDePrueba } from '../soporte/contenido.ts';
 import {
   APUNTES,
-  avisosDeLaRevision,
   borradorEnDisco,
   entregaDeLaIa,
   fuenteDeLosApuntes,
@@ -155,7 +154,7 @@ function revisionAbierta(): Revision {
 
 /** Las categorías de las que avisa la revisión bajo el objetivo: sin ningún problema reservado (MATE-3.6). */
 function categoriasSinReservado(objetivo: string): readonly string[] {
-  return avisosDeLaRevision(revisionAbierta()).flatMap((aviso) =>
+  return revisionAbierta().avisos.flatMap((aviso) =>
     aviso.tipo === 'categoria_sin_reservado' && aviso.objetivo === objetivo ? [aviso.categoria] : [],
   );
 }
@@ -193,7 +192,7 @@ Given(
 
 /** Los avisos del mínimo de problemas reservados: no cuelgan de ningún objetivo (MATE-3.7). */
 function avisosDelMinimo(): readonly AvisoDeReservados[] {
-  return avisosDeLaRevision(revisionAbierta()).filter((aviso) => aviso.tipo === 'pocos_reservados');
+  return revisionAbierta().avisos.filter((aviso) => aviso.tipo === 'pocos_reservados');
 }
 
 Then('ve el aviso {texto}', (texto: string) => {
