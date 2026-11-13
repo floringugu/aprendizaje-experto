@@ -95,6 +95,11 @@ Característica: Material del dominio y borradores
     aunque se escriban con otros espacios o mayúsculas: la corrección no los distingue, así que
     elegir la repetida contaría como acierto.
 
+    Un ítem numérico (RECU-5) lleva en `respuesta` un `valor` que es un número, `unidades` con alguna
+    forma si las lleva y una `tolerancia` entre 0 y 1 si la lleva. Un valor 0 no lleva tolerancia: el
+    margen es relativo y sobre 0 no deja nada. Si la IA entrega uno que no lo cumple, la corrección
+    no podría leerlo, así que la aplicación lo aparta como a cualquier pieza incompleta.
+
     Un objetivo o un ejemplo resuelto puede traer un diagrama, que acompaña a su texto (codificación
     dual, sección 3: «Prometedor», sin metaanálisis verificado; el campo es extrapolación). Es un SVG
     escrito como texto y se enseña como imagen, así que no ejecuta nada; uno que no es SVG no entra.
@@ -197,6 +202,38 @@ Característica: Material del dominio y borradores
       Cuando la IA configurada entrega un ítem de O1 completo y reservado, y otro completo sin marcar como reservado
       Entonces contenido/borradores/ficticio.json tiene el ítem reservado y ninguna otra pieza
       Y la aplicación indica que ha apartado 1 pieza porque no es reservado
+
+    @MATE-2.12 @extrapolacion
+    Esquema del escenario: Un ítem numérico mal formado no entra en el borrador
+      Cuando la IA configurada entrega un borrador con un ítem de O1 completo y <ítem numérico mal formado>
+      Entonces contenido/borradores/ficticio.json tiene ese ítem de O1 y ninguna otra pieza
+      Y la aplicación indica que ha apartado 1 pieza porque <motivo>
+
+      Ejemplos:
+        | ítem numérico mal formado                                         | motivo                            |
+        | un ítem numérico de O1 sin valor                                  | le falta el valor                 |
+        | un ítem numérico de O1 con el valor «nueve»                       | su valor no es un número          |
+        | un ítem numérico de O1 con el valor «9,81» escrito como texto     | su valor no es un número          |
+        | un ítem numérico de O1 con las unidades vacías                    | sus unidades están vacías         |
+        | un ítem numérico de O1 con la tolerancia 1,5                      | su tolerancia no está entre 0 y 1 |
+        | un ítem numérico de O1 con la tolerancia -0,1                     | su tolerancia no está entre 0 y 1 |
+        | un ítem numérico de O1 con la tolerancia «5 %» escrita como texto | su tolerancia no está entre 0 y 1 |
+        | un ítem numérico de O1 con el valor 0 y la tolerancia 0,05        | su valor es 0 y lleva tolerancia  |
+
+    @MATE-2.13 @extrapolacion
+    Esquema del escenario: Un ítem numérico bien formado entra en el borrador con su fuente
+      Cuando la IA configurada redacta a partir de «apuntes.pdf» un borrador con <ítem numérico>, que cita la página 12
+      Entonces contenido/borradores/ficticio.json tiene <ítem numérico> con la fuente «apuntes.pdf», página 12, «La regla R1 también se aplica a los casos límite.»
+      Y la aplicación no indica que haya apartado ninguna pieza
+
+      Ejemplos:
+        | ítem numérico                                                   |
+        | un ítem numérico de O1 con valor y unidades                     |
+        | un ítem numérico de O1 con valor, unidades y la tolerancia 0,02 |
+        | un ítem numérico de O1 con valor y sin unidades                 |
+        | un ítem numérico de O1 con la tolerancia 0                      |
+        | un ítem numérico de O1 con la tolerancia 1                      |
+        | un ítem numérico de O1 con el valor 0 y sin tolerancia          |
 
   @MATE-3 @evidencia-3 @extrapolacion
   Regla: Las marcas las pone la aplicación, no la IA

@@ -3,7 +3,7 @@ fase: specs
 area: MATE
 depende: [mate-cierre, specs-item-numerico]
 toca: [features/material.feature, config/peticion-ia.md]
-estado: abierto
+estado: hecho
 ---
 # Un ítem numérico mal formado no entra en el borrador
 
