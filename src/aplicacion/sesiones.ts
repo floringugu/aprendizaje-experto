@@ -12,6 +12,9 @@ export type ContextoRespuesta =
 
 type TipoSesion = 'diagnostico' | 'practica' | 'repaso' | 'retencion';
 
+/** Lo que se puede hacer con un ítem presentado: ni ver la respuesta ni darlo por sabido (RECU-1.2). */
+export type AccionDeItem = 'responder';
+
 export interface ItemPresentado {
   readonly id: string;
   readonly enunciado: string;
@@ -21,7 +24,7 @@ export interface ItemPresentado {
   readonly objetivo?: string;
   readonly categoria?: string;
   /** Lo único que la persona puede hacer con el ítem antes de responder (RECU-1.2). */
-  readonly acciones: readonly string[];
+  readonly acciones: readonly AccionDeItem[];
 }
 
 export interface EjemploPresentado {

@@ -3,7 +3,7 @@ fase: impl
 area: RECU
 depende: []
 toca: [src/aplicacion/sesiones.ts, src/aplicacion/dominio.ts, src/aplicacion/presentacion.ts, src/aplicacion/criterio-dominio.ts, docs/deuda-diseno.md]
-estado: abierto
+estado: hecho
 ---
 # Las acciones de un ítem y de un objetivo tienen tipo (deuda D18)
 
