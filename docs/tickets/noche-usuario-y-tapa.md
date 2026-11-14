@@ -9,7 +9,7 @@ estado: abierto
 
 **Qué:** paso 4 de la noche desatendida (plan §6, «Noche desatendida»): el Despachador deja de lanzarlo el dueño. Corre con otro usuario de Linux, con su clon y solo el token de `floringugu757-lgtm`; lo arranca un temporizador de systemd a las 00:30; el portátil no se suspende al cerrar la tapa mientras trabaja, y con batería deja de abrir tickets bajo el 30 % y para al 15 %. Es un cambio del arnés: el área PLAN solo le da nombre a la rama.
 
-**Hecho cuando:** el dueño instala el usuario, el bloqueo de la tapa y el temporizador con un bloque `sh` (lleva `sudo`); una noche real arranca sola a las 00:30 con la tapa cerrada, trabaja, y a la mañana siguiente `make manana` muestra lo hecho; los umbrales de batería son una función pura con tests; con la tapa cerrada y sin Despachador, el portátil se suspende como siempre; el plan §6 y §11 dicen lo construido, y `make check` da verde.
+**Hecho cuando:** el dueño instala el usuario, el bloqueo de la tapa y el temporizador con un bloque `sh` (lleva `sudo`); una noche real arranca sola a las 00:30 con la tapa cerrada, trabaja, y a la mañana siguiente `make manana` muestra lo hecho; una pasada con el tope de duración puesto a pocos minutos muestra el corte, y `make manana` dice «la noche se cortó con su sesión a medias»; los umbrales de batería son una función pura con tests; con la tapa cerrada y sin Despachador, el portátil se suspende como siempre; el plan §6 y §11 dicen lo construido, y `make check` da verde.
 
 **Leer primero:** `docs/plan.md` §6, «Noche desatendida», y §11, «Tu cuenta de administrador sigue en el llavero de `gh`» (búscalos con Grep); los tickets `noche-despachador` y `noche-lote`; `/home/florin/aprendizaje-experto/reports/humo/tapa.sh` y los resúmenes `tapa-*.txt` de esa carpeta (fuera de git).
 
@@ -20,6 +20,13 @@ estado: abierto
 - Límite de uso: si el reinicio cae dentro de la ventana, espera; si no, termina la noche.
 - Portátil (KDE Plasma, batería de 43,8 Wh): la tapa cerrada no suspende mientras el Despachador trabaja, con o sin cargador. Con batería no abre ticket bajo el 30 %, y al 15 % para la sesión y deja suspender. El bloqueo de la tapa necesita una regla o un servicio del sistema, que instala el dueño con `sudo`.
 - `aprobado` sigue siendo una lista que solo escribe el dueño: el usuario de la noche la lee, no la escribe.
+
+## Tope de duración de la noche (15-11-2026)
+
+- El servicio de systemd lleva un tope de duración (`RuntimeMaxSec`) que corta la noche una hora después de `FIN`: con la ventana de 00:30 a 07:00, a las 08:00. Al cortar, systemd mata al Despachador y a su sesión. `make manana` ya dice «la noche se cortó con su sesión a medias», y el carril se conserva.
+- De paso impide que una noche siga viva cuando empieza la siguiente: el Despachador no tiene cerrojo.
+- No hay código nuevo en el Despachador: el tope va en la unidad de `scripts/noche/`.
+- Motivo (principio 7): petición del dueño del 15-11-2026, al contrastar con el repositorio el documento `docs/ai-factory/contexto.md` (fase A, punto 1, `timeoutSesion`). Cubre el límite que el plan §11 admite en «El Despachador no corta nada». No hay dato de una sesión colgada: en las dos pasadas reales del 14-11-2026 las sesiones duraron 8 minutos y 2 minutos y medio.
 
 ## Lo medido en la prueba de humo (14-11-2026)
 
