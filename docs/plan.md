@@ -151,6 +151,8 @@ scripts/arnes/           scripts de make check y de la CI (con dueño)
   tasks.json             tareas del dueño: fase, abrir y retirar un carril, y el tablero de tickets
   settings.json          muestra los carriles en el control de código fuente
 reports/relevo.md        relevo pendiente del checkout (§5; fuera de git)
+reports/noche/           el diario del Despachador y el stream de cada sesión que lanza (§6, «Noche desatendida»;
+                         solo en la carpeta principal; fuera de git)
 CLAUDE.md                reglas de trabajo de Claude (con dueño)
 ```
 
@@ -217,7 +219,7 @@ En `tests/` no se aplica el límite de longitud por función, porque un `describ
 | `make check-aceptacion` | aceptacion (etapa 3) | Del 1 al 8 y `estado-aceptacion` (los escenarios del área en curso deben fallar en rojo: ni pasar, ni quedar pendientes, ni tener pasos sin definir; los de las áreas cerradas deben seguir en verde) |
 | `make check-implementador` | impl, la del subagente `implementador` (§7) | Del 1 al 7 salvo `codigo-muerto`: cuando devuelve su encargo, la aplicación aún no usa las funciones nuevas del dominio. El resto lo exige después el hook del push a la conversación principal |
 
-Fuera de `make check` hay diez objetivos más:
+Fuera de `make check` hay trece objetivos más:
 
 - `make mutacion` (§9);
 - `make cerrar-area A=<ÁREA>` (§6): los pasos del 1 al 7, y la aceptación y la cobertura de los IDs con el área en curso incluida, que es lo último antes de cerrar el área;
@@ -226,6 +228,7 @@ Fuera de `make check` hay diez objetivos más:
 - `make rama` (§6), que lanza la conversación de un carril cuando GitHub ha fusionado el PR de su rama: pasa el carril a su rama siguiente;
 - `make bloqueos A=<ÁREA>` (§5), que resume las anotaciones de los hooks de un área (paradas, comprobaciones del push y bloqueos del implementador) para su archivo;
 - `make tickets` y `make tablero` (§6, «Tickets»): los tickets de `docs/tickets/` con su estado, en texto y en una página web;
+- `make aprobar`, `make despachar` y `make manana` (§6, «Noche desatendida»): los dos primeros son solo tuyos, y aprueban un ticket para la noche y lanzan el Despachador; el tercero dice qué hizo el Despachador en su última noche;
 - `make formatear`.
 
 `make fase`, `make abrir`, `make retirar` y `make tablero` también se lanzan desde VS Code, con las tareas de `.vscode/tasks.json` (Ctrl+Shift+P → «Tasks: Run Task»).
@@ -318,6 +321,8 @@ Están en `.claude/settings.json`:
 - **Un subagente no puede dejar un comando propio en segundo plano:** la conversación principal recibe un resultado «provisional» y el comando muere al salir.
 - **El límite de uso se ve venir.** El stream trae eventos `rate_limit_event` con `status`, `utilization` y `resetsAt` de las ventanas de 5 horas y de 7 días. Sin red (medido el 14-11-2026 con una sesión de prueba): con la red cortada 60 s la sesión sigue sola, sin eventos de reintento, y sale con 0; con un corte de 600 s, tras 70 s de silencio y 10 eventos `system`/`api_retry`, a los 4 min 11 s sale con código 1, con `is_error: true` en el `result` (el `subtype` sigue en `success`) y un `assistant` con `api_error` `connection_failed`. Sin medir: qué sale cuando el límite se agota, y si `--resume` reanuda una sesión que acabó por un corte de red.
 - **El coste del stream solo vale para los modelos que Claude Code reconoce** (`costBasis: list`), y el total de tokens bueno es el de `modelUsage` del evento `result`: los `output_tokens` de cada evento `assistant` son parciales.
+
+El Despachador (§6, `scripts/arnes/despachador.ts`) está hecho con estas medidas. Lanza cada sesión con `--output-format stream-json --verbose` y con `CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0`, y guarda el stream sobre la marcha, cada evento con su hora. No mira el código de salida ni el `subtype`: decide con la última parada que el hook Stop anotó para esa sesión (`session_id`) en el registro del carril, con el PR de la rama según GitHub y con `is_error` del evento `result`. Lo que sigue sin medir lo supone, y lo dice §11: que con el límite agotado el último `rate_limit_event` trae una ventana con `status: rejected`, y que `--resume` reanuda, tras el reinicio, la sesión que el límite cortó.
 
 ### SessionStart: `anunciar-fase.ts`
 
@@ -546,12 +551,12 @@ No se hace: la guardia no niega las ediciones fuera de `toca`, porque sería rí
 
 El dato (principio 7) es escaso: un conflicto de fusión real en `scripts/arnes/comun/relevo.ts` y `tests/arnes/relevo.test.ts` el 30-10-2026 (sesión `589dc2f8`); tres carriles MATE activos a la vez el 31-10, de 12:16 a 12:28 (`mutacion`, `cambio2` y `contexto`); cuatro negaciones de la guardia «es otro carril» el 31-10 (sesión `b937041d`), y ninguna regla para dos áreas que tocan el mismo fichero. Lo que motiva el cambio es, sobre todo, tu petición: ver las dependencias y los solapes antes de abrir un carril.
 
-**Noche desatendida** (diseño acordado el 13-11-2026; **sin construir**). Hoy cada ticket necesita que abras su carril, pegues la frase y fusiones su PR. El diseño deja que el arnés ejecute de noche, sin ti, los tickets que hayas aprobado. Sale de tu diagrama «AI Factory» y de una reproducción de los registros (36 carriles, 38 PR): el 25 % de las paradas reales no tenía regla en el diagrama, y 0 de los 31 tickets abiertos cabían enteros en la lista blanca, así que sin una rama de integración nada se fusiona de noche (15 noches frente a 5). Se construye en cuatro pasos, uno por ticket:
+**Noche desatendida** (diseño acordado el 13-11-2026; **construida hasta el paso 2**, que aún no tiene sus pasadas reales). Sin ella, cada ticket necesita que abras su carril, pegues la frase y fusiones su PR. El diseño deja que el arnés ejecute de noche, sin ti, los tickets que hayas aprobado. Sale de tu diagrama «AI Factory» y de una reproducción de los registros (36 carriles, 38 PR): el 25 % de las paradas reales no tenía regla en el diagrama, y 0 de los 31 tickets abiertos cabían enteros en la lista blanca, así que sin una rama de integración nada se fusiona de noche (15 noches frente a 5). Se construye en cuatro pasos, uno por ticket:
 
 | Paso | Ticket | Qué |
 |---|---|---|
 | 1 | (hecho el 14-11-2026, sin ticket) | Prueba de humo de día: `claude -p` en un carril, y la mutación con la tapa cerrada midiendo temperatura y consumo. Lo medido está en §5 y en los tickets. |
-| 2 | `noche-despachador` | El Despachador, `make aprobar` y `make manana`, contra `main` y lanzado por ti. |
+| 2 | `noche-despachador` | El Despachador, `make aprobar` y `make manana`, contra `main` y lanzado por ti. Construido el 14-11-2026 («Lo construido en el paso 2», abajo); faltan sus dos pasadas reales. |
 | 3 | `noche-lote` | La rama de integración `lote/N`. |
 | 4 | `noche-usuario-y-tapa` | El usuario de la noche, la tapa y el temporizador. |
 
@@ -566,6 +571,32 @@ Lo acordado, que los tickets no reabren:
 - **Usuario de la noche:** otro usuario de Linux, con su clon y solo el token de `floringugu757-lgtm`, en `bypassPermissions` y con los hooks como guardia. Comparte tu suscripción de Claude.
 - **Portátil** (KDE Plasma, 43,8 Wh): la tapa cerrada no suspende mientras el Despachador trabaja. Con batería no abre ticket bajo el 30 %, y al 15 % para la sesión y deja suspender. El bloqueo de la tapa lo instalas tú con `sudo`, dura toda la noche y se quita solo con la tapa abierta o al final de la ventana: quitarlo con la tapa cerrada suspende en el acto (medido el 14-11-2026).
 - **Fuera de la primera versión:** el Aprobador, porque no hay dato que lo justifique. La revisión la hace la propia sesión con los revisores de §7.
+
+**Lo construido en el paso 2** (14-11-2026, ticket `noche-despachador`). Tres objetivos de make:
+
+- **`make aprobar N=<ticket>`,** solo tuyo: apunta el ticket en `~/.config/aprendizaje-experto/aprobados`, un id por línea y en el orden en que los apruebas, que es el orden en que la noche los toma. Se niega si el ticket no está abierto en `origin/main`. Con `QUITAR=1` lo quita, y sin `N` enseña la lista. El Despachador solo la lee: un ticket hecho sigue en ella hasta que lo quitas, y no estorba, porque ya no está listo.
+- **`make despachar [FIN=HH:MM] [ULTIMO=HH:MM]`,** solo tuyo: el Despachador (`scripts/arnes/despachador.ts`). Por defecto, 07:00 y 06:00; cada hora es la próxima vez que el reloj la marca. Trae `origin`, toma el primer ticket aprobado que esté listo y que no haya intentado esa noche, abre su carril con lo mismo que `make abrir` y lanza en él `claude -p` con el modelo y el esfuerzo de la fase, en `bypassPermissions` y con la frase de la prueba de humo: «Haz el ticket de este carril hasta abrir su PR. No hay nadie delante: no preguntes; si necesitas una decisión del dueño, termina con la marca de decisión pendiente del arnés». Cuando la sesión termina, lee su stream y la última parada que el hook Stop le anotó en el registro del carril, y espera al PR de la rama mientras su CI no termina, o mientras está en verde con la fusión automática activada: pregunta a GitHub cada 30 segundos, 30 minutos como mucho. Con eso aplica las reglas. Un ticket hecho pierde su carril, con lo mismo que `make retirar`; uno de la cola lo conserva, y se sigue con «Entra en el carril `<ticket>`.».
+- **`make manana`:** lee la última noche del diario y lista lo fusionado y la cola, cada ticket con su motivo y sus sesiones. De los de la cola pregunta a GitHub cómo está su PR ahora. No guarda nada. El resumen del lote llega con `noche-lote`.
+
+Las reglas de parada son la función pura `queHacer` de `scripts/arnes/comun/despachador.ts`, con un test por fila de la tabla del ticket (`tests/arnes/despachador.test.ts`). El diseño no decía en qué orden se miran ni qué pasa con lo que la tabla no nombra. Se aplica la primera que se cumple:
+
+| Orden | Lo que se observa al terminar la sesión | Lo que hace el Despachador |
+|---|---|---|
+| 1 | GitHub dice que el PR está fusionado | `hecho`: retira el carril, diga lo que diga la parada |
+| 2 | El límite de uso se agotó | Si se reinicia antes de `FIN`, espera (un minuto de margen) y reanuda la sesión con `--resume`; si no, cola y fin de la noche |
+| 3 | La sesión terminó con otro error (`is_error`, como tras un corte de red largo) | Cola y fin de la noche: el ticket siguiente acabaría igual |
+| 4 | El Stop anotó `relevo` | Sesión nueva en el mismo carril, también si ya hay PR abierto. Son 4 sesiones nuevas como mucho, 5 en total: el quinto relevo va a la cola |
+| 5 | El Stop anotó `decision` | Cola, también si ya hay PR |
+| 6 | El Stop anotó `con-cambios` | Cola |
+| 7 | Hay PR, abierto o cerrado | Cola, con su motivo: la CI en rojo, la CI sin terminar a los 30 minutos, en verde y esperando tu visto bueno, o cerrado sin fusionar |
+| 8 | El Stop anotó `sin-cambios` y no hay PR | Reanuda con `--resume` y «sigue»; la tercera parada así va a la cola |
+| 9 | Nada de lo anterior: el Stop no anotó la parada y no hay PR | Cola |
+
+Después de `FIN` no lanza ni reanuda ninguna sesión: un relevo o una parada sin cambios van a la cola. No corta la sesión que está en marcha. Un ticket intentado no se repite en la misma noche, y la noche termina cuando no quedan tickets listos y aprobados, cuando pasa `ULTIMO` o cuando lo dicen las reglas 2 o 3.
+
+Lo que deja está en `reports/noche/` de la carpeta principal, fuera de git: `diario.jsonl` (cuándo empieza y termina cada noche, cada sesión que lanza y lo que decide al terminar cada una) y, por sesión, su stream `<ticket>-<sello>.tsv` (la hora, un tabulador y el evento) y su `.err`. El diario hace falta porque el registro de paradas de un carril se borra con el carril.
+
+`make aprobar` se niega sin terminal o con la variable `CLAUDECODE`, como `make fase`. `make despachar` solo mira la variable, porque el temporizador del paso 4 lo lanzará sin terminal. Los límites están en §11.
 
 ---
 
@@ -713,7 +744,12 @@ El job `mezcla` de la CI (`scripts/arnes/regla-commits.ts`) rechazaba un PR si a
 - **La CI usa el arnés de la rama,** salvo el job `rutas`, que ejecuta el script de la base. Un PR que relaja otra comprobación se comprueba con ella relajada. Por eso la configuración y el arnés tienen dueño, también dentro de la lista blanca: ese PR te espera.
 - **La lista blanca se fusiona sin que la veas.** Un PR que solo toca `src/`, `tests/unidad/`, `docs/areas/`, `docs/tickets/` o `docs/deuda-diseno.md` entra con la CI en verde. Lo que no mide la CI (diseño, nombres, comentarios) lo señala `revisor-codigo` y lo ves después en `main`.
 - **`make retirar` puede negarse con un PR ya fusionado.** `git cherry` compara cada parche con su contexto: si el rebase de GitHub lo cambia, porque otro PR tocó antes las líneas de al lado, la rama cuenta como sin fusionar. Pasó el 14-11-2026 con `mast-pasos-prepreguntas` (`f37ef6c`, en `main` como `71db500`), y hubo que borrar el carril a mano. Ticket `arnes-retirar-rebase`.
-- **La noche desatendida (§6) abrirá límites nuevos,** que se apuntan aquí cuando se construya cada paso. Los previstos: en `bypassPermissions` no hay nadie que niegue un permiso, y las únicas guardias son los hooks, que son textuales (arriba), la CI y tu revisión de la mañana; lo que entre en `lote/N` de noche no lo habrá visto nadie, y tu visto bueno pasa a darse sobre el diff entero del lote; el usuario de la noche comparte tu suscripción, así que puede dejarte sin cuota por la mañana, y la salida de `claude -p` con el límite agotado está sin medir, igual que reanudar con `--resume` una sesión que cayó por un corte de red (§5).
+- **El Despachador (§6, paso 2) decide con dos cosas sin medir.** Con el límite de uso agotado supone que el último `rate_limit_event` trae una ventana con `status: rejected` y que el `result` trae `is_error`, y que `--resume` reanuda la sesión tras el reinicio. Si la suposición falla, la sesión cuenta como otro error y la noche termina con el ticket en la cola o, sin `is_error`, se aplica la regla de su parada. El stream queda guardado en `reports/noche/`: la primera vez que pase es el dato. Además, cualquier otro error termina la noche, así que un corte de red largo a la 01:00 pierde el resto de la ventana.
+- **El Despachador no corta nada.** Una sesión lanzada antes de `FIN` sigue hasta que termina, y no hay tope de tiempo por sesión. Si el Despachador muere (cierras su terminal o el portátil se suspende), la sesión en marcha queda sin regla: `make manana` dice «la noche se cortó con su sesión a medias» y el carril se queda abierto.
+- **La espera al PR es de 30 minutos.** Si la CI tarda más, el ticket va a la cola con «la CI sin terminar» y su carril sigue abierto aunque GitHub lo fusione después. `make manana` dice cómo está el PR ahora, y el carril lo retiras tú.
+- **La lista de aprobados es un fichero de tu usuario.** `make aprobar` y `make despachar` se niegan a Claude Code por la variable `CLAUDECODE`, pero Claude podría escribir `~/.config/aprendizaje-experto/aprobados` con Bash o lanzar el Despachador sin la variable. Solo se lo impide `CLAUDE.md`. No hay dato de que lo haya intentado (principio 7), y el usuario de la noche del paso 4 no cambia esto para las conversaciones de día.
+- **Hasta el paso 4, la noche corre con tu usuario.** Las sesiones del Despachador van en `bypassPermissions`, con los hooks, que son textuales (arriba), como única guardia, y con tu llavero de `gh` al alcance, como de día, pero sin nadie mirando. En la prueba de humo la sesión abrió su PR con `floringugu757-lgtm` (PR #40).
+- **La noche desatendida (§6) abrirá más límites,** que se apuntan aquí cuando se construya cada paso. Los previstos, de los pasos 3 y 4: lo que entre en `lote/N` de noche no lo habrá visto nadie, y tu visto bueno pasa a darse sobre el diff entero del lote; y el usuario de la noche comparte tu suscripción, así que puede dejarte sin cuota por la mañana.
 - **Que pasen los tests no demuestra eficacia pedagógica.** Lo dirá el README de la etapa 5.
 
 ---
