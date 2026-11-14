@@ -4,7 +4,9 @@
 //
 // GitHub fusiona los PR con rebase, que crea commits nuevos: main no contiene los de la rama
 // (merge-base --is-ancestor falla). Una rama cuenta como fusionada cuando cada uno de sus commits
-// tiene en origin/main otro con el mismo cambio (git cherry).
+// tiene en origin/main otro con el mismo cambio. No vale git cherry: compara el parche con sus
+// líneas de contexto, y el rebase las cambia si antes entró otro commit que toca las de al lado
+// (pasa con config/alcance.json, que escriben casi todos los carriles).
 import { problemaDeArea } from './alcance.ts';
 import { esArea } from './checkout.ts';
 import type { FaseYArea } from './checkout.ts';
@@ -81,10 +83,33 @@ export function traerOrigen(raiz: string): string | undefined {
 }
 
 /**
- * ¿Está cada commit de la rama en RAMA_DE_ORIGEN, con el mismo cambio? Una rama sin commits propios,
- * también. Usa lo último que trajo traerOrigen. No, si git no puede compararlas.
+ * ¿Está cada commit de la rama en RAMA_DE_ORIGEN, con el mismo cambio? Se buscan entre los commits
+ * de RAMA_DE_ORIGEN que la rama no tiene, comparando las líneas que quitan y añaden, sin contexto.
+ * Una rama sin commits propios, o con solo commits vacíos, también. Usa lo último que trajo
+ * traerOrigen. No, si git no puede compararlas.
  */
 export function estaFusionada(raiz: string, rama: string): boolean {
-  const { codigo, salida } = git(raiz, ['cherry', RAMA_DE_ORIGEN, rama]);
-  return codigo === 0 && !salida.split('\n').some((linea) => linea.startsWith('+'));
+  const deLaRama = idsDeParche(raiz, `${RAMA_DE_ORIGEN}..${rama}`);
+  const deOrigen = idsDeParche(raiz, `${rama}..${RAMA_DE_ORIGEN}`);
+  if (deLaRama === undefined || deOrigen === undefined) return false;
+  const enOrigen = new Set(deOrigen);
+  return deLaRama.every((id) => enOrigen.has(id));
+}
+
+/**
+ * El patch-id de cada commit de `rango` con el diff sin contexto (-U0): git patch-id no cuenta los
+ * números de línea, así que el mismo cambio da el mismo id aunque el rebase lo haya movido. Los
+ * commits vacíos no dan id. undefined si git falla (rango que no existe).
+ */
+function idsDeParche(raiz: string, rango: string): string[] | undefined {
+  // --full-index y --binary: que dos ficheros binarios distintos no den el mismo «Binary files differ».
+  const parches = git(raiz, ['log', '-p', '-U0', '--no-color', '--no-ext-diff', '--full-index', '--binary', rango]);
+  if (parches.codigo !== 0) return undefined;
+  const ids = git(raiz, ['patch-id', '--stable'], parches.salida);
+  if (ids.codigo !== 0) return undefined;
+  // Cada línea es «<patch-id> <commit>».
+  return ids.salida
+    .split('\n')
+    .filter((linea) => linea !== '')
+    .map((linea) => linea.split(' ')[0] ?? '');
 }

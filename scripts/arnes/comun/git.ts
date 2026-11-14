@@ -8,8 +8,10 @@ export interface ResultadoGit {
   readonly errores: string;
 }
 
-export function git(raiz: string, argumentos: readonly string[]): ResultadoGit {
-  const resultado = spawnSync('git', argumentos, { cwd: raiz, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+/** `entrada` va a la entrada estándar de git (git patch-id la lee de ahí). */
+export function git(raiz: string, argumentos: readonly string[], entrada?: string): ResultadoGit {
+  const opciones = { cwd: raiz, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, input: entrada } as const;
+  const resultado = spawnSync('git', argumentos, opciones);
   return { codigo: resultado.status ?? 1, salida: resultado.stdout, errores: resultado.stderr };
 }
 
