@@ -147,6 +147,25 @@ describe('estaFusionada', () => {
     expect(estaFusionada(principal, RAMA)).toBe(true);
   });
 
+  it('sí, aunque el rebase le cambie el contexto porque antes entró otro commit que toca las líneas de al lado', () => {
+    // Las líneas «1» a «9», con las de `cambiadas` como «<n> cambiada».
+    const lista = (cambiadas: readonly string[]): string =>
+      ['1', '2', '3', '4', '5', '6', '7', '8', '9']
+        .map((n) => (cambiadas.includes(n) ? `${n} cambiada` : n))
+        .join('\n') + '\n';
+    const principal = principalConOrigen({ 'lista.txt': lista([]) });
+    gitBien(principal, ['switch', '--quiet', '-c', RAMA]);
+    commit(principal, 'su parte', { 'lista.txt': lista(['6']) });
+    // Otro carril cambia la línea 3, que está en el contexto del parche de la rama, y se fusiona antes.
+    gitBien(principal, ['switch', '--quiet', 'main']);
+    commit(principal, 'otro carril', { 'lista.txt': lista(['3']) });
+    gitBien(principal, ['push', '--quiet', 'origin', 'main']);
+    fusionarComoGitHub(principal, RAMA);
+    expect(traerOrigen(principal)).toBeUndefined();
+    expect(git(principal, ['cherry', RAMA_DE_ORIGEN, RAMA]).salida).toMatch(/^\+ /);
+    expect(estaFusionada(principal, RAMA)).toBe(true);
+  });
+
   it('no, si a main le falta un solo commit de la rama', () => {
     const principal = principalConRama();
     fusionarComoGitHub(principal, RAMA);

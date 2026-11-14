@@ -2,8 +2,8 @@
 fase: impl
 area: PLAN
 depende: []
-toca: [scripts/arnes/comun/ramas.ts, tests/arnes/ramas.test.ts, docs/plan.md]
-estado: abierto
+toca: [scripts/arnes/comun/ramas.ts, scripts/arnes/comun/git.ts, tests/arnes/ramas.test.ts, docs/plan.md, docs/tickets/noche-despachador.md]
+estado: hecho
 ---
 # `make retirar` reconoce una rama fusionada aunque el rebase de GitHub le cambie el contexto del parche
 
