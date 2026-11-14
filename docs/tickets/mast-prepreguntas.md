@@ -3,7 +3,7 @@ fase: impl
 area: MAST
 depende: [mast-pasos-prepreguntas]
 toca: [src/aplicacion/sesiones.ts, src/aplicacion/estado.ts, src/aplicacion/respuestas.ts, config/alcance.json, docs/areas/MAST.md]
-estado: abierto
+estado: hecho
 ---
 # Una prepregunta no cuenta como intento del ítem en MAST (MAST-1.6 y 1.7)
 

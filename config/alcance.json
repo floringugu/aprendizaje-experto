@@ -29,6 +29,6 @@
       "RECU-6.10"
     ],
     "MATE": ["MATE-2.12", "MATE-2.13"],
-    "MAST": ["MAST-1.2", "MAST-1.6", "MAST-1.7", "MAST-1.8", "MAST-4.2"]
+    "MAST": ["MAST-1.2", "MAST-1.8", "MAST-4.2"]
   }
 }

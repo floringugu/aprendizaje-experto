@@ -9,6 +9,9 @@ import { contenidoDeFicheros, contenidoValidado } from './mesa-guardada.ts';
 import type { Resultado } from './resultado.ts';
 import type { ContextoRespuesta } from './sesiones.ts';
 
+/** Los contextos de lo que se responde antes de la instrucción, que no son intentos del ítem (MAST-1.4 a 1.7). */
+const ANTES_DE_LA_INSTRUCCION: ReadonlySet<ContextoRespuesta> = new Set(['exploracion', 'prepregunta']);
+
 /** Respuesta recogida que espera la confianza para corregirse. */
 interface RespuestaPendiente {
   /** Cuando respondió la persona, que es la fecha del intento. */
@@ -114,12 +117,12 @@ export class EstadoDominio {
 
   /**
    * Último intento de cada ítem (`true` si lo acertó); con `contexto`, solo entre los de ese contexto.
-   * Sin `contexto` no cuenta el intento de exploración: lo que se intenta antes de la instrucción no
-   * es un intento del ítem (@MAST-1.4, @MAST-1.5).
+   * Sin `contexto` no cuentan la exploración ni las prepreguntas: lo que se intenta antes de la
+   * instrucción no es un intento del ítem (@MAST-1.4, @MAST-1.5, @MAST-1.6, @MAST-1.7).
    */
   ultimoIntentoDeCadaItem(contexto?: ContextoRespuesta): Map<string, boolean> {
     const contados = this.intentos.filter((intento) =>
-      contexto === undefined ? intento.contexto !== 'exploracion' : intento.contexto === contexto,
+      contexto === undefined ? !ANTES_DE_LA_INSTRUCCION.has(intento.contexto) : intento.contexto === contexto,
     );
     return ultimoIntentoPorItem(contados);
   }
