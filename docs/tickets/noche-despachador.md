@@ -3,7 +3,7 @@ fase: impl
 area: PLAN
 depende: [arnes-retirar-rebase]
 toca: [scripts/arnes/despachador.ts, scripts/arnes/aprobar.ts, scripts/arnes/manana.ts, scripts/arnes/comun/despachador.ts, scripts/arnes/comun/aprobados.ts, scripts/arnes/comun/diario-noche.ts, tests/arnes/despachador.test.ts, tests/arnes/aprobados.test.ts, Makefile, CLAUDE.md, docs/plan.md]
-estado: abierto
+estado: hecho
 ---
 # El Despachador ejecuta de noche los tickets aprobados, uno tras otro, contra `main`
 
@@ -57,4 +57,4 @@ estado: abierto
 
 - Construido en el primer PR del ticket: las reglas (`queHacer`) con sus tests, el Despachador, `make aprobar`, `make despachar`, `make manana` y el plan §3, §4, §5, §6 y §11. Lo que el diseño no fijaba (el orden de las reglas, el error que no es el límite, la espera de 30 minutos al PR) está en el plan §6, «Lo construido en el paso 2».
 - `make manana` lee el diario del Despachador (`reports/noche/diario.jsonl`, `scripts/arnes/comun/diario-noche.ts`) y GitHub, no los registros de parada: el de un carril retirado ya no existe.
-- Faltan las dos pasadas reales, que lanza el dueño cuando el primer PR esté en `main`. Sus tickets: `deuda-acciones-tipadas`, que cabe en la lista blanca, y `deuda-borrador-no-json`, que para con una decisión pendiente. El segundo PR del ticket apunta en el plan lo que salga y pone `estado: hecho`.
+- Las dos pasadas reales (14-11-2026, de 16:42 a 16:53, una sesión cada una): `deuda-acciones-tipadas` llegó a su PR #44, fusionado por la CI, y su carril se retiró; `deuda-borrador-no-json` paró con una decisión pendiente y quedó en la cola con su carril. `make manana` mostró las dos. No hubo que cambiar el código del Despachador. El segundo PR del ticket apunta en el plan §5, §6 y §11 lo que midieron: un segundo `result` tras una espera en segundo plano, el consumo de la ventana de 5 horas y que el límite agotado y `--resume` siguen sin medir.
