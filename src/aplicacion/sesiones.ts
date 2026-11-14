@@ -4,10 +4,11 @@ import type { Resultado } from './resultado.ts';
 /**
  * De dónde sale una respuesta. Es la columna `contexto` de respuestas.csv (INST-1.3). La respuesta a
  * un ítem reservado se registra siempre como `transferencia`, se haya presentado donde se haya
- * presentado (MAST-8.4, INTE-5.4).
+ * presentado (MAST-8.4, INTE-5.4). `exploracion` (AYUD-5) y `prepregunta` (AYUD-8) se responden antes
+ * de la instrucción y no son intentos del ítem para el dominio (MAST-1.4 a 1.7).
  */
 export type ContextoRespuesta =
-  'diagnostico' | 'practica' | 'repaso' | 'intercalado' | 'retencion' | 'exploracion' | 'transferencia';
+  'diagnostico' | 'practica' | 'repaso' | 'intercalado' | 'retencion' | 'exploracion' | 'prepregunta' | 'transferencia';
 
 type TipoSesion = 'diagnostico' | 'practica' | 'repaso' | 'retencion';
 
