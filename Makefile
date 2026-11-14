@@ -16,10 +16,14 @@
 #   make abrir N=<carril> F=<fase> A=<ÁREA>  crea un carril, con su primera rama desde origin/main; si tiene
 #                              ticket, sin F ni A (salen de él) y, si no está listo, solo con FORZAR=1
 #   make retirar N=<carril>    borra el carril y todas sus ramas, ya fusionadas en origin/main
+#   make aprobar [N=<ticket>] [QUITAR=1]  aprueba el ticket para la noche, o lo quita; sin N, enseña la lista
+#   make despachar [FIN=HH:MM] [ULTIMO=HH:MM]  el Despachador: ejecuta los tickets listos y aprobados, uno
+#                              tras otro, cada uno en su carril y hasta su PR
 # Uno para la conversación de un carril, cuando GitHub ha fusionado el PR de su rama:
 #   make rama                  pasa el carril a su rama siguiente, desde origin/main
 # Y de consulta: make bloqueos A=<ÁREA> resume lo que anotaron los hooks mientras el área estaba en curso;
-# make tickets lista los tickets de docs/tickets/ con su estado, y make tablero los muestra en una página web.
+# make tickets lista los tickets de docs/tickets/ con su estado, y make tablero los muestra en una página web;
+# make manana dice qué hizo el Despachador en su última noche.
 
 ESTATICOS := tipos lint duplicacion codigo-muerto capas unidad tickets
 
@@ -32,7 +36,7 @@ define ejecutar_pasos
 	printf '\n✓ Todo en verde.\n'
 endef
 
-.PHONY: check check-specs check-aceptacion cerrar-area check-implementador mutacion fase abrir retirar rama bloqueos tickets tablero instalar formatear
+.PHONY: check check-specs check-aceptacion cerrar-area check-implementador mutacion fase abrir retirar rama aprobar despachar manana bloqueos tickets tablero instalar formatear
 
 check:
 	$(call ejecutar_pasos,$(ESTATICOS) specs aceptacion cobertura-ids)
@@ -79,6 +83,21 @@ retirar:
 # La conversación de un carril, en su carril, cuando GitHub ha fusionado el PR de su rama.
 rama:
 	@node scripts/arnes/worktrees.ts rama
+
+# La noche desatendida (docs/plan.md §6). Solo el dueño. aprobar da permiso para ejecutar el ticket N sin
+# nadie delante: lo apunta en una lista que vive fuera del repositorio (QUITAR=1 lo quita; sin N, la enseña).
+# despachar lanza el Despachador, que lleva los tickets listos y aprobados, uno tras otro, hasta su PR:
+# no abre ninguno después de ULTIMO (06:00) ni lanza ninguna sesión después de FIN (07:00).
+aprobar:
+	@node scripts/arnes/aprobar.ts '$(N)' '$(QUITAR)'
+
+despachar:
+	@node scripts/arnes/despachador.ts '$(FIN)' '$(ULTIMO)'
+
+# Lo que hizo el Despachador en su última noche, según su diario (reports/noche/ de la carpeta principal):
+# lo fusionado y la cola de la mañana, cada ticket con su motivo. No guarda nada.
+manana:
+	@node scripts/arnes/manana.ts
 
 # Lo que anotaron los hooks en .claude/registro-stop.jsonl mientras el área estaba en curso (el push,
 # el implementador y las paradas del Stop), para el archivo del área (docs/areas/<ÁREA>.md).
