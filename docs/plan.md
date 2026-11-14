@@ -310,6 +310,15 @@ Están en `.claude/settings.json`:
 
 `permissions.deny` tampoco es un hook. Niega seis herramientas de Claude Code que el proyecto no usa: Artifact, Workflow, ScheduleWakeup, ShareOnboardingGuide, ReportFindings y ListAgents (cambio 5, dato D7: el contexto se llena pronto). Una herramienta negada no entra en la lista de herramientas, y con Artifact se va también un párrafo del system prompt. Medido con `claude -p` en un directorio vacío (sesión `87539ab7`), la primera llamada baja 17 165 tokens, y el margen hasta el relevo de 145 k pasa de unos 55 k a unos 72 k. En los 91 transcripts del proyecto (31-10-2026), Artifact se usó 4 veces, el 22-10, para leer el diseño `Revision.dc.html` de claude.ai; ScheduleWakeup, 2, para esperar a un subagente, que ya avisa al terminar; ListAgents, 1, y las otras tres, ninguna. Tiene un precio: un diseño de claude.ai tiene que entrar como fichero del repositorio, y el skill `/code-review` se queda sin ReportFindings, con el que da sus hallazgos. Las skills no se pueden sacar así: negarlas con `Skill(nombre)` no las quita de la lista que recibe Claude.
 
+**Los hooks en una sesión sin nadie delante** (`claude -p`; medido el 13 y el 14-11-2026 con Claude Code 2.1.316, para la noche desatendida de §6). Los hooks corren igual que en una conversación de VS Code, y el hook del push también: en el ticket `mast-prepreguntas` (PR #40) pasó `make check` antes del `git push`. Lo que cambia:
+
+- **El registro de paradas es el del carril.** Una sesión lanzada dentro del carril anota en su `.claude/registro-stop.jsonl`, no en el de la carpeta principal.
+- **El código de salida no dice nada.** Es 0 con Ctrl+C y también cuando el tope de espera mata a un subagente, y `result` es solo el último turno. Para saber cómo acabó hay que leer el stream (`--output-format stream-json --verbose`, que se escribe sobre la marcha), el registro de paradas y GitHub.
+- **Tope de espera de 10 minutos.** A los 10 minutos exactos del último turno, `claude -p` mata lo que siga en segundo plano, aunque sea un subagente trabajando, y sale con 0 y `success`. Una parada `espera` del Stop puede acabar así. Se cambia con la variable `CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS` (0 lo quita).
+- **Un subagente no puede dejar un comando propio en segundo plano:** la conversación principal recibe un resultado «provisional» y el comando muere al salir.
+- **El límite de uso se ve venir.** El stream trae eventos `rate_limit_event` con `status`, `utilization` y `resetsAt` de las ventanas de 5 horas y de 7 días. Sin medir: qué sale cuando se agota y cuando se cae la red.
+- **El coste del stream solo vale para los modelos que Claude Code reconoce** (`costBasis: list`), y el total de tokens bueno es el de `modelUsage` del evento `result`: los `output_tokens` de cada evento `assistant` son parciales.
+
 ### SessionStart: `anunciar-fase.ts`
 
 Al empezar cada conversación (y al reanudarla, limpiarla o compactarla), dice en qué fase está el checkout de su directorio de trabajo, que es la carpeta principal salvo que la conversación se abra dentro de un carril:
@@ -537,6 +546,27 @@ No se hace: la guardia no niega las ediciones fuera de `toca`, porque sería rí
 
 El dato (principio 7) es escaso: un conflicto de fusión real en `scripts/arnes/comun/relevo.ts` y `tests/arnes/relevo.test.ts` el 30-10-2026 (sesión `589dc2f8`); tres carriles MATE activos a la vez el 31-10, de 12:16 a 12:28 (`mutacion`, `cambio2` y `contexto`); cuatro negaciones de la guardia «es otro carril» el 31-10 (sesión `b937041d`), y ninguna regla para dos áreas que tocan el mismo fichero. Lo que motiva el cambio es, sobre todo, tu petición: ver las dependencias y los solapes antes de abrir un carril.
 
+**Noche desatendida** (diseño acordado el 13-11-2026; **sin construir**). Hoy cada ticket necesita que abras su carril, pegues la frase y fusiones su PR. El diseño deja que el arnés ejecute de noche, sin ti, los tickets que hayas aprobado. Sale de tu diagrama «AI Factory» y de una reproducción de los registros (36 carriles, 38 PR): el 25 % de las paradas reales no tenía regla en el diagrama, y 0 de los 31 tickets abiertos cabían enteros en la lista blanca, así que sin una rama de integración nada se fusiona de noche (15 noches frente a 5). Se construye en cuatro pasos, uno por ticket:
+
+| Paso | Ticket | Qué |
+|---|---|---|
+| 1 | (hecho el 14-11-2026, sin ticket) | Prueba de humo de día: `claude -p` en un carril, y la mutación con la tapa cerrada midiendo temperatura y consumo. Lo medido está en §5 y en los tickets. |
+| 2 | `noche-despachador` | El Despachador, `make aprobar` y `make manana`, contra `main` y lanzado por ti. |
+| 3 | `noche-lote` | La rama de integración `lote/N`. |
+| 4 | `noche-usuario-y-tapa` | El usuario de la noche, la tapa y el temporizador. |
+
+Lo acordado, que los tickets no reabren:
+
+- **Despachador:** un script con un solo carril a la vez (con 3, la reproducción da las mismas noches). Abre el carril de un ticket listo y aprobado, lanza `claude -p` con el modelo y el esfuerzo de su fase, y lo retira cuando su PR está fusionado.
+- **Reglas de parada:** tras un relevo, sesión nueva, hasta 4 por ticket; una decisión pendiente o cambios sin commitear van a la cola de la mañana; «sin cambios y sin PR» se reanuda con `--resume` y «sigue» hasta 2 veces, y después va a la cola; una CI en rojo, a la cola; «hecho» es solo cuando GitHub dice que el PR está fusionado. La espera a subagentes no necesita regla: el proceso no sale.
+- **`aprobado`** vive fuera del repositorio, en una lista que solo escribes tú con `make aprobar N=<ticket>`.
+- **Ventana** de 00:30 a 07:00, sin ticket nuevo después de las 06:00, con un temporizador de systemd. Si se agota el límite de uso, espera al reinicio si cae dentro de la ventana; si no, termina la noche.
+- **`lote/N`:** una rama de integración, una sola viva a la vez, que nace de `main` y fusionas tú con `--admin`. Solo acumula aceptación e impl; las specs siguen yendo a `main` una a una, con tu visto bueno. La protege un ruleset nuevo, «lote: CI» (PR y CI, sin visto bueno), que creas tú. La CI corre también en los PR hacia `lote/*`, y el PR `lote/*` → `main` queda exento de los jobs `rama` y `rutas`.
+- **`make manana`:** la cola de la mañana y el resumen del lote. No guarda ningún fichero.
+- **Usuario de la noche:** otro usuario de Linux, con su clon y solo el token de `floringugu757-lgtm`, en `bypassPermissions` y con los hooks como guardia. Comparte tu suscripción de Claude.
+- **Portátil** (KDE Plasma, 43,8 Wh): la tapa cerrada no suspende mientras el Despachador trabaja. Con batería no abre ticket bajo el 30 %, y al 15 % para la sesión y deja suspender. El bloqueo de la tapa lo instalas tú con `sudo`, dura toda la noche y se quita solo con la tapa abierta o al final de la ventana: quitarlo con la tapa cerrada suspende en el acto (medido el 14-11-2026).
+- **Fuera de la primera versión:** el Aprobador, porque no hay dato que lo justifique. La revisión la hace la propia sesión con los revisores de §7.
+
 ---
 
 ## 7. Subagentes
@@ -682,6 +712,8 @@ El job `mezcla` de la CI (`scripts/arnes/regla-commits.ts`) rechazaba un PR si a
 - **Desde un carril no se frena la carpeta principal,** salvo las rutas de otra fase. Claude podría editarla, pero lo que no pase por un PR no llega a GitHub. Lo ves en `git status` antes del `git pull --ff-only`.
 - **La CI usa el arnés de la rama,** salvo el job `rutas`, que ejecuta el script de la base. Un PR que relaja otra comprobación se comprueba con ella relajada. Por eso la configuración y el arnés tienen dueño, también dentro de la lista blanca: ese PR te espera.
 - **La lista blanca se fusiona sin que la veas.** Un PR que solo toca `src/`, `tests/unidad/`, `docs/areas/`, `docs/tickets/` o `docs/deuda-diseno.md` entra con la CI en verde. Lo que no mide la CI (diseño, nombres, comentarios) lo señala `revisor-codigo` y lo ves después en `main`.
+- **`make retirar` puede negarse con un PR ya fusionado.** `git cherry` compara cada parche con su contexto: si el rebase de GitHub lo cambia, porque otro PR tocó antes las líneas de al lado, la rama cuenta como sin fusionar. Pasó el 14-11-2026 con `mast-pasos-prepreguntas` (`f37ef6c`, en `main` como `71db500`), y hubo que borrar el carril a mano. Ticket `arnes-retirar-rebase`.
+- **La noche desatendida (§6) abrirá límites nuevos,** que se apuntan aquí cuando se construya cada paso. Los previstos: en `bypassPermissions` no hay nadie que niegue un permiso, y las únicas guardias son los hooks, que son textuales (arriba), la CI y tu revisión de la mañana; lo que entre en `lote/N` de noche no lo habrá visto nadie, y tu visto bueno pasa a darse sobre el diff entero del lote; el usuario de la noche comparte tu suscripción, así que puede dejarte sin cuota por la mañana, y la salida de `claude -p` con el límite agotado o sin red está sin medir.
 - **Que pasen los tests no demuestra eficacia pedagógica.** Lo dirá el README de la etapa 5.
 
 ---
