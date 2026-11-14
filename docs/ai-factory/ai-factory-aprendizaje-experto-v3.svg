@@ -1,0 +1,433 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2240 2250" width="2240" height="2250" font-family="Helvetica, Arial, sans-serif">
+<title>AI Factory para aprendizaje-experto: piezas a implementar (revisión 3)</title>
+<desc>Diagrama de clases con las piezas de la fábrica de agentes, sus relaciones y una anotación por cuadro.</desc>
+<defs>
+<marker id="ra" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="11" markerHeight="11" orient="auto"><path d="M2 1.5 L10 6 L2 10.5" fill="none" stroke="#C8451B" stroke-width="1.3"/></marker>
+<marker id="oa" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="11" markerHeight="11" orient="auto"><path d="M2 1.5 L10 6 L2 10.5" fill="none" stroke="#111" stroke-width="1.3"/></marker>
+<style>
+.t{font-size:13px;fill:#111} .nm{font-size:15px;font-weight:bold;fill:#111} .st{font-size:13px;fill:#111} .r{font-size:13px;fill:#1F5FA8} .g{font-size:13px;fill:#1E7A3C}
+.l{font-size:13px;fill:#111} .n{font-size:13.5px;fill:#C8451B} .h1{font-size:24px;font-weight:bold;fill:#111} .h2{font-size:14px;fill:#444}
+</style></defs>
+<rect width="2240" height="2250" fill="#fff"/>
+<text class="h1" x="50" y="48">AI Factory para aprendizaje-experto: piezas a implementar (revisión 3)</text>
+<text class="h2" x="50" y="72">Las cajas sombreadas son nuevas; las blancas ya existen en el arnés. Cada anotación roja es la leyenda de su cuadro. Fila superior: el relevo. En azul, la revisión 2. En verde, la revisión 3: medición y mejora.</text>
+<path d="M930 520 L930 371" fill="none" stroke="#111" stroke-width="1.2" stroke-dasharray="7 5" marker-end="url(#oa)"/>
+<text class="l" x="922" y="448" text-anchor="end">«use»</text>
+<path d="M1310 496 L1310 371" fill="none" stroke="#111" stroke-width="1.2"/>
+<polygon points="1310,520 1303,508 1310,496 1317,508" fill="#111" stroke="#111"/>
+<text class="l" x="1300" y="448" text-anchor="end">guarda</text>
+<text class="l" x="1300" y="490" text-anchor="end">1</text>
+<text class="l" x="1300" y="390" text-anchor="end">0..1</text>
+<path d="M1600 520 L1600 425 L1400 425 L1400 371" fill="none" stroke="#111" stroke-width="1.2"/>
+<text class="l" x="1500" y="417" text-anchor="middle">◀ escribe, lee y archiva</text>
+<path d="M1690 520 L1690 371" fill="none" stroke="#111" stroke-width="1.2"/>
+<text class="l" x="1682" y="470" text-anchor="end">vigila ▼</text>
+<path d="M1790 210 L1790 126 L1030 126 L1030 210" fill="none" stroke="#111" stroke-width="1.2"/>
+<text class="l" x="1410" y="118" text-anchor="middle">◀ anota cada parada</text>
+<text class="n" x="818" y="158" text-anchor="start">rastro de cada parada:</text>
+<text class="n" x="818" y="176" text-anchor="start">decide el paso siguiente</text>
+<path d="M852 182 C852 196, 850 190, 850 207" fill="none" stroke="#C8451B" stroke-width="1.2" marker-end="url(#ra)"/>
+<text class="n" x="1198" y="158" text-anchor="start">memoria del carril entre</text>
+<text class="n" x="1198" y="176" text-anchor="start">una sesión y la siguiente</text>
+<path d="M1232 182 C1232 196, 1230 190, 1230 207" fill="none" stroke="#C8451B" stroke-width="1.2" marker-end="url(#ra)"/>
+<text class="n" x="1578" y="158" text-anchor="start">ahorro de tokens: corta</text>
+<text class="n" x="1578" y="176" text-anchor="start">antes de la autocompactación</text>
+<path d="M1612 182 C1612 196, 1610 190, 1610 207" fill="none" stroke="#C8451B" stroke-width="1.2" marker-end="url(#ra)"/>
+<path d="M250 940 L250 580 L430 580" fill="none" stroke="#111" stroke-width="1.2"/>
+<text class="l" x="340" y="572" text-anchor="middle">aprueba ▶</text>
+<text class="l" x="258" y="930" text-anchor="start">1</text>
+<text class="l" x="418" y="598" text-anchor="end">*</text>
+<path d="M290 970 L430 970" fill="none" stroke="#111" stroke-width="1.2"/>
+<text class="l" x="360" y="962" text-anchor="middle">resuelve ▶</text>
+<path d="M210 1101 L210 1240 L430 1240" fill="none" stroke="#111" stroke-width="1.2"/>
+<text class="l" x="320" y="1232" text-anchor="middle">revisa ▶</text>
+<path d="M130 1101 L130 1560 L430 1560" fill="none" stroke="#111" stroke-width="1.2"/>
+<text class="l" x="280" y="1552" text-anchor="middle">fusiona ▶</text>
+<path d="M670 565 L810 565" fill="none" stroke="#111" stroke-width="1.2"/>
+<text class="l" x="740" y="557" text-anchor="middle">◀ lee listos</text>
+<text class="l" x="680" y="583" text-anchor="start">*</text>
+<text class="l" x="800" y="583" text-anchor="end">1</text>
+<path d="M1050 565 L1190 565" fill="none" stroke="#111" stroke-width="1.2"/>
+<text class="l" x="1120" y="557" text-anchor="middle">abre ▶</text>
+<text class="l" x="1060" y="583" text-anchor="start">1</text>
+<text class="l" x="1180" y="583" text-anchor="end">0..3</text>
+<path d="M1454 565 L1570 565" fill="none" stroke="#111" stroke-width="1.2"/>
+<polygon points="1430,565 1442,558 1454,565 1442,572" fill="#111" stroke="#111"/>
+<text class="l" x="1512" y="557" text-anchor="middle">sesiones</text>
+<text class="l" x="1462" y="585" text-anchor="start">1</text>
+<text class="l" x="1560" y="583" text-anchor="end">1..*</text>
+<path d="M840 700 L840 775 L640 775 L640 850" fill="none" stroke="#111" stroke-width="1.2"/>
+<text class="l" x="740" y="767" text-anchor="middle">◀ escribe</text>
+<path d="M930 700 L930 850" fill="none" stroke="#111" stroke-width="1.2" stroke-dasharray="7 5" marker-end="url(#oa)"/>
+<text class="l" x="940" y="762" text-anchor="start">«use»</text>
+<path d="M1310 662 L1310 850" fill="none" stroke="#111" stroke-width="1.2"/>
+<text class="l" x="1300" y="760" text-anchor="end">abre PR ▼</text>
+<text class="l" x="1300" y="682" text-anchor="end">1</text>
+<text class="l" x="1300" y="842" text-anchor="end">1..*</text>
+<path d="M1690 681 L1690 850" fill="none" stroke="#111" stroke-width="1.2"/>
+<text class="l" x="1682" y="812" text-anchor="end">▲ devuelve hallazgos</text>
+<text class="l" x="1698" y="722" text-anchor="start">1</text>
+<text class="l" x="1682" y="842" text-anchor="end">1</text>
+<path d="M1690 1011 L1690 1180" fill="none" stroke="#111" stroke-width="1.2"/>
+<text class="l" x="1682" y="1100" text-anchor="end">reúne informes ▼</text>
+<text class="l" x="1682" y="1070" text-anchor="end">1</text>
+<text class="l" x="1682" y="1172" text-anchor="end">1..*</text>
+<path d="M1610 681 L1610 765 L1500 765 L1500 1215 L1430 1215" fill="none" stroke="#111" stroke-width="1.2" stroke-dasharray="7 5" marker-end="url(#oa)"/>
+<text class="l" x="1508" y="990" text-anchor="start">«use»</text>
+<path d="M1570 1280 L1430 1280" fill="none" stroke="#111" stroke-width="1.2" stroke-dasharray="7 5" marker-end="url(#oa)"/>
+<text class="l" x="1500" y="1272" text-anchor="middle">«use»</text>
+<path d="M1250 1011 L1250 1095 L1000 1095 L1000 1180" fill="none" stroke="#111" stroke-width="1.2"/>
+<text class="l" x="1125" y="1087" text-anchor="middle">◀ fusiona en</text>
+<text class="l" x="1258" y="1052" text-anchor="start">*</text>
+<text class="l" x="1008" y="1172" text-anchor="start">1</text>
+<path d="M786 1250 L670 1250" fill="none" stroke="#111" stroke-width="1.2"/>
+<polygon points="810,1250 798,1243 786,1250 798,1257" fill="#111" stroke="#111"/>
+<text class="l" x="728" y="1242" text-anchor="middle">genera</text>
+<text class="l" x="680" y="1268" text-anchor="start">1</text>
+<path d="M870 1322 L870 1560 L670 1560" fill="none" stroke="#111" stroke-width="1.2"/>
+<text class="l" x="770" y="1552" text-anchor="middle">◀ rebase tras tu revisión</text>
+<polygon points="1690,1322 1678,1342 1702,1342" fill="#fff" stroke="#111" stroke-width="1.2"/>
+<path d="M1690 1342 L1690 1500" fill="none" stroke="#111" stroke-width="1.2"/>
+<path d="M1310 1500 L1310 1420 L1690 1420" fill="none" stroke="#111" stroke-width="1.2"/>
+<path d="M1810 600 L1950 600" fill="none" stroke="#111" stroke-width="1.2" stroke-dasharray="7 5" marker-end="url(#oa)"/>
+<text class="l" x="1880" y="592" text-anchor="middle">«use»</text>
+<path d="M1810 1250 L1950 1250" fill="none" stroke="#111" stroke-width="1.2"/>
+<text class="l" x="1880" y="1242" text-anchor="middle">produce ▶</text>
+<text class="l" x="1820" y="1268" text-anchor="start">1</text>
+<text class="l" x="1940" y="1268" text-anchor="end">0..*</text>
+<rect x="410" y="1660" width="1420" height="320" fill="none" stroke="#111" stroke-width="1" stroke-dasharray="3 5"/>
+<path d="M90 1101 L90 2000 L1690 2000 L1690 1931" fill="none" stroke="#111" stroke-width="1.2"/>
+<text class="l" x="260" y="1992" text-anchor="middle">aprueba cada PR a la fábrica ▶</text>
+<path d="M670 1850 L810 1850" fill="none" stroke="#111" stroke-width="1.2" stroke-dasharray="7 5" marker-end="url(#oa)"/>
+<text class="l" x="740" y="1842" text-anchor="middle">«use»</text>
+<path d="M1190 1850 L1050 1850" fill="none" stroke="#111" stroke-width="1.2" stroke-dasharray="7 5" marker-end="url(#oa)"/>
+<text class="l" x="1120" y="1842" text-anchor="middle">«use»</text>
+<path d="M1430 1850 L1570 1850" fill="none" stroke="#111" stroke-width="1.2"/>
+<text class="l" x="1500" y="1842" text-anchor="middle">propone PR ▶</text>
+<rect x="50" y="940" width="240" height="180" fill="#fff" stroke="#111" stroke-width="1.3"/>
+<line x1="50" y1="990" x2="290" y2="990" stroke="#111" stroke-width="1.3"/>
+<text class="st" x="170.0" y="960" text-anchor="middle">«humano»</text>
+<text class="nm" x="170.0" y="980" text-anchor="middle">Dueño</text>
+<text class="t" x="60" y="1012">aprueba tickets</text>
+<text class="t" x="60" y="1031">da visto bueno a specs</text>
+<text class="t" x="60" y="1050">resuelve la cola</text>
+<text class="t" x="60" y="1069">revisa cada etapa</text>
+<text class="t" x="60" y="1088">fusiona etapa/N a main</text>
+<text class="g" x="60" y="1107">aprueba PR a la fábrica {r3}</text>
+<rect x="430" y="520" width="240" height="180" fill="#fff" stroke="#111" stroke-width="1.3"/>
+<line x1="430" y1="570" x2="670" y2="570" stroke="#111" stroke-width="1.3"/>
+<text class="st" x="550.0" y="540" text-anchor="middle">«entrada»</text>
+<text class="nm" x="550.0" y="560" text-anchor="middle">Ticket</text>
+<text class="t" x="440" y="592">fase: Fase</text>
+<text class="t" x="440" y="611">area: String</text>
+<text class="t" x="440" y="630">depende: Ticket[0..*]</text>
+<text class="t" x="440" y="649">toca: Ruta[1..*]</text>
+<text class="t" x="440" y="668">estado: EstadoTicket</text>
+<text class="t" x="440" y="687">aprobado: Boolean {nuevo}</text>
+<rect x="810" y="520" width="240" height="218" fill="#FFF3D1" stroke="#111" stroke-width="1.3"/>
+<line x1="810" y1="570" x2="1050" y2="570" stroke="#111" stroke-width="1.3"/>
+<text class="st" x="930.0" y="540" text-anchor="middle">«script»</text>
+<text class="nm" x="930.0" y="560" text-anchor="middle">Despachador</text>
+<text class="t" x="820" y="592">maxCarriles: 3 · maxRelevos: 4</text>
+<text class="r" x="820" y="611">timeoutSesion: Duración {rev}</text>
+<text class="r" x="820" y="630">abre si «toca» no solapa {rev}</text>
+<text class="t" x="820" y="649">relevo → sesión nueva</text>
+<text class="t" x="820" y="668">decision, con-cambios → cola</text>
+<text class="t" x="820" y="687">sin-cambios con PR → hecho</text>
+<text class="r" x="820" y="706">cualquier otro caso → cola {rev}</text>
+<text class="g" x="820" y="725">anota la ficha del ticket {r3}</text>
+<rect x="1190" y="520" width="240" height="142" fill="#fff" stroke="#111" stroke-width="1.3"/>
+<line x1="1190" y1="570" x2="1430" y2="570" stroke="#111" stroke-width="1.3"/>
+<text class="st" x="1310.0" y="540" text-anchor="middle">«worktree»</text>
+<text class="nm" x="1310.0" y="560" text-anchor="middle">Carril</text>
+<text class="t" x="1200" y="592">rama: fase/ÁREA/carril</text>
+<text class="t" x="1200" y="611">fase: Fase</text>
+<text class="t" x="1200" y="630">area: String</text>
+<text class="t" x="1200" y="649">sesiones: una tras otra</text>
+<rect x="1570" y="520" width="240" height="180" fill="#fff" stroke="#111" stroke-width="1.3"/>
+<line x1="1570" y1="570" x2="1810" y2="570" stroke="#111" stroke-width="1.3"/>
+<text class="st" x="1690.0" y="540" text-anchor="middle">«agente»</text>
+<text class="nm" x="1690.0" y="560" text-anchor="middle">Builder</text>
+<text class="t" x="1580" y="592">modelo: Opus (impl)</text>
+<text class="t" x="1580" y="611">modelo: Sonnet (specs, acept.)</text>
+<text class="t" x="1580" y="630">subagente: implementador</text>
+<text class="r" x="1580" y="649">empieza: lee y archiva relevo {rev}</text>
+<text class="r" x="1580" y="668">antes de revisar: make check {rev}</text>
+<text class="t" x="1580" y="687">acaba: PR, [RELEVO] o [DECISIÓN]</text>
+<rect x="430" y="850" width="240" height="180" fill="#FFF3D1" stroke="#111" stroke-width="1.3"/>
+<line x1="430" y1="900" x2="670" y2="900" stroke="#111" stroke-width="1.3"/>
+<text class="st" x="550.0" y="870" text-anchor="middle">«artefacto»</text>
+<text class="nm" x="550.0" y="890" text-anchor="middle">Cola de la mañana</text>
+<text class="t" x="440" y="922">decisiones pendientes</text>
+<text class="r" x="440" y="941">relevos sin retomar o agotados {rev}</text>
+<text class="t" x="440" y="960">PR que esperan visto bueno</text>
+<text class="r" x="440" y="979">CI en rojo: PR o etapa/N {rev}</text>
+<text class="r" x="440" y="998">hallazgos bloqueantes {rev}</text>
+<text class="r" x="440" y="1017">carriles sin destino {rev}</text>
+<rect x="810" y="850" width="240" height="123" fill="#fff" stroke="#111" stroke-width="1.3"/>
+<line x1="810" y1="900" x2="1050" y2="900" stroke="#111" stroke-width="1.3"/>
+<text class="st" x="930.0" y="870" text-anchor="middle">«enumeration»</text>
+<text class="nm" x="930.0" y="890" text-anchor="middle">Fase</text>
+<text class="t" x="820" y="922">specs</text>
+<text class="t" x="820" y="941">aceptacion</text>
+<text class="t" x="820" y="960">impl</text>
+<rect x="1190" y="850" width="240" height="180" fill="#fff" stroke="#111" stroke-width="1.3"/>
+<line x1="1190" y1="900" x2="1430" y2="900" stroke="#111" stroke-width="1.3"/>
+<text class="st" x="1310.0" y="870" text-anchor="middle">«código»</text>
+<text class="nm" x="1310.0" y="890" text-anchor="middle">Puerta de CI</text>
+<text class="t" x="1200" y="922">rama: nombre válido</text>
+<text class="r" x="1200" y="941">rutas: fase ∩ ticket.toca {rev}</text>
+<text class="t" x="1200" y="960">check: make check</text>
+<text class="t" x="1200" y="979">mutacion: Stryker</text>
+<text class="t" x="1200" y="998">base: etapa/N {nuevo}</text>
+<text class="r" x="1200" y="1017">squash: 1 commit por ticket {rev}</text>
+<rect x="1570" y="850" width="240" height="199" fill="#FFF3D1" stroke="#111" stroke-width="1.3"/>
+<line x1="1570" y1="900" x2="1810" y2="900" stroke="#111" stroke-width="1.3"/>
+<text class="st" x="1690.0" y="870" text-anchor="middle">«agente»</text>
+<text class="nm" x="1690.0" y="890" text-anchor="middle">Aprobador</text>
+<text class="t" x="1580" y="922">modelo: Opus</text>
+<text class="t" x="1580" y="941">sesión propia, contexto limpio</text>
+<text class="r" x="1580" y="960">requiere: make check verde {rev}</text>
+<text class="t" x="1580" y="979">maxRondas: 2</text>
+<text class="t" x="1580" y="998">hallazgos: reports/revision.md</text>
+<text class="r" x="1580" y="1017">bloqueante → cola {rev}</text>
+<text class="r" x="1580" y="1036">pasarResto(menores) {rev}</text>
+<rect x="430" y="1180" width="240" height="218" fill="#FFF3D1" stroke="#111" stroke-width="1.3"/>
+<line x1="430" y1="1230" x2="670" y2="1230" stroke="#111" stroke-width="1.3"/>
+<text class="st" x="550.0" y="1200" text-anchor="middle">«artefacto»</text>
+<text class="nm" x="550.0" y="1220" text-anchor="middle">Informe de etapa</text>
+<text class="t" x="440" y="1252">diff de features/</text>
+<text class="t" x="440" y="1271">escenarios rojo → verde</text>
+<text class="t" x="440" y="1290">grafo de módulos antes/después</text>
+<text class="t" x="440" y="1309">mutación y deuda</text>
+<text class="r" x="440" y="1328">tickets: 1 commit revertible {rev}</text>
+<text class="r" x="440" y="1347">hallazgos menores abiertos {rev}</text>
+<text class="g" x="440" y="1366">% tickets sin pasar por cola {r3}</text>
+<text class="g" x="440" y="1385">relevos y coste por ticket {r3}</text>
+<rect x="810" y="1180" width="240" height="180" fill="#FFF3D1" stroke="#111" stroke-width="1.3"/>
+<line x1="810" y1="1230" x2="1050" y2="1230" stroke="#111" stroke-width="1.3"/>
+<text class="st" x="930.0" y="1200" text-anchor="middle">«rama»</text>
+<text class="nm" x="930.0" y="1220" text-anchor="middle">Rama etapa/N</text>
+<text class="t" x="820" y="1252">sale de: main</text>
+<text class="t" x="820" y="1271">fusión: automática con CI</text>
+<text class="r" x="820" y="1290">squash: 1 commit por ticket {rev}</text>
+<text class="r" x="820" y="1309">CI tras cada fusión {rev}</text>
+<text class="t" x="820" y="1328">cierra con: make cerrar-area</text>
+<text class="t" x="820" y="1347">se borra al fusionar</text>
+<rect x="1190" y="1180" width="240" height="180" fill="#fff" stroke="#111" stroke-width="1.3"/>
+<line x1="1190" y1="1230" x2="1430" y2="1230" stroke="#111" stroke-width="1.3"/>
+<text class="st" x="1310.0" y="1200" text-anchor="middle">«memoria»</text>
+<text class="nm" x="1310.0" y="1220" text-anchor="middle">Brain</text>
+<text class="t" x="1200" y="1252">docs/plan.md</text>
+<text class="t" x="1200" y="1271">docs/areas/*.md</text>
+<text class="t" x="1200" y="1290">docs/deuda-diseno.md</text>
+<text class="t" x="1200" y="1309">ticket: «Leer primero»</text>
+<text class="r" x="1200" y="1328">escritura: vía PR, por área {rev}</text>
+<text class="r" x="1200" y="1347">precedencia: código &gt; Brain {rev}</text>
+<rect x="1570" y="1180" width="240" height="142" fill="#fff" stroke="#111" stroke-width="1.3"/>
+<line x1="1570" y1="1230" x2="1810" y2="1230" stroke="#111" stroke-width="1.3"/>
+<text class="st" x="1690.0" y="1200" text-anchor="middle">«subagente»</text>
+<text class="nm" x="1690.0" y="1220" text-anchor="middle" font-style="italic">Revisor</text>
+<text class="t" x="1580" y="1252">contexto: limpio</text>
+<text class="t" x="1580" y="1271">herramientas: solo lectura</text>
+<text class="t" x="1580" y="1290">cuándo: por ticket {nuevo}</text>
+<text class="t" x="1580" y="1309">informe(): Hallazgo[0..*]</text>
+<rect x="430" y="1500" width="240" height="123" fill="#fff" stroke="#111" stroke-width="1.3"/>
+<line x1="430" y1="1550" x2="670" y2="1550" stroke="#111" stroke-width="1.3"/>
+<text class="st" x="550.0" y="1520" text-anchor="middle">«rama»</text>
+<text class="nm" x="550.0" y="1540" text-anchor="middle">main</text>
+<text class="t" x="440" y="1572">solo lo revisado por ti</text>
+<text class="t" x="440" y="1591">historia lineal (rebase)</text>
+<text class="t" x="440" y="1610">rulesets: CI y visto bueno</text>
+<rect x="1190" y="1500" width="240" height="109" fill="#fff" stroke="#111" stroke-width="1.3"/>
+<line x1="1190" y1="1536" x2="1430" y2="1536" stroke="#111" stroke-width="1.3"/>
+<text class="nm" x="1310.0" y="1524" text-anchor="middle">revisor-evidencia</text>
+<text class="t" x="1200" y="1558">modelo: Sonnet</text>
+<text class="t" x="1200" y="1577">revisa: features/, config/</text>
+<text class="t" x="1200" y="1596">contra: el informe</text>
+<rect x="810" y="210" width="240" height="161" fill="#fff" stroke="#111" stroke-width="1.3"/>
+<line x1="810" y1="260" x2="1050" y2="260" stroke="#111" stroke-width="1.3"/>
+<text class="st" x="930.0" y="230" text-anchor="middle">«registro»</text>
+<text class="nm" x="930.0" y="250" text-anchor="middle">Registro de paradas</text>
+<text class="t" x="820" y="282">.claude/registro-stop.jsonl</text>
+<text class="t" x="820" y="301">sesion, carril, fase, tokens</text>
+<text class="r" x="820" y="320">resultado: enum cerrada {rev}</text>
+<text class="g" x="820" y="339">versionFabrica: sha {r3}</text>
+<text class="t" x="820" y="358">uno para todos los carriles</text>
+<rect x="1190" y="210" width="240" height="161" fill="#fff" stroke="#111" stroke-width="1.3"/>
+<line x1="1190" y1="260" x2="1430" y2="260" stroke="#111" stroke-width="1.3"/>
+<text class="st" x="1310.0" y="230" text-anchor="middle">«memoria»</text>
+<text class="nm" x="1310.0" y="250" text-anchor="middle">Relevo</text>
+<text class="r" x="1200" y="282">reports/relevos/N.md {rev}</text>
+<text class="r" x="1200" y="301">se archiva, no se borra {rev}</text>
+<text class="t" x="1200" y="320">hecho, pendiente, paso siguiente</text>
+<text class="t" x="1200" y="339">leer primero; búsquedas hechas</text>
+<text class="r" x="1200" y="358">estado: sha + make check {rev}</text>
+<rect x="1570" y="210" width="240" height="161" fill="#fff" stroke="#111" stroke-width="1.3"/>
+<line x1="1570" y1="260" x2="1810" y2="260" stroke="#111" stroke-width="1.3"/>
+<text class="st" x="1690.0" y="230" text-anchor="middle">«hook»</text>
+<text class="nm" x="1690.0" y="250" text-anchor="middle">Vigía de contexto</text>
+<text class="r" x="1580" y="282">umbral: por modelo {rev}</text>
+<text class="t" x="1580" y="301">reaviso: cada 20 k</text>
+<text class="t" x="1580" y="320">acepta [RELEVO] una vez</text>
+<text class="t" x="1580" y="339">después niega las ediciones</text>
+<text class="r" x="1580" y="358">implementador: tope propio {rev}</text>
+<rect x="1570" y="1500" width="240" height="109" fill="#fff" stroke="#111" stroke-width="1.3"/>
+<line x1="1570" y1="1536" x2="1810" y2="1536" stroke="#111" stroke-width="1.3"/>
+<text class="nm" x="1690.0" y="1524" text-anchor="middle">revisor-codigo</text>
+<text class="t" x="1580" y="1558">modelo: Sonnet {probar Opus}</text>
+<text class="t" x="1580" y="1577">revisa: src/, tests/</text>
+<text class="t" x="1580" y="1596">señales de Ousterhout</text>
+<text class="n" x="50" y="882" text-anchor="start">tú: los únicos pasos</text>
+<text class="n" x="50" y="900" text-anchor="start">que no se automatizan</text>
+<path d="M84 906 C84 920, 100 920, 100 937" fill="none" stroke="#C8451B" stroke-width="1.2" marker-end="url(#ra)"/>
+<text class="n" x="438" y="462" text-anchor="start">entrada: solo se ejecuta</text>
+<text class="n" x="438" y="480" text-anchor="start">lo que has aprobado</text>
+<path d="M472 486 C472 500, 470 500, 470 517" fill="none" stroke="#C8451B" stroke-width="1.2" marker-end="url(#ra)"/>
+<text class="n" x="945" y="462" text-anchor="start">código, no agente: encadena</text>
+<text class="n" x="945" y="480" text-anchor="start">sesiones hasta el PR</text>
+<path d="M979 486 C979 500, 985 500, 985 517" fill="none" stroke="#C8451B" stroke-width="1.2" marker-end="url(#ra)"/>
+<text class="n" x="1325" y="462" text-anchor="start">aislamiento: un worktree</text>
+<text class="n" x="1325" y="480" text-anchor="start">y una rama por ticket</text>
+<path d="M1359 486 C1359 500, 1365 500, 1365 517" fill="none" stroke="#C8451B" stroke-width="1.2" marker-end="url(#ra)"/>
+<text class="n" x="1705" y="462" text-anchor="start">una sesión del carril;</text>
+<text class="n" x="1705" y="480" text-anchor="start">un ticket puede pedir varias</text>
+<path d="M1739 486 C1739 500, 1745 500, 1745 517" fill="none" stroke="#C8451B" stroke-width="1.2" marker-end="url(#ra)"/>
+<text class="n" x="438" y="792" text-anchor="start">lo que te espera</text>
+<text class="n" x="438" y="810" text-anchor="start">al volver</text>
+<path d="M472 816 C472 830, 470 830, 470 847" fill="none" stroke="#C8451B" stroke-width="1.2" marker-end="url(#ra)"/>
+<text class="n" x="975" y="792" text-anchor="start">enumeración: decide</text>
+<text class="n" x="975" y="810" text-anchor="start">qué rutas se pueden tocar</text>
+<path d="M1009 816 C1009 830, 1020 830, 1020 847" fill="none" stroke="#C8451B" stroke-width="1.2" marker-end="url(#ra)"/>
+<text class="n" x="1325" y="792" text-anchor="start">código: lo mismo</text>
+<text class="n" x="1325" y="810" text-anchor="start">para todos los PR</text>
+<path d="M1359 816 C1359 830, 1365 830, 1365 847" fill="none" stroke="#C8451B" stroke-width="1.2" marker-end="url(#ra)"/>
+<text class="n" x="1705" y="792" text-anchor="start">bucle de revisión</text>
+<text class="n" x="1705" y="810" text-anchor="start">antes del PR</text>
+<path d="M1739 816 C1739 830, 1745 830, 1745 847" fill="none" stroke="#C8451B" stroke-width="1.2" marker-end="url(#ra)"/>
+<text class="n" x="440" y="1122" text-anchor="start">tu vista de la etapa,</text>
+<text class="n" x="440" y="1140" text-anchor="start">hecha de datos verificables</text>
+<path d="M474 1146 C474 1160, 480 1160, 480 1177" fill="none" stroke="#C8451B" stroke-width="1.2" marker-end="url(#ra)"/>
+<text class="n" x="815" y="1122" text-anchor="start">integración: acumula</text>
+<text class="n" x="815" y="1140" text-anchor="start">lo aún no revisado</text>
+<path d="M849 1146 C849 1160, 850 1160, 850 1177" fill="none" stroke="#C8451B" stroke-width="1.2" marker-end="url(#ra)"/>
+<text class="n" x="1262" y="1122" text-anchor="start">contexto persistente,</text>
+<text class="n" x="1262" y="1140" text-anchor="start">versionado en git</text>
+<path d="M1296 1146 C1296 1160, 1300 1160, 1300 1177" fill="none" stroke="#C8451B" stroke-width="1.2" marker-end="url(#ra)"/>
+<text class="n" x="1705" y="1122" text-anchor="start">clase abstracta:</text>
+<text class="n" x="1705" y="1140" text-anchor="start">revisores de solo lectura</text>
+<path d="M1739 1146 C1739 1160, 1745 1160, 1745 1177" fill="none" stroke="#C8451B" stroke-width="1.2" marker-end="url(#ra)"/>
+<text class="n" x="440" y="1442" text-anchor="start">destino: solo entra</text>
+<text class="n" x="440" y="1460" text-anchor="start">lo que has revisado</text>
+<path d="M474 1466 C474 1480, 480 1480, 480 1497" fill="none" stroke="#C8451B" stroke-width="1.2" marker-end="url(#ra)"/>
+<text class="n" x="1295" y="1442" text-anchor="end">contrasta con</text>
+<text class="n" x="1295" y="1460" text-anchor="end">el informe de investigación</text>
+<path d="M1245 1466 C1245 1480, 1250 1480, 1250 1497" fill="none" stroke="#C8451B" stroke-width="1.2" marker-end="url(#ra)"/>
+<text class="n" x="1705" y="1442" text-anchor="start">diseño que las</text>
+<text class="n" x="1705" y="1460" text-anchor="start">herramientas no ven</text>
+<path d="M1739 1466 C1739 1480, 1745 1480, 1745 1497" fill="none" stroke="#C8451B" stroke-width="1.2" marker-end="url(#ra)"/>
+<rect x="1950" y="520" width="240" height="142" fill="#DCEBFA" stroke="#111" stroke-width="1.3"/>
+<line x1="1950" y1="570" x2="2190" y2="570" stroke="#111" stroke-width="1.3"/>
+<text class="st" x="2070.0" y="540" text-anchor="middle">«artefacto»</text>
+<text class="nm" x="2070.0" y="560" text-anchor="middle">Mapa del repo</text>
+<text class="t" x="1960" y="592">generado en CI, no a mano</text>
+<text class="t" x="1960" y="611">módulo → propósito → entradas</text>
+<text class="t" x="1960" y="630">mismo grafo que el informe</text>
+<text class="t" x="1960" y="649">capa 0 de la búsqueda</text>
+<rect x="1950" y="1180" width="240" height="142" fill="#DCEBFA" stroke="#111" stroke-width="1.3"/>
+<line x1="1950" y1="1230" x2="2190" y2="1230" stroke="#111" stroke-width="1.3"/>
+<text class="st" x="2070.0" y="1200" text-anchor="middle">«valor»</text>
+<text class="nm" x="2070.0" y="1220" text-anchor="middle">Hallazgo</text>
+<text class="t" x="1960" y="1252">severidad: bloqueante | menor</text>
+<text class="t" x="1960" y="1271">donde: fichero:líneas</text>
+<text class="t" x="1960" y="1290">revisor: String</text>
+<text class="t" x="1960" y="1309">estado: abierto | resuelto</text>
+<text class="n" x="1958" y="462" text-anchor="start">orientación barata: dónde</text>
+<text class="n" x="1958" y="480" text-anchor="start">mirar antes de buscar</text>
+<path d="M1992 486 C1992 500, 1990 500, 1990 517" fill="none" stroke="#C8451B" stroke-width="1.2" marker-end="url(#ra)"/>
+<text class="n" x="1958" y="1122" text-anchor="start">la severidad decide:</text>
+<text class="n" x="1958" y="1140" text-anchor="start">cola o informe de etapa</text>
+<path d="M1992 1146 C1992 1160, 1990 1160, 1990 1177" fill="none" stroke="#C8451B" stroke-width="1.2" marker-end="url(#ra)"/>
+<text class="nm" x="426" y="1684">Medición y mejora</text>
+<rect x="430" y="1770" width="240" height="180" fill="#DDF0DD" stroke="#111" stroke-width="1.3"/>
+<line x1="430" y1="1820" x2="670" y2="1820" stroke="#111" stroke-width="1.3"/>
+<text class="st" x="550.0" y="1790" text-anchor="middle">«script»</text>
+<text class="nm" x="550.0" y="1810" text-anchor="middle">Banco de repetición</text>
+<text class="t" x="440" y="1842">tareas: tickets cerrados</text>
+<text class="t" x="440" y="1861">parte de: commit padre del ticket</text>
+<text class="t" x="440" y="1880">varía: modelo, umbral, prompts</text>
+<text class="t" x="440" y="1899">oráculo: escenarios + mutación</text>
+<text class="t" x="440" y="1918">repite: N veces por tarea</text>
+<text class="t" x="440" y="1937">salida: coste frente a acierto</text>
+<rect x="810" y="1770" width="240" height="180" fill="#DDF0DD" stroke="#111" stroke-width="1.3"/>
+<line x1="810" y1="1820" x2="1050" y2="1820" stroke="#111" stroke-width="1.3"/>
+<text class="st" x="930.0" y="1790" text-anchor="middle">«registro»</text>
+<text class="nm" x="930.0" y="1810" text-anchor="middle">Ficha de ticket</text>
+<text class="t" x="820" y="1842">reports/fichas/TICKET.json</text>
+<text class="t" x="820" y="1861">relevos, rondas, tokens, coste</text>
+<text class="t" x="820" y="1880">hallazgos por severidad</text>
+<text class="t" x="820" y="1899">motivo de cola: 4a a 4f</text>
+<text class="t" x="820" y="1918">versionFabrica: sha</text>
+<text class="t" x="820" y="1937">veredicto del Dueño</text>
+<rect x="1190" y="1770" width="240" height="161" fill="#DDF0DD" stroke="#111" stroke-width="1.3"/>
+<line x1="1190" y1="1820" x2="1430" y2="1820" stroke="#111" stroke-width="1.3"/>
+<text class="st" x="1310.0" y="1790" text-anchor="middle">«agente»</text>
+<text class="nm" x="1310.0" y="1810" text-anchor="middle">Mejorador</text>
+<text class="t" x="1200" y="1842">cuándo: al cerrar cada etapa</text>
+<text class="t" x="1200" y="1861">lee: fichas y hallazgos</text>
+<text class="t" x="1200" y="1880">agrupa fallos repetidos</text>
+<text class="t" x="1200" y="1899">propone PR a la definición</text>
+<text class="t" x="1200" y="1918">no toca la Puerta de CI</text>
+<rect x="1570" y="1770" width="240" height="161" fill="#DDF0DD" stroke="#111" stroke-width="1.3"/>
+<line x1="1570" y1="1820" x2="1810" y2="1820" stroke="#111" stroke-width="1.3"/>
+<text class="st" x="1690.0" y="1790" text-anchor="middle">«config»</text>
+<text class="nm" x="1690.0" y="1810" text-anchor="middle">Definición de fábrica</text>
+<text class="t" x="1580" y="1842">límites: carriles, relevos, rondas</text>
+<text class="t" x="1580" y="1861">modelo por fase y por agente</text>
+<text class="t" x="1580" y="1880">umbral del Vigía por modelo</text>
+<text class="t" x="1580" y="1899">prompts, skills y hooks</text>
+<text class="t" x="1580" y="1918">versión: sha del commit</text>
+<text class="n" x="438" y="1712" text-anchor="start">decide con datos qué modelo</text>
+<text class="n" x="438" y="1730" text-anchor="start">y qué umbral rinden más</text>
+<path d="M472 1736 C472 1750, 470 1750, 470 1767" fill="none" stroke="#C8451B" stroke-width="1.2" marker-end="url(#ra)"/>
+<text class="n" x="818" y="1712" text-anchor="start">una por ticket: el Despachador</text>
+<text class="n" x="818" y="1730" text-anchor="start">la escribe en cada transición</text>
+<path d="M852 1736 C852 1750, 850 1750, 850 1767" fill="none" stroke="#C8451B" stroke-width="1.2" marker-end="url(#ra)"/>
+<text class="n" x="1198" y="1712" text-anchor="start">cierra el bucle,</text>
+<text class="n" x="1198" y="1730" text-anchor="start">pero solo propone</text>
+<path d="M1232 1736 C1232 1750, 1230 1750, 1230 1767" fill="none" stroke="#C8451B" stroke-width="1.2" marker-end="url(#ra)"/>
+<text class="n" x="1578" y="1712" text-anchor="start">todo lo ajustable,</text>
+<text class="n" x="1578" y="1730" text-anchor="start">en un sitio y con versión</text>
+<path d="M1612 1736 C1612 1750, 1610 1750, 1610 1767" fill="none" stroke="#C8451B" stroke-width="1.2" marker-end="url(#ra)"/>
+<g transform="translate(0,350)">
+<rect x="40" y="1680" width="2150" height="184" fill="#fff" stroke="#111" stroke-width="1"/>
+<text class="nm" x="56" y="1704">Notación</text>
+<rect x="56" y="1722" width="34" height="20" fill="#FFF3D1" stroke="#111"/>
+<text class="l" x="102" y="1737" text-anchor="start">pieza nueva, a implementar</text>
+<rect x="56" y="1758" width="34" height="20" fill="#fff" stroke="#111"/>
+<text class="l" x="102" y="1773" text-anchor="start">ya existe en tu arnés</text>
+<text class="l" x="500" y="1737" text-anchor="start">{nuevo}</text>
+<text class="l" x="562" y="1737" text-anchor="start">atributo que se añade a una pieza existente</text>
+<path d="M500 1768 L550 1768" fill="none" stroke="#111" stroke-width="1.2"/>
+<text class="l" x="562" y="1773" text-anchor="start">asociación; ◀ ▶ indican cómo se lee</text>
+<path d="M974 1732 L1000 1732" fill="none" stroke="#111" stroke-width="1.2"/>
+<polygon points="950,1732 962,1725 974,1732 962,1739" fill="#111" stroke="#111"/>
+<text class="l" x="1012" y="1737" text-anchor="start">composición: la parte no existe sin el todo</text>
+<path d="M950 1768 L986 1768" fill="none" stroke="#111" stroke-width="1.2"/>
+<polygon points="1000,1768 986,1761 986,1775" fill="#fff" stroke="#111" stroke-width="1.2"/>
+<text class="l" x="1012" y="1773" text-anchor="start">generalización: «es un»</text>
+<path d="M1400 1732 L1450 1732" fill="none" stroke="#111" stroke-width="1.2" stroke-dasharray="7 5" marker-end="url(#oa)"/>
+<text class="l" x="1462" y="1737" text-anchor="start">«use»: dependencia de uso</text>
+<path d="M1400 1762 C1415 1778, 1435 1778, 1450 1766" fill="none" stroke="#C8451B" stroke-width="1.2" marker-end="url(#ra)"/>
+<text class="n" x="1462" y="1773">leyenda de cada cuadro</text>
+<rect x="56" y="1794" width="34" height="20" fill="#DCEBFA" stroke="#111"/>
+<text class="l" x="102" y="1809" text-anchor="start">pieza añadida en la revisión 2</text>
+<text class="r" x="500" y="1809" text-anchor="start">{rev}</text>
+<text class="l" x="562" y="1809" text-anchor="start">atributo añadido o cambiado en la revisión 2</text>
+<text class="l" x="950" y="1809" text-anchor="start">ciclo de vida del ticket: ver ai-factory-estados-ticket-v2.svg</text>
+<rect x="56" y="1830" width="34" height="20" fill="#DDF0DD" stroke="#111"/>
+<text class="l" x="102" y="1845" text-anchor="start">pieza añadida en la revisión 3</text>
+<text class="g" x="500" y="1845" text-anchor="start">{r3}</text>
+<text class="l" x="562" y="1845" text-anchor="start">atributo añadido en la revisión 3</text>
+</g>
+</svg>
