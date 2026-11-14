@@ -2,7 +2,7 @@
 fase: impl
 area: PLAN
 depende: [arnes-retirar-rebase]
-toca: [scripts/arnes/despachador.ts, scripts/arnes/aprobar.ts, scripts/arnes/manana.ts, scripts/arnes/comun/despachador.ts, scripts/arnes/comun/aprobados.ts, tests/arnes/despachador.test.ts, tests/arnes/aprobados.test.ts, Makefile, CLAUDE.md, docs/plan.md]
+toca: [scripts/arnes/despachador.ts, scripts/arnes/aprobar.ts, scripts/arnes/manana.ts, scripts/arnes/comun/despachador.ts, scripts/arnes/comun/aprobados.ts, scripts/arnes/comun/diario-noche.ts, tests/arnes/despachador.test.ts, tests/arnes/aprobados.test.ts, Makefile, CLAUDE.md, docs/plan.md]
 estado: abierto
 ---
 # El Despachador ejecuta de noche los tickets aprobados, uno tras otro, contra `main`
@@ -52,3 +52,9 @@ estado: abierto
 - El Despachador retira el carril con lo mismo que `make retirar`; por eso depende de `arnes-retirar-rebase`.
 - `make manana` no guarda ningún fichero ni pinta el grafo de módulos: lee lo que dejó la noche (los streams, los registros de parada y GitHub) y lista la cola con su motivo y lo fusionado.
 - 0 de los 31 tickets abiertos el 13-11-2026 caben enteros en la lista blanca: hasta `noche-lote`, casi todo acabará en «espera el visto bueno». Para la pasada real de «Hecho cuando» hace falta un ticket que sí quepa.
+
+## Estado (14-11-2026)
+
+- Construido en el primer PR del ticket: las reglas (`queHacer`) con sus tests, el Despachador, `make aprobar`, `make despachar`, `make manana` y el plan §3, §4, §5, §6 y §11. Lo que el diseño no fijaba (el orden de las reglas, el error que no es el límite, la espera de 30 minutos al PR) está en el plan §6, «Lo construido en el paso 2».
+- `make manana` lee el diario del Despachador (`reports/noche/diario.jsonl`, `scripts/arnes/comun/diario-noche.ts`) y GitHub, no los registros de parada: el de un carril retirado ya no existe.
+- Faltan las dos pasadas reales, que lanza el dueño cuando el primer PR esté en `main`. Sus tickets: `deuda-acciones-tipadas`, que cabe en la lista blanca, y `deuda-borrador-no-json`, que para con una decisión pendiente. El segundo PR del ticket apunta en el plan lo que salga y pone `estado: hecho`.

@@ -4,7 +4,7 @@
 
 ## Comandos para el dueño (regla dura)
 
-Cuando el dueño tenga que hacer algo que Claude no puede hacer, dale los comandos exactos en un único bloque `sh`. Esto incluye elegir la fase y el área, abrir y retirar un carril, fusionar con bypass un PR que espera su visto bueno y actualizar la carpeta principal.
+Cuando el dueño tenga que hacer algo que Claude no puede hacer, dale los comandos exactos en un único bloque `sh`. Esto incluye elegir la fase y el área, abrir y retirar un carril, aprobar un ticket para la noche, lanzar el Despachador, fusionar con bypass un PR que espera su visto bueno y actualizar la carpeta principal.
 
 - El bloque se copia y se pega tal cual: empieza con `cd <ruta absoluta>`, lleva las rutas y los números de PR ya rellenos y sigue el orden en que se ejecuta.
 - Tras cada fusión, el bloque actualiza la carpeta principal: `cd /home/florin/aprendizaje-experto && git pull --ff-only`, y `npm ci` si el PR cambió `package-lock.json`.
@@ -18,6 +18,7 @@ Cuando el dueño tenga que hacer algo que Claude no puede hacer, dale los comand
   - El trabajo nuevo que aparezca y no sea del ticket no se hace: va a un ticket nuevo en el mismo PR (copia `docs/tickets/_plantilla.md`). Así se apunta lo pendiente, en vez de en notas sueltas: un impl que encuentra un problema de la spec crea un ticket specs.
   - El último PR del ticket le pone `estado: hecho`. Un ticket que se divide pasa a `descartado` o se estrecha, y sus partes heredan sus dependencias.
   - En la carpeta principal, cuando el dueño pregunte qué sigue, ejecuta `make tickets` y dale los `make abrir N=<id>` de los tickets listos en un bloque `sh`.
+- **Noche desatendida** (plan §6): el Despachador ejecuta sin nadie delante los tickets listos que el dueño aprobó. `make aprobar N=<ticket>` y `make despachar` son del dueño: no los lances, y no escribas la lista de aprobados (`~/.config/aprendizaje-experto/aprobados`). `make manana` sí puedes lanzarlo: dice qué fusionó la última noche y qué dejó en la cola, con su motivo. Un ticket de la cola conserva su carril.
 - En un carril, los enlaces a ficheros llevan la ruta absoluta del carril: VS Code los resuelve desde la carpeta principal.
 - No toques los otros carriles. Si te hace falta algo de allí, dilo y para con `[DECISIÓN PENDIENTE]`.
 - Lo que tenga que llegar a `main` se hace en un carril: la carpeta principal no tiene rama para el PR. Si tienes que commitear desde ella, para y dale al dueño el `make abrir`.
