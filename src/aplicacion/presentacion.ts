@@ -1,8 +1,8 @@
 import type { ItemContenido } from './contenido.ts';
-import type { ItemPresentado } from './sesiones.ts';
+import type { AccionDeItem, ItemPresentado } from './sesiones.ts';
 
 /** Antes de responder solo se puede responder: ni ver la respuesta ni darlo por sabido (@RECU-1.2). */
-const ACCIONES_DE_UN_ITEM: readonly string[] = ['responder'];
+const ACCIONES_DE_UN_ITEM: readonly AccionDeItem[] = ['responder'];
 
 /**
  * Lo que ve la persona de un ítem. La respuesta correcta y el feedback llegan después de responder

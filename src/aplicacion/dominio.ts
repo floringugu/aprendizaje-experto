@@ -45,11 +45,14 @@ export interface ResultadoDiagnostico {
   readonly aciertoProblemasSinPista?: number;
 }
 
+/** Lo que se puede hacer con un objetivo consultado: ni darlo por dominado ni saltarlo (MAST-3.2). */
+type AccionDeObjetivo = 'practicar';
+
 export interface ObjetivoConsultado {
   readonly objetivo: string;
   readonly instruccion: string;
   /** Lo que la persona puede hacer con el objetivo; nunca darlo por dominado (MAST-3.2). */
-  readonly acciones: readonly string[];
+  readonly acciones: readonly AccionDeObjetivo[];
 }
 
 export interface EvaluacionObjetivo {
