@@ -89,7 +89,8 @@ interface Leido<Contenido> {
  * - el aprobado puede estar escrito a mano. Si no existe, o no cumple el formato del contenido, rechaza con
  *   `contenidoValidado`. Si no es JSON, rechaza diciendo que no se puede leer, con su ruta;
  * - sin borrador, el borrador está vacío, con el `dominio` de la petición, y sus bytes son los de ese
- *   borrador vacío en `codificarJson`. Solo lo escribe la aplicación, así que no se valida;
+ *   borrador vacío en `codificarJson`. Solo lo escribe la aplicación, así que no se valida, pero si no es
+ *   JSON rechaza igual que el aprobado, con la ruta del borrador (D26);
  * - si `idRepetido` da un id, rechaza con `causa` `id_repetido` y el id en el motivo: la revisión nombra
  *   cada pieza solo por su id, y cualquier acción sería ambigua.
  */
@@ -99,7 +100,10 @@ export function leerMesa(ficheros: Ficheros, dominio: string): Resultado<Lectura
     return aprobado;
   }
   const borrador = leerBorrador(ficheros, dominio);
-  const mesa: Mesa = { borrador: borrador.contenido, aprobado: aprobado.valor.contenido };
+  if (!borrador.ok) {
+    return borrador;
+  }
+  const mesa: Mesa = { borrador: borrador.valor.contenido, aprobado: aprobado.valor.contenido };
   const repetido = idRepetido(mesa);
   if (repetido !== undefined) {
     return rechazarPorCausa(
@@ -107,7 +111,7 @@ export function leerMesa(ficheros: Ficheros, dominio: string): Resultado<Lectura
       `No se puede revisar «${dominio}»: el id «${repetido}» lo usan varias piezas y la revisión las nombra por su id.`,
     );
   }
-  return aceptar({ mesa, bytes: { borrador: borrador.bytes, aprobado: aprobado.valor.bytes } });
+  return aceptar({ mesa, bytes: { borrador: borrador.valor.bytes, aprobado: aprobado.valor.bytes } });
 }
 
 /** Solo el aprobado, con los mismos rechazos que `leerMesa`, sin leer el borrador: lo que necesita «Ver fuente» (MATE-6). */
@@ -126,12 +130,16 @@ function leerAprobadoConBytes(ficheros: Ficheros, dominio: string): Resultado<Le
   if (bytes === undefined) {
     return rechazar(`No existe el dominio «${dominio}».`);
   }
-  const json = leerJsonDelAprobado(dominio, bytes);
+  const json = leerJsonDe(rutaDelAprobado(dominio), bytes);
   const contenido = json.ok ? contenidoValidado(dominio, json.valor) : json;
   return contenido.ok ? aceptar({ contenido: contenido.valor, bytes }) : contenido;
 }
 
-function leerJsonDelAprobado(dominio: string, bytes: Uint8Array): Resultado<unknown> {
+/**
+ * El JSON de `bytes`, que son los del fichero `ruta`. Si no es JSON, rechaza con
+ * «No se puede leer <ruta>: no es JSON.», en vez de lanzar: lo comparten el aprobado y el borrador.
+ */
+function leerJsonDe(ruta: string, bytes: Uint8Array): Resultado<unknown> {
   try {
     return aceptar(leerJson(bytes));
   } catch (error) {
@@ -139,23 +147,26 @@ function leerJsonDelAprobado(dominio: string, bytes: Uint8Array): Resultado<unkn
     if (!(error instanceof SyntaxError)) {
       throw error;
     }
-    return rechazar(`No se puede leer ${rutaDelAprobado(dominio)}: no es JSON.`);
+    return rechazar(`No se puede leer ${ruta}: no es JSON.`);
   }
 }
 
 /**
- * El borrador solo lo escribe la aplicación, así que no se valida. Sin fichero, es un borrador vacío, y
+ * El borrador solo lo escribe la aplicación, así que no se valida su formato; si el fichero no es JSON,
+ * rechaza con `leerJsonDe` y su ruta, sin lanzar. Sin fichero, es un borrador vacío, y
  * sus bytes son los de ese borrador vacío: así `ParDeBytes` nunca tiene un hueco, y restaurar un borrador
  * que no existía lo dejaría vacío, que para la revisión es lo mismo (en la práctica no ocurre: una acción
  * que cambia la mesa necesita una pieza en el borrador, que por tanto existe).
  */
-function leerBorrador(ficheros: Ficheros, dominio: string): Leido<BorradorDominio> {
+function leerBorrador(ficheros: Ficheros, dominio: string): Resultado<Leido<BorradorDominio>> {
   const bytes = ficheros.leer(rutaDelBorrador(dominio));
   if (bytes !== undefined) {
-    return { contenido: leerJson(bytes) as BorradorDominio, bytes };
+    const json = leerJsonDe(rutaDelBorrador(dominio), bytes);
+    // El formato del borrador no se valida: se confía en que lo escribió la aplicación.
+    return json.ok ? aceptar({ contenido: json.valor as BorradorDominio, bytes }) : json;
   }
   const vacio: BorradorDominio = { dominio, objetivos: [], categorias: [], items: [], tareas: [] };
-  return { contenido: vacio, bytes: codificarJson(vacio) };
+  return aceptar({ contenido: vacio, bytes: codificarJson(vacio) });
 }
 
 /** Los bytes que se escriben para la mesa: los dos ficheros enteros, en `codificarJson`. */

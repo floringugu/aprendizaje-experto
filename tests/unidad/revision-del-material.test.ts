@@ -150,6 +150,12 @@ const MESAS_ROTAS = [
     rechazo: { motivo: expect.stringContaining('No se puede leer contenido/ficticio.json') as unknown },
   },
   {
+    nombre: 'el borrador no es JSON',
+    estropear: (contenidos: Map<string, Uint8Array>) =>
+      contenidos.set(BORRADOR, new TextEncoder().encode('esto no es JSON')),
+    rechazo: { motivo: 'No se puede leer contenido/borradores/ficticio.json: no es JSON.' },
+  },
+  {
     nombre: 'un id está repetido entre el borrador y el aprobado',
     estropear: (contenidos: Map<string, Uint8Array>) =>
       contenidos.set(APROBADO, codificar({ ...MESA.aprobado, items: [item('I7')] })),
