@@ -2,8 +2,8 @@
 fase: impl
 area: MATE
 depende: []
-toca: [src/aplicacion/mesa-guardada.ts, src/aplicacion/revision-del-material.ts, docs/deuda-diseno.md]
-estado: abierto
+toca: [src/aplicacion/mesa-guardada.ts, src/aplicacion/revision-del-material.ts, tests/unidad/revision-del-material.test.ts, docs/deuda-diseno.md]
+estado: hecho
 ---
 # Un `borrador.json` que no es JSON se rechaza sin lanzar (deuda D26)
 
