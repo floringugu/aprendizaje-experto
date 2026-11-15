@@ -174,6 +174,11 @@ export class BorradorContenido {
     );
   }
 
+  /** Quita del objetivo los ítems que no estén en `ids`: así su sesión presenta solo esos (RECU-6.6). */
+  dejarSoloItems(objetivo: string, ids: readonly string[]): void {
+    this.items = this.items.filter((item) => item.objetivo !== objetivo || ids.includes(item.id));
+  }
+
   cambiarItem(id: string, cambios: Partial<ItemDePrueba>): void {
     this.items = this.items.map((item) => (item.id === id ? { ...item, ...cambios } : item));
   }
