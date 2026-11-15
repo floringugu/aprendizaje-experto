@@ -1,9 +1,11 @@
+import assert from 'node:assert/strict';
 import type { ItemContenido } from '../../../src/aplicacion/contenido.ts';
 import type { Fase, Progreso, ProgresoObjetivo } from '../../../src/aplicacion/dominio.ts';
 import { parametroNumerico } from '../../../src/aplicacion/parametros.ts';
 import type { ContextoRespuesta, Feedback } from '../../../src/aplicacion/sesiones.ts';
 import { presente } from './comprobar.ts';
 import { respuestaPara } from './contenido.ts';
+import { ultimaFila } from './csv.ts';
 import { aceptado } from './mundo.ts';
 import type { Mundo } from './mundo.ts';
 
@@ -15,6 +17,11 @@ const UMBRAL_DE_RETIRADA = 0.85;
 /** Algo más que la periodicidad del bucle, para que cada semana empiece con la ventana vacía. */
 const DIAS_ENTRE_BUCLES = 8;
 const INTENCION_DE_PRUEBA = 'si son las 9:00 y estoy en la mesa, hago 20 problemas';
+/**
+ * El contexto de un reintento (RECU-6, INST-1.3). `ContextoRespuesta` aún no lo tiene (lo añade la
+ * etapa 4): está en «Reintentos (etapa 3)» de docs/areas/MAST.md.
+ */
+const REINTENTO = 'reintento' as unknown as ContextoRespuesta;
 
 interface PeticionBase {
   readonly item: string;
@@ -59,6 +66,26 @@ export function responder(mundo: Mundo, peticion: PeticionRespuesta): Feedback {
   const feedback = responderTexto(mundo, { ...peticion, respuesta: respuestaPara(item, peticion.correcta) });
   mundo.intentos.set(item.id, peticion.correcta);
   return feedback;
+}
+
+/**
+ * La persona vuelve a un ítem que ya respondió en esta sesión y lo responde otra vez (RECU-6). Un
+ * reintento no declara confianza y se guarda al responderlo (PANT-2), con el contexto «reintento»
+ * (INST-1.3): falla aquí si respuestas.csv no lo recoge así. No cambia `mundo.intentos`, porque no es
+ * el intento que cuenta para el dominio (MAST-1.8).
+ */
+export function reintentar(mundo: Mundo, peticion: { item: string; correcta: boolean }): void {
+  const item = mundo.contenido().item(peticion.item);
+  const app = mundo.aplicacion();
+  const comun = { dominio: mundo.dominio, item: item.id, contexto: REINTENTO };
+  mundo.presentado = aceptado(app.presentarItem(comun));
+  aceptado(app.responderItem({ ...comun, respuesta: respuestaPara(item, peticion.correcta) }));
+  const fila = ultimaFila(mundo, 'respuestas.csv');
+  assert.deepEqual(
+    { contexto: fila['contexto'], item: fila['item'], correcta: fila['correcta'] },
+    { contexto: 'reintento', item: item.id, correcta: String(peticion.correcta) },
+    `El reintento de ${item.id} no ha quedado registrado en respuestas.csv`,
+  );
 }
 
 /** Fecha del siguiente repaso del ítem para la persona indicada; falla el paso si no hay ninguno. */
