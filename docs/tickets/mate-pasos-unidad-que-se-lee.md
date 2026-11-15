@@ -3,7 +3,7 @@ fase: aceptacion
 area: MATE
 depende: [specs-unidad-que-se-lee]
 toca: [tests/aceptacion/pasos/redaccion-rechazos.ts, tests/aceptacion/soporte/escenario-material.ts, tests/aceptacion/soporte/contenido.ts, config/alcance.json]
-estado: abierto
+estado: hecho
 ---
 # El escenario de la unidad ilegible del borrador de MATE tiene pasos y falla en rojo
 

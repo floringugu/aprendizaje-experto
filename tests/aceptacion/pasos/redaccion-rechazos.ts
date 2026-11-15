@@ -20,7 +20,8 @@ import { aceptado, mundo } from '../soporte/mundo.ts';
 import { leerFuente } from '../soporte/tipos-de-parametro.ts';
 
 // Pasos de lo que la aplicación aparta o corrige del borrador que entrega la IA (MATE-2.3, MATE-2.5 a 2.7),
-// y del ítem numérico, que aparta si está mal formado y deja entrar si no (MATE-2.12, MATE-2.13).
+// y del ítem numérico, que aparta si está mal formado o si trae una unidad ilegible y deja entrar si no
+// (MATE-2.12 a MATE-2.14).
 
 /** Un ítem completo de O1 y el borrador que entrega la IA con él y con las demás piezas. */
 export async function entregar(piezas: Readonly<Record<string, unknown>>): Promise<void> {
@@ -121,11 +122,14 @@ const FALTA_DEL_NUMERICO: Readonly<Record<string, string>> = {
   'sus unidades están vacías': 'unidades',
   'su tolerancia no está entre 0 y 1': 'tolerancia',
   'su valor es 0 y lleva tolerancia': 'tolerancia',
+  // MATE-2.14: la unidad que la corrección no puede leer detrás de un número también falla en `unidades`.
+  'sus unidades no se pueden leer detrás de un número': 'unidades',
 };
 
 // Con expresión regular: las frases de los ejemplos llevan comillas y comas, y no son un tipo de parámetro.
+// La excluye «con las unidades «…»», que es el paso de MATE-2.14 (más abajo).
 When(
-  /^la IA configurada entrega un borrador con un ítem de O1 completo y un ítem numérico de O1 (.+)$/,
+  /^la IA configurada entrega un borrador con un ítem de O1 completo y un ítem numérico de O1 (?!con las unidades «)(.+)$/,
   async (variante: string) => {
     const respuesta = presente(NUMERICO_MAL_FORMADO[variante], `el ítem numérico «${variante}»`);
     const fuente = fuenteDeLosApuntes(mundo().material.frase);
@@ -190,3 +194,14 @@ Then(
 Then('la aplicación no indica que haya apartado ninguna pieza', () => {
   comprobarApartadas(0, '');
 });
+
+// --- MATE-2.14: un ítem numérico con una unidad que la corrección no puede leer -------------------------
+
+When(
+  'la IA configurada entrega un borrador con un ítem de O1 completo y un ítem numérico de O1 con las unidades {textos}',
+  async (unidades: string[]) => {
+    const fuente = fuenteDeLosApuntes(mundo().material.frase);
+    const respuesta: RespuestaNumerica = { valor: 9.81, unidades };
+    await entregar({ items: [{ ...itemDePrueba('I9', 'O1', fuente), respuesta }] });
+  },
+);
