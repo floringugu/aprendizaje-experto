@@ -3,7 +3,7 @@ fase: aceptacion
 area: INTE
 depende: []
 toca: [tests/aceptacion/pasos/intercalado.ts, tests/aceptacion/soporte/intercalado.ts, config/alcance.json]
-estado: abierto
+estado: hecho
 ---
 # Pasos del objetivo nuevo y de los reservados en INTE (INTE-1.1, 4.1 a 4.3 y 5.1 a 5.4)
 
