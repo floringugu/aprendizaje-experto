@@ -1,13 +1,13 @@
 ---
 fase: specs
 area: MATE
-depende: [mate-cierre, specs-paginas-sin-texto]
+depende: [mate-cierre, specs-mate-primer-release, PANT]
 toca: [features/material.feature, config/peticion-ia.md, config/parametros.json]
 estado: abierto
 ---
 # Las fórmulas se escriben en LaTeX y se citan con un ancla de texto y un recorte del PDF
 
-**Qué:** `pdftotext -raw` rompe las fórmulas (fracciones partidas, subíndices y superíndices perdidos), así que una pieza que cite una fórmula no puede pasar G1 con la comparación literal: todo saldría con «Cita no encontrada». Especificar que el contenido admite LaTeX y que una fórmula se cita con un ancla: página, varias palabras antes y varias después. La app comprueba el ancla con el texto de Poppler, calcula la caja con `pdftotext -bbox-layout` y recorta esa zona con `pdftoppm`. La persona compara el recorte con la fórmula renderizada al revisar la pieza. Sin dependencias nuevas: las dos herramientas son del Poppler que ya se exige.
+**Qué:** `pdftotext -raw` rompe las fórmulas (fracciones partidas, subíndices y superíndices perdidos), así que una pieza que cite una fórmula no puede pasar G1 con la comparación literal: todo saldría con «Cita no encontrada». Especificar que el contenido admite LaTeX y que una fórmula se cita con un ancla: página, varias palabras antes y varias después. La app comprueba el ancla con el texto de Poppler, calcula la caja con `pdftotext -bbox-layout` y recorta esa zona con `pdftoppm`. La persona compara el recorte con la fórmula renderizada al revisar la pieza. Sin dependencias nuevas: las dos herramientas son del Poppler que ya se exige. Aparcado hasta después del primer release (decisión del dueño del 15-11-2026): depende del área `PANT` para no salir listo antes.
 
 **Hecho cuando:** los escenarios fijan el formato del LaTeX en el contenido, la forma del ancla, cuándo un ancla es válida, qué marca lleva la pieza si no lo es, qué ve la persona en la revisión y en «Ver fuente», y que el texto normal sigue con la comprobación literal de G1; y `make check-specs` está en verde.
 

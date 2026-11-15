@@ -1,13 +1,13 @@
 ---
 fase: impl
 area: INTE
-depende: [PANT, mast-pasos-fase-avanzada]
+depende: [PANT, mast-pasos-fase-avanzada, inte-pasos]
 toca: [src/aplicacion/sesiones.ts, src/aplicacion/respuestas.ts, src/aplicacion/practica.ts, src/aplicacion/intercalado.ts, src/dominio/intercalado.ts, src/interfaz/, tests/unidad/intercalado*.test.ts, config/alcance.json, docs/areas/INTE.md, docs/deuda-diseno.md]
 estado: abierto
 ---
 # INTE: intercalado
 
-**Qué:** grueso: la primera conversación lo divide en tickets (plan §6, «Tickets») y este se estrecha o pasa a `descartado`. El intercalado de las sesiones, y sus pantallas sobre las de PANT. Comparte `src/interfaz/` con AYUD, CALI, HORA y TARE, y `sesiones.ts` o `respuestas.ts` con algunas: el solape de `toca` pone esas áreas en serie.
+**Qué:** grueso: la primera conversación lo divide en tickets (plan §6, «Tickets») y este se estrecha o pasa a `descartado`. El intercalado de las sesiones, y sus pantallas sobre las de PANT. Comparte `src/interfaz/` con AYUD, CALI, HORA y TARE, y `sesiones.ts` o `respuestas.ts` con algunas: el solape de `toca` pone esas áreas en serie. Antes va `inte-pasos`, que deja con pasos los escenarios que specs añadió al área después de su etapa 3.
 
 **Hecho cuando:** `make cerrar-area A=INTE` da verde y el área está cerrada (plan §16), con `make check` en verde.
 

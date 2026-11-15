@@ -1,13 +1,13 @@
 ---
 fase: specs
 area: RECU
-depende: []
+depende: [PANT]
 toca: [features/recuperacion.feature, features/calibracion.feature, features/instrumentacion.feature]
 estado: abierto
 ---
 # Al responder un ítem, la persona puede escribir por qué eligió esa respuesta, y queda registrado
 
-**Qué:** hoy de cada intento se guarda la respuesta, el acierto y la confianza (calibracion.feature, CALI-1), pero no el razonamiento: de un fallo no se sabe si fue un despiste, una idea equivocada o una adivinanza. Especificar un campo de texto libre junto a la respuesta de un ítem, donde la persona escribe con sus palabras por qué responde eso, y que se registre con el intento. No se corrige ni cuenta para el dominio, la ayuda, la fase ni la calibración.
+**Qué:** hoy de cada intento se guarda la respuesta, el acierto y la confianza (calibracion.feature, CALI-1), pero no el razonamiento: de un fallo no se sabe si fue un despiste, una idea equivocada o una adivinanza. Especificar un campo de texto libre junto a la respuesta de un ítem, donde la persona escribe con sus palabras por qué responde eso, y que se registre con el intento. No se corrige ni cuenta para el dominio, la ayuda, la fase ni la calibración. Aparcado hasta después del primer release (decisión del dueño del 15-11-2026): depende del área `PANT` para no salir listo antes.
 
 **Hecho cuando:** los escenarios fijan en qué ítems aparece el campo, en qué momento respecto a la respuesta, la confianza y el feedback, si puede quedar en blanco, que no cambia el progreso y en qué CSV y con qué columnas se registra; y `make check-specs` está en verde.
 
