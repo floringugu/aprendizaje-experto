@@ -311,9 +311,7 @@ const GRUPOS_DE_LA_RESPUESTA: readonly {
  * La respuesta lleva `opciones`, `aceptadas`, las propiedades de una numérica (`valor`, `unidades`,
  * `tolerancia`) o varios de esos grupos. Se comprueba cada grupo que viene, en ese orden, porque la
  * corrección da prioridad a la numérica y después a `aceptadas`, y un grupo mal formado volvería a
- * colarse. Una respuesta sin ningún grupo falla en `respuesta`. El grupo numérico viene en cuanto está
- * una de sus tres propiedades: así unas `unidades` sin `valor` fallan en `valor`, que es lo que le falta
- * al autor, y no en `respuesta`.
+ * colarse. Una respuesta sin ningún grupo falla en `respuesta`.
  */
 function faltaDeLaRespuesta(item: Registro): string | undefined {
   const respuesta = item['respuesta'];
