@@ -1,4 +1,5 @@
-import { esCorrecta, respuestaMostrada } from '../dominio/correccion.ts';
+import type { FalloNumerico } from '../dominio/correccion.ts';
+import { esCorrecta, falloNumerico, respuestaMostrada } from '../dominio/correccion.ts';
 import { esReservado } from '../dominio/transferencia.ts';
 import type { ItemContenido, ItemValidado } from './contenido.ts';
 import { registrarIntentoYReevaluar } from './criterio-dominio.ts';
@@ -9,6 +10,7 @@ import {
   MOTIVO_DIAGNOSTICO_PENDIENTE,
   MOTIVO_DIAGNOSTICO_TERMINADO,
 } from './estado.ts';
+import { parametroNumerico } from './parametros.ts';
 import { presentar } from './presentacion.ts';
 import type { Resultado } from './resultado.ts';
 import { aceptar, rechazar } from './resultado.ts';
@@ -75,6 +77,28 @@ export function presentarItem(entorno: Entorno, peticion: PeticionItem): Resulta
   });
 }
 
+/**
+ * Corrige la respuesta con lo que el ítem da por bueno. Un ítem numérico (su respuesta lleva `valor`) se
+ * corrige con `falloNumerico` y con el margen del parámetro `tolerancia_numerica_relativa`, que se lee
+ * solo para esos ítems; el resto, con `esCorrecta`. `numerico` solo viene si el ítem es numérico y la
+ * respuesta falla: es lo que el feedback añade tal cual (@RECU-5.11).
+ */
+function corregir(
+  entorno: Entorno,
+  respuesta: string,
+  esperada: ItemValidado['respuesta'],
+): { readonly correcta: boolean; readonly numerico?: FalloNumerico } {
+  // `valor` solo está en la respuesta numérica; comprobarlo estrecha el tipo para poder llamar a `falloNumerico`.
+  if ('valor' in esperada) {
+    // El parámetro se lee aquí y no antes: un ítem que no es numérico no depende de él.
+    const tolerancia = parametroNumerico(entorno.dependencias.leerParametros(), 'tolerancia_numerica_relativa');
+    const fallo = falloNumerico(respuesta, esperada, tolerancia);
+    // Sin fallo no hay clave `numerico`: el feedback de un acierto no lleva nada que corregir (@RECU-5.11).
+    return fallo === undefined ? { correcta: true } : { correcta: false, numerico: fallo };
+  }
+  return { correcta: esCorrecta(respuesta, esperada) };
+}
+
 /** Guarda la respuesta sin corregirla: la corrección llega después de declarar la confianza. */
 export function responderItem(
   entorno: Entorno,
@@ -98,7 +122,8 @@ export function responderItem(
  * Corrige la respuesta comparándola con el contenido y registra el intento. La confianza que declare
  * la persona no cambia la corrección (@DIAG-1.2) ni cuenta para el dominio: solo se guarda
  * (@MAST-3.1). El feedback sale siempre, acierte o falle (@RECU-2.1), y su explicación es el
- * `feedback` del autor tal cual (@RECU-2.2). El intento de un reservado se registra como
+ * `feedback` del autor tal cual (@RECU-2.2); en un ítem numérico fallado dice además qué parte falla
+ * (@RECU-5.11). El intento de un reservado se registra como
  * `transferencia`, sea cual sea el contexto en que se respondió (@MAST-8.4, @INTE-5.4): así se
  * gasta al declarar la confianza, no al presentarlo (@MAST-8.6).
  */
@@ -109,16 +134,16 @@ export function declararConfianza(entorno: Entorno, peticion: PeticionConfianza)
     if (pendiente === undefined || item === undefined) {
       return rechazar(`Primero hay que responder el ítem ${peticion.item}.`);
     }
-    const correcta = esCorrecta(pendiente.respuesta, item.respuesta);
+    const correccion = corregir(entorno, pendiente.respuesta, item.respuesta);
     const respuestaCorrecta = respuestaMostrada(item.respuesta);
     registrarIntentoYReevaluar(entorno, situacion, {
       fecha: pendiente.fecha,
       contexto: esReservado(item) ? 'transferencia' : pendiente.contexto,
       item: item.id,
       objetivo: item.objetivo,
-      correcta,
+      correcta: correccion.correcta,
       confianza: peticion.confianza,
     });
-    return aceptar({ correcta, respuestaCorrecta, explicacion: item.feedback });
+    return aceptar({ ...correccion, respuestaCorrecta, explicacion: item.feedback });
   });
 }

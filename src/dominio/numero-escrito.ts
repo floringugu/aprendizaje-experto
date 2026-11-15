@@ -47,8 +47,13 @@ const POR_DIEZ_ELEVADO_A = /\s*[·×x*]\s*10\^?/;
 /** Los superíndices, en el orden de los dígitos: la posición de cada uno en la cadena es su valor. */
 const SUPERINDICES = '⁰¹²³⁴⁵⁶⁷⁸⁹';
 
-/** Cualquier espacio, para quitarlos todos del resto con `replace` (la `g` los quita todos, no solo el primero). */
-const ESPACIOS = /\s/g;
+/**
+ * Quita todos los espacios (la `g` los quita todos, no solo el primero). Así queda el resto que devuelve
+ * `leerNumero`, y así deja `correccion.ts` las unidades del contenido para compararlas con él (@RECU-5.6).
+ */
+export function sinEspacios(texto: string): string {
+  return texto.replace(/\s/g, '');
+}
 
 /** Un resto que empieza así es un separador de miles o un segundo separador decimal («1 000», «9,8,1»). */
 const COMIENZO_DUDOSO = /^[\d,.]/;
@@ -102,7 +107,7 @@ export function leerNumero(texto: string): NumeroEscrito | undefined {
     return undefined;
   }
   const exponente = EXPONENTE.exec(sinBordes.slice(mantisa.length))?.[0] ?? '';
-  const resto = sinBordes.slice(mantisa.length + exponente.length).replace(ESPACIOS, '');
+  const resto = sinEspacios(sinBordes.slice(mantisa.length + exponente.length));
   const valor = Number(enFormaDeJavaScript(mantisa + exponente));
   // Un número que no cabe en un `number` («1e999») sale como infinito, y el infinito pasaría por
   // correcto con cualquier valor al comparar con un margen: se trata como algo que no se lee.

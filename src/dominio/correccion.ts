@@ -3,7 +3,7 @@
 // numérica, por su valor con un margen y por su unidad, con `falloNumerico`, que además dice qué parte
 // falla. La lectura del número está en numero-escrito.ts.
 
-import { escribirNumero, FORMATO_DE_UN_NUMERO, leerNumero } from './numero-escrito.ts';
+import { escribirNumero, FORMATO_DE_UN_NUMERO, leerNumero, sinEspacios } from './numero-escrito.ts';
 
 /**
  * Lo que el contenido da por bueno en una respuesta de texto: elegir la opción correcta, o escribir una de
@@ -91,11 +91,6 @@ export function normalizar(texto: string): string {
 export function esCorrecta(respuesta: string, esperada: RespuestaDeTexto): boolean {
   const respuestaNormalizada = normalizar(respuesta);
   return respuestasAceptadas(esperada).some((aceptada) => normalizar(aceptada) === respuestaNormalizada);
-}
-
-/** Quita todos los espacios: la unidad se compara sin ellos («m / s²» es «m/s²», @RECU-5.6). */
-function sinEspacios(texto: string): string {
-  return texto.replace(/\s/g, '');
 }
 
 /**
