@@ -136,3 +136,20 @@ Los pasos de MAST-1.4, 1.5, 6.2, 6.4, 6.7 a 6.14 y 8.1 a 8.6 son del ticket `mas
 - **MAST-8.4** marca también I18 como reservado y repone ítems hasta 20 no reservados, para que el 85 % siga siendo 17 de 20. O1 se domina el 2026-03-02.
 - **MAST-8.6** modela «cerró la aplicación» con `presentarItem` y `responderItem` sin `declararConfianza`. «La siguiente prueba» es la del 2026-03-09, la que quedó sin completar, y «no tiene ningún intento registrado» es que respuestas.csv no tiene ninguna fila del ítem.
 - **MAST-7.4** llegó de MATE-6.1 (ticket `mate-sesiones-a-plan-inte`): una prueba de retención no presenta el ítem I9 del borrador. Fallaba porque `iniciarSesion` daba «Sin implementar» para el tipo `retencion`, hasta que lo implementó `mast-transferencia`. Sus pasos son los de MATE-6.1 (los comparten también PLAN-4.1 e INTE-6.1), y los antecedentes de este fichero dan 20 ítems por objetivo (I1 a I60): el I9 y el I20 (`PARECIDO_A_I9`) de esos pasos ya existen como ítems aprobados de O1 y la prueba los presentaría. El «Dado» que añade el borrador llama a `liberarId('I9')` y `liberarId('I20')` (como MAST-1.4); si el contenido aprobado no tiene esos ids, no hace nada, así que MATE-6.1 no cambia. Con eso MAST-7.4 fallaba en el «Cuando» con «Sin implementar», no en un «Dado».
+
+## Reintentos (etapa 3)
+
+Los pasos de MAST-1.2, 1.8 y 4.2 son del ticket `mast-pasos-reintentos`. Los implementa `mast-reintentos`, después de `recu-reintentos`.
+
+**Interfaz que pidieron los pasos:**
+
+- `ContextoRespuesta` gana `'reintento'` (INST-1.3). Los pasos lo mandan con un molde (`REINTENTO`, en `tests/aceptacion/soporte/acciones.ts`), que sobra cuando el tipo lo tenga.
+- Un reintento es `presentarItem` y `responderItem` con ese contexto, sin `declararConfianza`: se guarda al responderlo (`features/pantallas.feature`, «Un reintento (RECU-6) no declara confianza»). Qué devuelve `responderItem` en un reintento lo decide `recu-reintentos`: los pasos de MAST no lo miran.
+- `reintentar` (`acciones.ts`) comprueba que la última fila de respuestas.csv es la del reintento: contexto `reintento`, el ítem y si acertó. Es lo que hoy falla en MAST-1.8 y 4.2, porque la aplicación deja la respuesta esperando la confianza y no la registra. Sin esa comprobación los dos escenarios pasarían por el motivo equivocado: un reintento que no se guarda tampoco cuenta.
+
+**Decisiones de los pasos:**
+
+- **Una sesión posterior (MAST-1.2)** es otro día y otra sesión de práctica del objetivo (`iniciarSesion`). «Esa misma sesión» (MAST-1.8, 4.2) es no empezar otra.
+- **MAST-1.2 pasa** y salió de `escenarios_en_rojo`: el intento de la sesión posterior es el primero de su sesión y el último del ítem, y la aplicación ya cuenta el último. El motivo está en el ticket.
+- **MAST-4.2:** el ítem al que la persona vuelve es el último que se le presentó (`mundo.presentado`), el del repaso fallado.
+- `reintentar` no cambia `mundo.intentos`, que guarda el intento que cuenta de cada ítem.

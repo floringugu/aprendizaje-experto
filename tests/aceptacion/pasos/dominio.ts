@@ -7,6 +7,7 @@ import {
   llevarAcierto,
   progresoCompleto,
   progresoDe,
+  reintentar,
   responder,
   responderItems,
 } from '../soporte/acciones.ts';
@@ -14,6 +15,7 @@ import { esperarCasiIgual, presente } from '../soporte/comprobar.ts';
 import { aceptado, mundo } from '../soporte/mundo.ts';
 import type { Mundo } from '../soporte/mundo.ts';
 import { instanteUtc, soloFecha } from '../soporte/reloj.ts';
+import { iniciarSesionDePractica } from '../soporte/sesion.ts';
 
 // Pasos del criterio de dominio (MAST). Los escenarios dicen cosas como «O1 queda dominado» tanto
 // como acción (Cuando) como comprobación (Entonces); `esComprobacion` distingue cuál de las dos toca.
@@ -107,10 +109,52 @@ Given('que la persona falló el ítem {item} de {objetivo} en su primer intento'
   });
 });
 
-Given('que acertó {item} en su segundo intento', (item: string) => {
+// Una sesión posterior es otro día y otra sesión de práctica del objetivo: así el intento es el
+// primero de su sesión, que es el que cuenta (MAST-1.2), y no un reintento de la anterior.
+Given('que acertó {item} en su segundo intento, en una sesión posterior', (item: string) => {
   const actual = mundo();
   actual.preparar(() => {
+    actual.reloj.avanzarDias(1);
+    iniciarSesionDePractica(actual, { objetivo: actual.objetivoEnCurso });
     responder(actual, { item, correcta: true });
+  });
+});
+
+// --- Reintentos en la misma sesión (RECU-6): no cuentan para el dominio (MAST-1.8, MAST-4.2) ------
+
+Given(
+  'que en una sesión de práctica la persona acertó {int} ítems de {objetivo} en su primer intento',
+  (aciertos: number, objetivo: string) => {
+    const actual = mundo();
+    actual.objetivoEnCurso = objetivo;
+    actual.preparar(() => {
+      iniciarSesionDePractica(actual, { objetivo });
+      responderItems(actual, { items: actual.contenido().itemsDe(objetivo).slice(0, aciertos), aciertos });
+    });
+  },
+);
+
+Given('que falló {ids} en su primer intento de esa sesión', (items: string[]) => {
+  const actual = mundo();
+  actual.preparar(() => {
+    items.forEach((item) => {
+      assert.ok(!actual.intentos.has(item), `${item} ya tiene un intento y el escenario dice que este es el primero`);
+      responder(actual, { item, correcta: false });
+    });
+  });
+});
+
+Given('que los reintentó en esa misma sesión y los acertó', () => {
+  const actual = mundo();
+  actual.preparar(() => {
+    const fallados = actual
+      .contenido()
+      .itemsDe(actual.objetivoEnCurso)
+      .filter((item) => actual.intentos.get(item.id) === false);
+    assert.ok(fallados.length > 0, 'El escenario no ha fallado ningún ítem que reintentar');
+    fallados.forEach((item) => {
+      reintentar(actual, { item: item.id, correcta: true });
+    });
   });
 });
 
@@ -213,6 +257,13 @@ When('{objetivo} deja de estar dominado', (objetivo: string) => {
 When('la persona falla un repaso de un ítem de {objetivo} que había acertado', (objetivo: string) => {
   mundo().listo();
   fallarRepaso(mundo(), { objetivo, contexto: 'repaso', cantidad: 1 });
+});
+
+// «Él» es el ítem que la persona acaba de fallar: el último que se le ha presentado.
+When('lo acierta al volver a él en esa misma sesión', () => {
+  const actual = mundo();
+  actual.listo();
+  reintentar(actual, { item: presente(actual.presentado, 'ningún ítem presentado').id, correcta: true });
 });
 
 When('la persona falla en la prueba de retención un ítem de {objetivo} que había acertado', (objetivo: string) => {
