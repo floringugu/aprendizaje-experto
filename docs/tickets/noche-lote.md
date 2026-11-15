@@ -2,7 +2,7 @@
 fase: impl
 area: PLAN
 depende: [noche-despachador]
-toca: [scripts/arnes/despachador.ts, scripts/arnes/comun/despachador.ts, scripts/arnes/manana.ts, scripts/arnes/ci.ts, scripts/arnes/comun/ramas.ts, scripts/arnes/comun/worktrees.ts, scripts/arnes/comun/lote.ts, scripts/arnes/comun/estado-tickets.ts, scripts/arnes/comun/anuncio-carril.ts, scripts/arnes/comun/diario-noche.ts, .claude/hooks/anunciar-fase.ts, docs/tickets/noche-lote-vista-de-dia.md, tests/arnes/, .github/workflows/, Makefile, CLAUDE.md, docs/plan.md]
+toca: [scripts/arnes/despachador.ts, scripts/arnes/comun/despachador.ts, scripts/arnes/manana.ts, scripts/arnes/ci.ts, scripts/arnes/comun/ramas.ts, scripts/arnes/comun/worktrees.ts, scripts/arnes/comun/lote.ts, scripts/arnes/comun/estado-tickets.ts, scripts/arnes/comun/anuncio-carril.ts, scripts/arnes/comun/diario-noche.ts, .claude/hooks/anunciar-fase.ts, docs/tickets/noche-lote-vista-de-dia.md, docs/tickets/noche-tres-carriles.md, tests/arnes/, .github/workflows/, Makefile, CLAUDE.md, docs/plan.md]
 estado: abierto
 ---
 # La noche acumula aceptación e impl en una rama `lote/N` que el dueño fusiona por la mañana
