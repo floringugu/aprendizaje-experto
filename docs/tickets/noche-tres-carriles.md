@@ -16,6 +16,7 @@ estado: abierto
 ## Dato
 
 - La reproducción de los registros (36 carriles, 38 PR) da las mismas noches con un carril que con tres: 5 con lote. Por eso el 13-11-2026 se acordó uno. Con tres no se ganan noches según ese dato; se gana tiempo dentro de la noche. Es una petición del dueño.
+- La ganancia esperada con los tickets de hoy es poca (medición del 15-11-2026): de los 10 tickets impl de producto abiertos, 29 de sus 45 pares se solapan en `toca`, así que pocas veces hay tres que puedan correr juntos. Las rutas que más se repiten: `src/aplicacion/aplicacion.ts` (7 tickets), `src/interfaz/` (7), `src/aplicacion/sesiones.ts` (5) y `respuestas.ts` (3). Dos matices: los tickets de área son gruesos y provisionales, y al dividirlos el solape baja; y las dependencias limitan más que el solape. Las dos primeras rutas son deuda que se puede pagar (tickets `deuda-casos-por-area` y `pant`, «Una pantalla por fichero»). `sesiones.ts`, `respuestas.ts` y `practica.ts` son acoplamiento real entre AYUD e INTE, y no se quita factorizando.
 
 ## Por resolver
 

@@ -26,7 +26,7 @@ estado: abierto
 - El servicio de systemd lleva un tope de duración (`RuntimeMaxSec`) que corta la noche una hora después de `FIN`: con la ventana de 00:30 a 07:00, a las 08:00. Al cortar, systemd mata al Despachador y a su sesión. `make manana` ya dice «la noche se cortó con su sesión a medias», y el carril se conserva.
 - De paso impide que una noche siga viva cuando empieza la siguiente: el Despachador no tiene cerrojo.
 - No hay código nuevo en el Despachador: el tope va en la unidad de `scripts/noche/`.
-- Motivo (principio 7): petición del dueño del 15-11-2026, al contrastar con el repositorio el documento `docs/ai-factory/contexto.md` (fase A, punto 1, `timeoutSesion`). Cubre el límite que el plan §11 admite en «El Despachador no corta nada». No hay dato de una sesión colgada: en las dos pasadas reales del 14-11-2026 las sesiones duraron 8 minutos y 2 minutos y medio.
+- Motivo (principio 7): petición del dueño del 15-11-2026, al contrastar con el repositorio el documento de traspaso «AI Factory» (fase A, punto 1, `timeoutSesion`; era `docs/ai-factory/contexto.md`, borrado el 15-11-2026: `git show 65ce3da:docs/ai-factory/contexto.md`). Cubre el límite que el plan §11 admite en «El Despachador no corta nada». No hay dato de una sesión colgada: en las dos pasadas reales del 14-11-2026 las sesiones duraron 8 minutos y 2 minutos y medio.
 
 ## Lo medido en la prueba de humo (14-11-2026)
 
