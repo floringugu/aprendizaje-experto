@@ -20,8 +20,27 @@ interface RespuestaDeOpciones {
   readonly correcta: string;
 }
 
-/** Respuesta de un ítem: o se elige entre opciones, o se escribe una de las aceptadas. */
-type RespuestaContenido = RespuestaDeOpciones | { readonly aceptadas: readonly string[] };
+/**
+ * Respuesta de un ítem numérico (RECU-5): la persona escribe un número y, si el ítem la tiene, su unidad.
+ */
+interface RespuestaNumerica {
+  readonly valor: number;
+  /** Todas las formas de escribir la unidad que valen, con la que se enseña en primer lugar. Sin ellas, sin unidad. */
+  readonly unidades?: readonly string[];
+  /**
+   * Margen relativo (0,05 es el 5 %), entre 0 y 1. Sin él vale `tolerancia_numerica_relativa`, de
+   * config/parametros.json. Un valor 0 no la lleva: el margen es relativo y sobre 0 no deja nada.
+   */
+  readonly tolerancia?: number;
+}
+
+/**
+ * Respuesta de un ítem: o se elige entre opciones, o se escribe una de las aceptadas, o se escribe un
+ * número. Una respuesta con `valor` es numérica. Es un solo ítem con tres respuestas posibles, y no dos
+ * tipos de ítem: quien descarta la numérica pregunta por la respuesta (`'valor' in item.respuesta`), y
+ * así lo hace ya el soporte de aceptación.
+ */
+type RespuestaContenido = RespuestaDeOpciones | { readonly aceptadas: readonly string[] } | RespuestaNumerica;
 
 export interface ItemContenido {
   readonly id: string;
@@ -105,10 +124,14 @@ export interface ContenidoDominio {
 
 /**
  * Un ítem del contenido ya validado. Si es de respuesta escrita, tiene al menos una aceptada: así el
- * feedback siempre tiene una respuesta correcta que enseñar (@RECU-2.1).
+ * feedback siempre tiene una respuesta correcta que enseñar (@RECU-2.1). Si es numérico y trae
+ * `unidades`, trae al menos una: así se sabe cuál enseñar y si la respuesta tiene que llevar unidad.
  */
 export interface ItemValidado extends ItemContenido {
-  readonly respuesta: RespuestaDeOpciones | { readonly aceptadas: readonly [string, ...string[]] };
+  readonly respuesta:
+    | RespuestaDeOpciones
+    | { readonly aceptadas: readonly [string, ...string[]] }
+    | (RespuestaNumerica & { readonly unidades?: readonly [string, ...string[]] });
 }
 
 /**
