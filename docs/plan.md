@@ -228,7 +228,7 @@ Fuera de `make check` hay trece objetivos más:
 - `make rama` (§6), que lanza la conversación de un carril cuando GitHub ha fusionado el PR de su rama: pasa el carril a su rama siguiente;
 - `make bloqueos A=<ÁREA>` (§5), que resume las anotaciones de los hooks de un área (paradas, comprobaciones del push y bloqueos del implementador) para su archivo;
 - `make tickets` y `make tablero` (§6, «Tickets»): los tickets de `docs/tickets/` con su estado, en texto y en una página web;
-- `make aprobar`, `make despachar` y `make manana` (§6, «Noche desatendida»): los dos primeros son solo tuyos, y aprueban un ticket para la noche y lanzan el Despachador; el tercero dice qué hizo el Despachador en su última noche;
+- `make aprobar`, `make despachar` y `make manana` (§6, «Noche desatendida»): los dos primeros son solo tuyos, y aprueban un ticket para la noche y lanzan el Despachador; el tercero dice qué hizo el Despachador en su última noche y qué lotes esperan a que los fusiones;
 - `make formatear`.
 
 `make fase`, `make abrir`, `make retirar` y `make tablero` también se lanzan desde VS Code, con las tareas de `.vscode/tasks.json` (Ctrl+Shift+P → «Tasks: Run Task»).
@@ -507,11 +507,11 @@ Además, specs y aceptacion escriben rutas con dueño, así que sus PR siempre t
 4. **Terminar.** Claude hace los commits y después `git push -u origin HEAD` y `gh pr create --fill`. Después, `gh pr merge --auto --rebase` solo si el PR toca únicamente la lista blanca (lo mira con `gh pr diff --name-only`), y `gh pr checks --watch`. Nunca hace push a mitad de la conversación. Si hay relevo, lo escribe en `<carril>/reports/relevo.md` y termina con `[RELEVO]`.
 5. **Fusión.** El PR de la lista blanca se fusiona solo; el resto lo fusionas tú con bypass.
 6. **Después de cada fusión,** tú: `git pull --ff-only` en la carpeta principal, y `npm ci` si cambió `package-lock.json`.
-7. **Conversación siguiente del carril.** Si el PR está fusionado, Claude ejecuta `make rama`, que pasa el carril a la rama `<fase>/<ÁREA>/<carril>-2` (y después `-3`…) sacada de `origin/main`. Si no lo está, sigue en la misma rama.
+7. **Conversación siguiente del carril.** Si el PR está fusionado, Claude ejecuta `make rama`, que pasa el carril a la rama `<fase>/<ÁREA>/<carril>-2` (y después `-3`…) sacada de `origin/main` o, si la rama actual salió de un lote que `main` aún no tiene, de ese lote («Noche desatendida», abajo). Si no lo está, sigue en la misma rama.
 8. **Cambiar de fase:** `make fase N=<carril> F=… A=…`.
 9. **Retirar,** al acabar la línea de trabajo: `make retirar N=<carril>`. Borra el worktree y todas las ramas locales del carril (`git branch -D`).
 
-`make fase N=` y `make retirar` se niegan si el carril tiene un relevo pendiente, cambios sin commitear o una rama sin fusionar. Una rama cuenta como fusionada si, tras `git fetch`, cada uno de sus commits tiene entre los de `origin/main` que la rama no tiene otro con el mismo cambio: las mismas líneas quitadas y añadidas, comparadas sin contexto (`git patch-id` sobre el diff con `-U0`). El rebase de GitHub crea SHAs nuevos, así que no sirve `git merge-base --is-ancestor`; y cuando antes entra otro PR que toca las líneas de al lado, cambia también el contexto del parche, así que tampoco sirve `git cherry`, que lo compara con contexto (14-11-2026: `make retirar N=mast-pasos-prepreguntas` se negó con su commit ya en `main`).
+`make fase N=` y `make retirar` se niegan si el carril tiene un relevo pendiente, cambios sin commitear o una rama sin fusionar. Una rama cuenta como fusionada si, tras `git fetch`, cada uno de sus commits tiene entre los de su origen que la rama no tiene otro con el mismo cambio (su origen es `origin/main` o, si salió de un lote, `origin/lote/N`; una rama de un lote cuenta también si está así en `origin/main`): las mismas líneas quitadas y añadidas, comparadas sin contexto (`git patch-id` sobre el diff con `-U0`). El rebase de GitHub crea SHAs nuevos, así que no sirve `git merge-base --is-ancestor`; y cuando antes entra otro PR que toca las líneas de al lado, cambia también el contexto del parche, así que tampoco sirve `git cherry`, que lo compara con contexto (14-11-2026: `make retirar N=mast-pasos-prepreguntas` se negó con su commit ya en `main`).
 
 `make abrir`, `make retirar`, `make fase` y `make tablero` también se lanzan desde VS Code, con las tareas de `.vscode/tasks.json`. `make rama` no es solo tuyo: lo lanza la conversación del carril.
 
@@ -553,13 +553,13 @@ No se hace: la guardia no niega las ediciones fuera de `toca`, porque sería rí
 
 El dato (principio 7) es escaso: un conflicto de fusión real en `scripts/arnes/comun/relevo.ts` y `tests/arnes/relevo.test.ts` el 30-10-2026 (sesión `589dc2f8`); tres carriles MATE activos a la vez el 31-10, de 12:16 a 12:28 (`mutacion`, `cambio2` y `contexto`); cuatro negaciones de la guardia «es otro carril» el 31-10 (sesión `b937041d`), y ninguna regla para dos áreas que tocan el mismo fichero. Lo que motiva el cambio es, sobre todo, tu petición: ver las dependencias y los solapes antes de abrir un carril.
 
-**Noche desatendida** (diseño acordado el 13-11-2026; **construida hasta el paso 2**). Sin ella, cada ticket necesita que abras su carril, pegues la frase y fusiones su PR. El diseño deja que el arnés ejecute de noche, sin ti, los tickets que hayas aprobado. Sale de tu diagrama «AI Factory» y de una reproducción de los registros (36 carriles, 38 PR): el 25 % de las paradas reales no tenía regla en el diagrama, y 0 de los 31 tickets abiertos cabían enteros en la lista blanca, así que sin una rama de integración nada se fusiona de noche (15 noches frente a 5). Se construye en cuatro pasos, uno por ticket:
+**Noche desatendida** (diseño acordado el 13-11-2026; **construida hasta el paso 3, que espera su pasada real**). Sin ella, cada ticket necesita que abras su carril, pegues la frase y fusiones su PR. El diseño deja que el arnés ejecute de noche, sin ti, los tickets que hayas aprobado. Sale de tu diagrama «AI Factory» y de una reproducción de los registros (36 carriles, 38 PR): el 25 % de las paradas reales no tenía regla en el diagrama, y 0 de los 31 tickets abiertos cabían enteros en la lista blanca, así que sin una rama de integración nada se fusiona de noche (15 noches frente a 5). Se construye en cuatro pasos, uno por ticket:
 
 | Paso | Ticket | Qué |
 |---|---|---|
 | 1 | (hecho el 14-11-2026, sin ticket) | Prueba de humo de día: `claude -p` en un carril, y la mutación con la tapa cerrada midiendo temperatura y consumo. Lo medido está en §5 y en los tickets. |
 | 2 | `noche-despachador` | El Despachador, `make aprobar` y `make manana`, contra `main` y lanzado por ti. Construido y probado con dos pasadas reales el 14-11-2026 («Lo construido en el paso 2», abajo). |
-| 3 | `noche-lote` | La rama de integración `lote/N`. |
+| 3 | `noche-lote` | La rama de integración `lote/N`. Construida el 15-11-2026 («Lo construido en el paso 3», abajo); falta su pasada real. |
 | 4 | `noche-usuario-y-tapa` | El usuario de la noche, la tapa y el temporizador. |
 
 Lo acordado, que los tickets no reabren:
@@ -578,7 +578,7 @@ Lo acordado, que los tickets no reabren:
 
 - **`make aprobar N=<ticket>`,** solo tuyo: apunta el ticket en `~/.config/aprendizaje-experto/aprobados`, un id por línea y en el orden en que los apruebas, que es el orden en que la noche los toma. Se niega si el ticket no está abierto en `origin/main`. Con `QUITAR=1` lo quita, y sin `N` enseña la lista. El Despachador solo la lee: un ticket hecho sigue en ella hasta que lo quitas, y no estorba, porque ya no está listo.
 - **`make despachar [FIN=HH:MM] [ULTIMO=HH:MM]`,** solo tuyo: el Despachador (`scripts/arnes/despachador.ts`). Por defecto, 07:00 y 06:00; cada hora es la próxima vez que el reloj la marca. Trae `origin`, toma el primer ticket aprobado que esté listo y que no haya intentado esa noche, abre su carril con lo mismo que `make abrir` y lanza en él `claude -p` con el modelo y el esfuerzo de la fase, en `bypassPermissions` y con la frase de la prueba de humo: «Haz el ticket de este carril hasta abrir su PR. No hay nadie delante: no preguntes; si necesitas una decisión del dueño, termina con la marca de decisión pendiente del arnés». Cuando la sesión termina, lee su stream y la última parada que el hook Stop le anotó en el registro del carril, y espera al PR de la rama mientras su CI no termina, o mientras está en verde con la fusión automática activada: pregunta a GitHub cada 30 segundos, 30 minutos como mucho. Con eso aplica las reglas. Un ticket hecho pierde su carril, con lo mismo que `make retirar`; uno de la cola lo conserva, y se sigue con «Entra en el carril `<ticket>`.».
-- **`make manana`:** lee la última noche del diario y lista lo fusionado y la cola, cada ticket con su motivo y sus sesiones. De los de la cola pregunta a GitHub cómo está su PR ahora. No guarda nada. El resumen del lote llega con `noche-lote`.
+- **`make manana`:** lee la última noche del diario y lista lo fusionado y la cola, cada ticket con su motivo y sus sesiones. De los de la cola pregunta a GitHub cómo está su PR ahora. No guarda nada.
 
 Las reglas de parada son la función pura `queHacer` de `scripts/arnes/comun/despachador.ts`, con un test por fila de la tabla del ticket (`tests/arnes/despachador.test.ts`). El diseño no decía en qué orden se miran ni qué pasa con lo que la tabla no nombra. Se aplica la primera que se cumple:
 
@@ -590,7 +590,7 @@ Las reglas de parada son la función pura `queHacer` de `scripts/arnes/comun/des
 | 4 | El Stop anotó `relevo` | Sesión nueva en el mismo carril, también si ya hay PR abierto. Son 4 sesiones nuevas como mucho, 5 en total: el quinto relevo va a la cola |
 | 5 | El Stop anotó `decision` | Cola, también si ya hay PR |
 | 6 | El Stop anotó `con-cambios` | Cola |
-| 7 | Hay PR, abierto o cerrado | Cola, con su motivo: la CI en rojo, la CI sin terminar a los 30 minutos, en verde y esperando tu visto bueno, o cerrado sin fusionar |
+| 7 | Hay PR, abierto o cerrado | Cola, con su motivo: la CI en rojo, la CI sin terminar a los 30 minutos, en verde y esperando tu visto bueno (en un PR a un lote, en verde y sin fusionar en `lote/N`), o cerrado sin fusionar |
 | 8 | El Stop anotó `sin-cambios` y no hay PR | Reanuda con `--resume` y «sigue»; la tercera parada así va a la cola |
 | 9 | Nada de lo anterior: el Stop no anotó la parada y no hay PR | Cola |
 
@@ -599,6 +599,20 @@ Después de `FIN` no lanza ni reanuda ninguna sesión: un relevo o una parada si
 Lo que deja está en `reports/noche/` de la carpeta principal, fuera de git: `diario.jsonl` (cuándo empieza y termina cada noche, cada sesión que lanza y lo que decide al terminar cada una) y, por sesión, su stream `<ticket>-<sello>.tsv` (la hora, un tabulador y el evento) y su `.err`. El diario hace falta porque el registro de paradas de un carril se borra con el carril.
 
 `make aprobar` se niega sin terminal o con la variable `CLAUDECODE`, como `make fase`. `make despachar` solo mira la variable, porque el temporizador del paso 4 lo lanzará sin terminal. Los límites están en §11.
+
+**Lo construido en el paso 3** (15-11-2026, ticket `noche-lote`; falta su pasada real). El código nuevo está en `scripts/arnes/comun/lote.ts`.
+
+- **La rama.** `lote/N` vive en `origin`, y su estado no se guarda: sale de comparar `origin/lote/N` con `origin/main`. Está `nuevo` si apunta al mismo commit que `main`, `vivo` si tiene cambios que `main` no tiene y `fusionado` si `main` ya los tiene todos, con la misma comparación sin contexto de `make retirar`. El Despachador usa el lote de número más alto mientras no esté fusionado. Si lo está, o no hay ninguno, crea el siguiente desde `origin/main` con un push, justo antes de abrir el primer carril que lo necesita. Si no puede crearlo, la noche termina.
+- **Qué ticket toma.** Un ticket specs está listo según `main`, y su carril y su PR son los de antes. Uno de aceptación o de impl está listo según el lote: allí cuentan como cumplidas las dependencias que la noche ya fusionó en él (`elegirTicket`, en `scripts/arnes/comun/despachador.ts`). Así, un impl que depende de unos pasos de aceptación se hace la misma noche.
+- **El carril** sale de `origin/lote/N`. Su rama lleva apuntado el lote en `branch.<rama>.gh-merge-base`, la clave de git que lee `gh pr create` para elegir la base, así que el PR va al lote sin que la sesión lo diga. El aviso del carril y el del inicio de la sesión le dicen que su PR va a `lote/N` y que le active siempre la fusión automática.
+- **«Hecho»** es que GitHub fusione el PR en el lote. Entonces el Despachador retira el carril y abre el PR `lote/N` → `main` si el lote no lo tiene. A ese PR nunca le activa la fusión automática. Un PR en verde que sigue sin fusionar en el lote va a la cola con ese motivo.
+- **`make rama`, `make retirar` y `make fase N=`** miran el origen de cada rama: su lote o `origin/main`. Una rama de un lote cuenta también como fusionada si sus commits están en `origin/main`. `make rama` saca la rama siguiente del lote mientras `main` no lo tenga, y de `origin/main` después.
+- **Un carril que se queda sin lote.** Si un carril de la cola sigue abierto cuando fusionas su lote, su aviso se lo dice a la conversación y le da los comandos para pasar la rama a `main`: `git rebase --onto origin/main origin/lote/N`, quitar la clave de git y, si ya tiene PR, `git push --force-with-lease` y `gh pr edit --base main`. Desde entonces su PR sigue las reglas de `main`.
+- **La CI** (`.github/workflows/puerta.yml`) ya corría en todos los PR, también en los que van a `lote/*`. En el PR `lote/N` → `main` se saltan los jobs `rama` y `rutas`, por el nombre de la rama de cabeza, y `check` corre en la fase impl sin área en curso, como en un push a `main`.
+- **El ruleset «lote: CI»** lo creas tú, con el bloque del PR de `noche-lote`: en `lote/*` no se borra ni se reescribe la rama, la historia es lineal, todo entra por un PR con rebase y 0 aprobaciones, y los checks `rama`, `rutas` y `check` tienen que estar en verde. No tiene bypass ni visto bueno.
+- **`make manana`** trae `origin` y, después de la noche, dice de cada lote vivo los tickets que están hechos en él y no en `main`, los ficheros que cambia, su PR hacia `main` y el bloque de comandos para fusionarlo: `gh pr checks <n> --watch`, `gh pr merge <n> --rebase --admin`, `git pull --ff-only` y, si cambió `package-lock.json`, `npm ci`.
+
+No cambia la vista de día: `make tickets`, el tablero y tu `make abrir` siguen mirando `main`, así que un ticket hecho en un lote vivo sale «listo» hasta que fusionas el lote. Ticket `noche-lote-vista-de-dia`. Los límites están en §11.
 
 **Las dos pasadas reales** (14-11-2026, de 16:42 a 16:53; las lanzaste tú, de día, con `make aprobar` de los dos tickets y `make despachar`). Las dos sesiones usaron Opus con esfuerzo xhigh, y nadie tocó nada:
 
@@ -726,7 +740,7 @@ El job `mezcla` de la CI (`scripts/arnes/regla-commits.ts`) rechazaba un PR si a
 2. **Guardia textual de Bash.** Bloquea los atajos para saltarse el arnés, instalar dependencias y los comandos que nombran otro carril o `~/.claude/`.
 3. **ConfigChange:** los hooks no se cambian en caliente.
 4. **Hook del push:** la comprobación de la fase antes de `git push` y `gh pr create`.
-5. **CI obligatoria** (ruleset «main: CI», sin bypass para nadie): el nombre de la rama, las rutas de la fase, `make check`, el objetivo de la fase y `make mutacion`. Un PR en rojo no se fusiona.
+5. **CI obligatoria** (ruleset «main: CI», sin bypass para nadie): el nombre de la rama, las rutas de la fase, `make check`, el objetivo de la fase y `make mutacion`. Un PR en rojo no se fusiona. El ruleset «lote: CI» exige lo mismo en las ramas `lote/*` (§6, «Noche desatendida»), y es lo único que protege un lote: allí no hay visto bueno.
 6. **CODEOWNERS y visto bueno** (ruleset «main: visto bueno»): fuera de la lista blanca, nada llega a `main` sin que lo fusiones tú.
 7. **Tu revisión del PR.**
 
@@ -758,7 +772,16 @@ El job `mezcla` de la CI (`scripts/arnes/regla-commits.ts`) rechazaba un PR si a
 - **La espera al PR es de 30 minutos.** Si la CI tarda más, el ticket va a la cola con «la CI sin terminar» y su carril sigue abierto aunque GitHub lo fusione después. `make manana` dice cómo está el PR ahora, y el carril lo retiras tú.
 - **La lista de aprobados es un fichero de tu usuario.** `make aprobar` y `make despachar` se niegan a Claude Code por la variable `CLAUDECODE`, pero Claude podría escribir `~/.config/aprendizaje-experto/aprobados` con Bash o lanzar el Despachador sin la variable. Solo se lo impide `CLAUDE.md`. No hay dato de que lo haya intentado (principio 7), y el usuario de la noche del paso 4 no cambia esto para las conversaciones de día.
 - **Hasta el paso 4, la noche corre con tu usuario.** Las sesiones del Despachador van en `bypassPermissions`, con los hooks, que son textuales (arriba), como única guardia, y con tu llavero de `gh` al alcance, como de día, pero sin nadie mirando. En la prueba de humo la sesión abrió su PR con `floringugu757-lgtm` (PR #40).
-- **La noche desatendida (§6) abrirá más límites,** que se apuntan aquí cuando se construya cada paso. Los previstos, de los pasos 3 y 4: lo que entre en `lote/N` de noche no lo habrá visto nadie, y tu visto bueno pasa a darse sobre el diff entero del lote; y el usuario de la noche comparte tu suscripción, así que puede dejarte sin cuota por la mañana.
+- **Lo que entra en `lote/N` de noche no lo ha visto nadie** (§6, paso 3). Los PR de aceptación e impl se fusionan en el lote con la CI en verde y sin visto bueno, toquen lo que toquen. Tu visto bueno pasa a darse por la mañana, sobre el diff entero del lote, que junta varios tickets. Hasta entonces nada de eso está en `main`.
+- **Un PR de la noche puede cambiar el arnés dentro del lote.** Si una sesión toca un hook, `scripts/arnes/rutas-fase.ts` o el workflow, y la CI lo deja pasar, los carriles siguientes de esa noche salen del lote y corren ya con el cambio. De día, ese cambio habría esperado tu visto bueno antes de valer para nadie.
+- **Sin el ruleset «lote: CI», la fusión automática fusiona al momento y sin CI.** El Despachador no comprueba que el ruleset existe: no hay dato de que falte (principio 7). Lo creas tú una vez, y vale para todos los `lote/*`.
+- **La exención de `rama` y `rutas` va por el nombre de la rama de cabeza.** Cualquier PR cuya cabeza se llame `lote/…` se salta los dos jobs. No abre nada hacia `main`, donde CODEOWNERS y tu visto bueno siguen cubriendo todo lo que no es lista blanca. Hacia un lote, el ruleset exige los dos checks, y un job saltado cuenta como pasado: un PR de `lote/2` a `lote/1` entraría sin ellos.
+- **La numeración depende de que `lote/N` no se borre.** El lote siguiente es el número más alto de `origin` más uno. Lo garantiza la regla `deletion` del ruleset; sin ella, un lote borrado deja libre su número.
+- **Un lote vivo no ve lo que entra después en `main`.** Las specs que fusionas mientras el lote espera no están en él, así que los tickets de aceptación que dependen de ellas no salen listos de noche hasta que fusionas el lote y nace el siguiente.
+- **De día, un carril de la cola sigue mandando su PR al lote vivo.** Si lo terminas tú con «Entra en el carril», su PR entra en el lote sin visto bueno, como de noche, y lo ves en el PR del lote.
+- **La vista de día no conoce el lote.** `make tickets`, el tablero y `make abrir` miran `main`: un ticket hecho en un lote vivo sale «listo», y `make abrir` lo abriría desde `main`. Ticket `noche-lote-vista-de-dia`.
+- **El paso 3 tiene tres cosas sin medir** hasta su pasada real: que la cuenta `write` pueda crear `lote/N` con un push con el ruleset activo, que un job saltado por su `if` cuente como pasado para el check obligatorio, y que `gh pr create --fill` respete `branch.<rama>.gh-merge-base`.
+- **El paso 4 de la noche desatendida (§6) abrirá más límites,** que se apuntan aquí cuando se construya. El previsto: el usuario de la noche comparte tu suscripción, así que puede dejarte sin cuota por la mañana.
 - **Que pasen los tests no demuestra eficacia pedagógica.** Lo dirá el README de la etapa 5.
 
 ---

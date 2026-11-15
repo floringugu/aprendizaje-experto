@@ -15,15 +15,18 @@
 #   make fase F=<fase> [A=<ÁREA>] [N=<carril>]  fija la fase y el área de la carpeta principal o del carril N
 #   make abrir N=<carril> F=<fase> A=<ÁREA>  crea un carril, con su primera rama desde origin/main; si tiene
 #                              ticket, sin F ni A (salen de él) y, si no está listo, solo con FORZAR=1
-#   make retirar N=<carril>    borra el carril y todas sus ramas, ya fusionadas en origin/main
+#   make retirar N=<carril>    borra el carril y todas sus ramas, ya fusionadas en su origen (origin/main
+#                              o la rama de lote de la que salieron)
 #   make aprobar [N=<ticket>] [QUITAR=1]  aprueba el ticket para la noche, o lo quita; sin N, enseña la lista
 #   make despachar [FIN=HH:MM] [ULTIMO=HH:MM]  el Despachador: ejecuta los tickets listos y aprobados, uno
-#                              tras otro, cada uno en su carril y hasta su PR
+#                              tras otro, cada uno en su carril y hasta su PR; los de aceptación e impl
+#                              salen de la rama de lote (lote/N) y se fusionan en ella
 # Uno para la conversación de un carril, cuando GitHub ha fusionado el PR de su rama:
-#   make rama                  pasa el carril a su rama siguiente, desde origin/main
+#   make rama                  pasa el carril a su rama siguiente, desde origin/main o, si salió de un
+#                              lote que main aún no tiene, desde ese lote
 # Y de consulta: make bloqueos A=<ÁREA> resume lo que anotaron los hooks mientras el área estaba en curso;
 # make tickets lista los tickets de docs/tickets/ con su estado, y make tablero los muestra en una página web;
-# make manana dice qué hizo el Despachador en su última noche.
+# make manana dice qué hizo el Despachador en su última noche y qué lotes esperan a que el dueño los fusione.
 
 ESTATICOS := tipos lint duplicacion codigo-muerto capas unidad tickets
 
@@ -87,7 +90,9 @@ rama:
 # La noche desatendida (docs/plan.md §6). Solo el dueño. aprobar da permiso para ejecutar el ticket N sin
 # nadie delante: lo apunta en una lista que vive fuera del repositorio (QUITAR=1 lo quita; sin N, la enseña).
 # despachar lanza el Despachador, que lleva los tickets listos y aprobados, uno tras otro, hasta su PR:
-# no abre ninguno después de ULTIMO (06:00) ni lanza ninguna sesión después de FIN (07:00).
+# no abre ninguno después de ULTIMO (06:00) ni lanza ninguna sesión después de FIN (07:00). Los carriles de
+# aceptación e impl salen de la rama de lote de la noche (lote/N, que crea si hace falta) y sus PR se
+# fusionan en ella sin visto bueno; el PR del lote hacia main lo fusiona el dueño.
 aprobar:
 	@node scripts/arnes/aprobar.ts '$(N)' '$(QUITAR)'
 
@@ -95,7 +100,8 @@ despachar:
 	@node scripts/arnes/despachador.ts '$(FIN)' '$(ULTIMO)'
 
 # Lo que hizo el Despachador en su última noche, según su diario (reports/noche/ de la carpeta principal):
-# lo fusionado y la cola de la mañana, cada ticket con su motivo. No guarda nada.
+# lo fusionado y la cola de la mañana, cada ticket con su motivo. Y de cada lote que main aún no tiene, sus
+# tickets, sus ficheros, su PR hacia main y los comandos para fusionarlo. No guarda nada.
 manana:
 	@node scripts/arnes/manana.ts
 
