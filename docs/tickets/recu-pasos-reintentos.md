@@ -2,8 +2,8 @@
 fase: aceptacion
 area: RECU
 depende: [specs-reaprendizaje-sucesivo]
-toca: [tests/aceptacion/pasos/recuperacion.ts, tests/aceptacion/soporte/, config/alcance.json, docs/areas/RECU.md]
-estado: abierto
+toca: [tests/aceptacion/pasos/recuperacion.ts, tests/aceptacion/pasos/reintentos.ts, tests/aceptacion/soporte/, src/aplicacion/sesiones.ts, src/aplicacion/aplicacion.ts, config/alcance.json, docs/areas/RECU.md]
+estado: hecho
 ---
 # Pasos del reaprendizaje sucesivo en RECU (RECU-6.1 a 5.10)
 
