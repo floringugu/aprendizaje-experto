@@ -3,7 +3,7 @@ fase: specs
 area: MATE
 depende: [recu-impl-item-numerico]
 toca: [features/material.feature]
-estado: abierto
+estado: hecho
 ---
 # El contenido rechaza una unidad que la corrección no puede leer
 
