@@ -11,4 +11,6 @@ estado: abierto
 
 **Hecho cuando:** MATE-2.12 y MATE-2.13 pasan y salen de `escenarios_en_rojo.MATE` (que queda vacío); `make cerrar-area A=MATE` da verde y `docs/areas/MATE.md` anota la mutación y la deuda de la mini área.
 
+**Contrato que fijan los pasos** (`tests/aceptacion/pasos/redaccion-rechazos.ts`): un ítem numérico mal formado se aparta con `apartadas[].falta` igual a la propiedad de `respuesta` que falla: `valor` si falta o no es un número (un texto como «9,81» tampoco lo es), `unidades` si la lista está vacía y `tolerancia` si no es un número entre 0 y 1 o si el `valor` es 0 y la lleva. Hoy los ocho casos se apartan con `falta: 'respuesta'`. Uno bien formado entra con su `respuesta` tal cual (sin propiedades de más ni de menos) y su `fuente`, y `apartadas` queda vacía; valen la tolerancia 0, la tolerancia 1 y el valor 0 sin tolerancia.
+
 **Leer primero:** `features/material.feature` (MATE-2.3, 2.5 y 2.12 a 2.13); `src/aplicacion/formato-contenido.ts` y `redaccion*.ts`; `docs/areas/MATE.md`.
