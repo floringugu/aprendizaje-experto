@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  elegirTicket,
   hayQueEsperarAlPr,
   leerPr,
   leerStream,
@@ -9,9 +10,8 @@ import {
   ventanaDesde,
 } from '../../scripts/arnes/comun/despachador.ts';
 import type { Observacion, PrDelCarril } from '../../scripts/arnes/comun/despachador.ts';
-import { anotarEnElDiario, leerDiario, textoDeLaManana, ultimaNoche } from '../../scripts/arnes/comun/diario-noche.ts';
-import type { Anotacion } from '../../scripts/arnes/comun/diario-noche.ts';
-import { directorioTemporal, escribirFicheros } from './temporal.ts';
+import { estadoDeLosTickets } from '../../scripts/arnes/comun/estado-tickets.ts';
+import { situacion, ticket } from './tickets-de-prueba.ts';
 
 const AHORA = new Date('2026-11-15T02:00:00');
 const FIN = new Date('2026-11-15T07:00:00');
@@ -32,7 +32,7 @@ function observacion(cambios: Partial<Observacion>): Observacion {
 }
 
 function pr(cambios: Partial<PrDelCarril>): PrDelCarril {
-  return { numero: 42, estado: 'abierto', ci: 'verde', ...cambios };
+  return { numero: 42, estado: 'abierto', base: 'main', ci: 'verde', ...cambios };
 }
 
 describe('queHacer: una fila de la tabla de reglas de parada, un test', () => {
@@ -75,9 +75,10 @@ describe('queHacer: una fila de la tabla de reglas de parada, un test', () => {
 
   it('un PR fusionado es «hecho», diga lo que diga la parada', () => {
     const fusionado = pr({ estado: 'fusionado' });
-    expect(queHacer(observacion({ parada: 'sin-cambios', pr: fusionado }))).toEqual({ tipo: 'hecho', pr: 42 });
-    expect(queHacer(observacion({ parada: 'decision', pr: fusionado }))).toEqual({ tipo: 'hecho', pr: 42 });
-    expect(queHacer(observacion({ error: 'connection_failed', pr: fusionado }))).toEqual({ tipo: 'hecho', pr: 42 });
+    const hecho = { tipo: 'hecho', pr: 42, base: 'main' };
+    expect(queHacer(observacion({ parada: 'sin-cambios', pr: fusionado }))).toEqual(hecho);
+    expect(queHacer(observacion({ parada: 'decision', pr: fusionado }))).toEqual(hecho);
+    expect(queHacer(observacion({ error: 'connection_failed', pr: fusionado }))).toEqual(hecho);
   });
 
   it('con el límite agotado espera al reinicio si cae dentro de la ventana; si no, termina la noche', () => {
@@ -113,8 +114,68 @@ describe('queHacer: lo que la tabla no nombra', () => {
     expect(pendiente).toEqual({ tipo: 'cola', motivo: 'el PR #42 sigue con la CI sin terminar' });
   });
 
+  it('un PR fusionado en un lote es «hecho», con el lote como base', () => {
+    const enLote = pr({ estado: 'fusionado', base: 'lote/3' });
+    expect(queHacer(observacion({ parada: 'sin-cambios', pr: enLote }))).toEqual({
+      tipo: 'hecho',
+      pr: 42,
+      base: 'lote/3',
+    });
+  });
+
+  it('un PR a un lote, abierto con la CI en verde, no espera ningún visto bueno: sigue sin fusionar', () => {
+    const accion = queHacer(observacion({ parada: 'sin-cambios', pr: pr({ base: 'lote/3' }) }));
+    expect(accion).toEqual({ tipo: 'cola', motivo: 'el PR #42 tiene la CI en verde y sigue sin fusionar en lote/3' });
+  });
+
   it('una sesión sin parada anotada y sin PR va a la cola', () => {
     expect(queHacer(observacion({}))).toMatchObject({ tipo: 'cola' });
+  });
+});
+
+describe('elegirTicket', () => {
+  const tickets = (estadoDeAcep: string): ReturnType<typeof estadoDeLosTickets> =>
+    estadoDeLosTickets(
+      situacion({
+        tickets: [
+          ticket('spec', { fase: 'specs' }),
+          ticket('acep', { fase: 'aceptacion', estado: estadoDeAcep }),
+          ticket('impl', { depende: '[acep]' }),
+        ],
+      }),
+    );
+  const enMain = tickets('abierto');
+  /** El lote en el que la noche ya ha fusionado «acep». */
+  const enLote = tickets('hecho');
+  const nadie = new Set<string>();
+
+  it('toma el primer aprobado que está listo, en el orden de los aprobados', () => {
+    const candidatos = { intentados: nadie, enMain, enLote: enMain };
+    expect(elegirTicket({ ...candidatos, aprobados: ['impl', 'acep', 'spec'] })).toEqual({
+      id: 'acep',
+      fase: 'aceptacion',
+    });
+    expect(elegirTicket({ ...candidatos, aprobados: ['spec', 'acep'] })).toEqual({ id: 'spec', fase: 'specs' });
+    expect(elegirTicket({ ...candidatos, aprobados: ['impl', 'otro'] })).toBeUndefined();
+  });
+
+  it('aceptación e impl se miran en el lote: la dependencia fusionada en él cuenta, y lo hecho en él no se repite', () => {
+    const candidatos = { intentados: nadie, enMain, enLote };
+    expect(elegirTicket({ ...candidatos, aprobados: ['acep', 'impl'] })).toEqual({ id: 'impl', fase: 'impl' });
+    expect(elegirTicket({ ...candidatos, aprobados: ['acep'] })).toBeUndefined();
+  });
+
+  it('specs se mira en main, diga lo que diga el lote', () => {
+    const sinSpec = enLote.filter(({ ticket: { id } }) => id !== 'spec');
+    const candidatos = { intentados: nadie, aprobados: ['spec'] };
+    expect(elegirTicket({ ...candidatos, enMain, enLote: sinSpec })).toEqual({ id: 'spec', fase: 'specs' });
+    expect(elegirTicket({ ...candidatos, enMain: sinSpec, enLote })).toBeUndefined();
+  });
+
+  it('salta los que ya se han intentado esta noche', () => {
+    const candidatos = { aprobados: ['acep', 'spec'], enMain, enLote: enMain };
+    expect(elegirTicket({ ...candidatos, intentados: new Set(['acep']) })).toEqual({ id: 'spec', fase: 'specs' });
+    expect(elegirTicket({ ...candidatos, intentados: new Set(['acep', 'spec']) })).toBeUndefined();
   });
 });
 
@@ -197,85 +258,28 @@ describe('leerPr y hayQueEsperarAlPr', () => {
   });
 
   it('el estado y la fusión automática', () => {
-    expect(leerPr(deGitHub([bien]))).toEqual({ numero: 7, estado: 'abierto', ci: 'verde', fusionAutomatica: false });
+    expect(leerPr(deGitHub([bien]))).toEqual({
+      numero: 7,
+      estado: 'abierto',
+      base: 'main',
+      ci: 'verde',
+      fusionAutomatica: false,
+    });
     expect(leerPr(deGitHub([bien], { enabledAt: '2026-11-15' }))?.fusionAutomatica).toBe(true);
     expect(leerPr({ number: 7, state: 'MERGED', statusCheckRollup: [bien] })?.estado).toBe('fusionado');
+    expect(leerPr({ number: 7, state: 'MERGED', baseRefName: 'lote/3', statusCheckRollup: [bien] })?.base).toBe(
+      'lote/3',
+    );
     expect(leerPr(undefined)).toBeUndefined();
     expect(leerPr({ number: 7, state: 'RARO' })).toBeUndefined();
   });
 
   it('se espera mientras la CI no termina, o está en verde y el PR se fusiona solo', () => {
-    const abierto = { numero: 7, estado: 'abierto', ci: 'verde', fusionAutomatica: false } as const;
+    const abierto = { numero: 7, estado: 'abierto', base: 'main', ci: 'verde', fusionAutomatica: false } as const;
     expect(hayQueEsperarAlPr(abierto)).toBe(false);
     expect(hayQueEsperarAlPr({ ...abierto, fusionAutomatica: true })).toBe(true);
     expect(hayQueEsperarAlPr({ ...abierto, ci: 'pendiente' })).toBe(true);
     expect(hayQueEsperarAlPr({ ...abierto, ci: 'rojo', fusionAutomatica: true })).toBe(false);
     expect(hayQueEsperarAlPr({ ...abierto, estado: 'fusionado', fusionAutomatica: true })).toBe(false);
-  });
-});
-
-describe('el diario y el resumen de la mañana', () => {
-  const noche: Anotacion[] = [
-    { fecha: '2026-11-14T01:00:00', tipo: 'inicio', fin: '', ultimoTicket: '' },
-    { fecha: '2026-11-14T01:01:00', tipo: 'decision', ticket: 'viejo', accion: { tipo: 'hecho', pr: 1 } },
-    { fecha: '2026-11-15T00:30:00', tipo: 'inicio', fin: '', ultimoTicket: '' },
-    { fecha: '2026-11-15T00:31:00', tipo: 'sesion', ticket: 'uno', stream: 'uno.tsv', reanudada: false },
-    { fecha: '2026-11-15T00:50:00', tipo: 'decision', ticket: 'uno', accion: { tipo: 'sesion-nueva' } },
-    { fecha: '2026-11-15T00:51:00', tipo: 'sesion', ticket: 'uno', stream: 'uno-2.tsv', reanudada: false },
-    { fecha: '2026-11-15T01:10:00', tipo: 'decision', ticket: 'uno', accion: { tipo: 'hecho', pr: 50 } },
-    { fecha: '2026-11-15T01:11:00', tipo: 'sesion', ticket: 'dos', stream: 'dos.tsv', reanudada: false },
-    {
-      fecha: '2026-11-15T01:30:00',
-      tipo: 'decision',
-      ticket: 'dos',
-      accion: { tipo: 'cola', motivo: 'paró con una decisión pendiente' },
-    },
-    { fecha: '2026-11-15T01:31:00', tipo: 'sesion', ticket: 'tres', stream: 'tres.tsv', reanudada: false },
-  ];
-
-  it('ultimaNoche: los tickets desde el último inicio, con sus sesiones y su última decisión', () => {
-    expect(ultimaNoche([])).toBeUndefined();
-    expect(ultimaNoche(noche)).toEqual({
-      inicio: '2026-11-15T00:30:00',
-      fin: undefined,
-      tickets: [
-        { ticket: 'uno', sesiones: 2, accion: { tipo: 'hecho', pr: 50 }, avisos: [] },
-        { ticket: 'dos', sesiones: 1, accion: { tipo: 'cola', motivo: 'paró con una decisión pendiente' }, avisos: [] },
-        { ticket: 'tres', sesiones: 1, accion: undefined, avisos: [] },
-      ],
-    });
-  });
-
-  it('textoDeLaManana: lo fusionado y la cola, con el motivo y el estado de ahora del PR', () => {
-    const fin: Anotacion = {
-      fecha: '2026-11-15T01:40:00',
-      tipo: 'fin',
-      motivo: 'no quedan tickets listos y aprobados',
-    };
-    const aviso: Anotacion = {
-      fecha: '2026-11-15T01:10:30',
-      tipo: 'aviso',
-      ticket: 'uno',
-      texto: 'El carril no se ha retirado.',
-    };
-    const resumen = ultimaNoche([...noche.slice(0, 7), aviso, ...noche.slice(7), fin]);
-    if (resumen === undefined) throw new Error('falta la noche');
-    const texto = textoDeLaManana(resumen, (ticket) => (ticket === 'dos' ? 'PR #51 abierto' : ''));
-    expect(texto).toContain('terminó a las 01:40: no quedan tickets listos y aprobados.');
-    expect(texto).toContain('Fusionado (1):\n  uno: PR #50 fusionado (2 sesiones). El carril no se ha retirado.');
-    expect(texto).toContain(
-      'Cola de la mañana (2):\n  dos: paró con una decisión pendiente (1 sesión). Ahora: PR #51 abierto.',
-    );
-    expect(texto).toContain('  tres: la noche se cortó con su sesión a medias (1 sesión).');
-  });
-
-  it('anotarEnElDiario y leerDiario: una línea por suceso, con su fecha; las líneas que no son anotaciones se saltan', () => {
-    const principal = directorioTemporal();
-    escribirFicheros(principal, { 'reports/noche/diario.jsonl': 'basura\n{"otra":"cosa"}\n' });
-    anotarEnElDiario(principal, { tipo: 'fin', motivo: 'prueba' });
-    const [anotacion, ...resto] = leerDiario(principal);
-    expect(resto).toEqual([]);
-    expect(anotacion).toMatchObject({ tipo: 'fin', motivo: 'prueba' });
-    expect(Number.isNaN(Date.parse(anotacion?.fecha ?? ''))).toBe(false);
   });
 });

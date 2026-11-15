@@ -1,6 +1,7 @@
 // Lógica del hook PostToolUse anunciar-carril.ts: cuando la conversación entra en un carril con
 // EnterWorktree, le dice en qué carril está y cómo se trabaja en él y, si el carril tiene ticket
-// (tickets.ts), qué dice el ticket y con qué carriles abiertos se solapa. Hace para el carril lo que
+// (tickets.ts), qué dice el ticket y con qué carriles abiertos se solapa; si su rama sale de un lote
+// (lote.ts), adónde va su PR. Hace para el carril lo que
 // anunciar-fase.ts hace al empezar la conversación. Separada del hook para probarla con tests.
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -8,6 +9,7 @@ import { checkoutDelRepositorio, faseYAreaDelCheckout, nombreDelCarril } from '.
 import { campo, campoTexto } from './entrada-hook.ts';
 import { situacionDelRepositorio, solapesDelCarril, textoDeSolape } from './estado-tickets.ts';
 import { MODELO_POR_FASE, OBJETIVO_POR_FASE, PROPOSITO_POR_FASE } from './fases.ts';
+import { avisoDeLote } from './lote.ts';
 import { avisoDeRelevoPendiente, carrilesConRelevo } from './relevo.ts';
 import { apartado, rutaDelTicket, ticketsDe } from './tickets.ts';
 
@@ -34,6 +36,7 @@ export function anuncioDelCarril(raiz: string, entrada: unknown): AnuncioDelCarr
   const { modelo, esfuerzo } = MODELO_POR_FASE[fase];
   const blanca = listaBlanca(carril);
   const relevos = carrilesConRelevo([carril]);
+  const lote = avisoDeLote(carril);
   const avisos = [
     `Carril ${nombre}: fase ${fase} (${modelo}, esfuerzo ${esfuerzo})`,
     `área en curso: ${area ?? 'ninguna'}`,
@@ -50,6 +53,7 @@ export function anuncioDelCarril(raiz: string, entrada: unknown): AnuncioDelCarr
         ? `El carril no tiene lista blanca (${RUTA_CODEOWNERS}): todo PR espera al visto bueno del dueño.`
         : `Un PR que solo toca la lista blanca (${RUTA_CODEOWNERS}) se fusiona solo: ${blanca.join(', ')}. ` +
           'Lo demás espera al visto bueno del dueño.',
+      ...(lote === undefined ? [] : [lote]),
       `La fase pide ${modelo} con esfuerzo ${esfuerzo}. Si la conversación usa otro modelo, pídele al dueño «/model ${modelo}».`,
       `Los enlaces a ficheros del carril van con ruta absoluta (${carril}/…): las relativas apuntan a la carpeta principal.`,
       'Los demás carriles son de otras conversaciones: no se tocan.',

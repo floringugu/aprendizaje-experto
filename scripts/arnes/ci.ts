@@ -6,12 +6,14 @@
 //   node scripts/arnes/ci.ts objetivo          el objetivo de make de esa fase, si no es make check
 //
 // En un push a main no hay rama de PR: «ajustes» no guarda nada y el checkout queda en impl sin área
-// en curso, que comprueba la regresión de las áreas cerradas. «objetivo» no imprime nada.
+// en curso, que comprueba la regresión de las áreas cerradas. «objetivo» no imprime nada. Lo mismo en
+// el PR de una rama de lote hacia main (comun/lote.ts): «lote/N» no es de una fase ni de un área, y
+// puerta.yml no le pasa el job «rama».
 import { fijarFase } from './comun/ajustes-locales.ts';
 import { faseYAreaDelCheckout } from './comun/checkout.ts';
 import type { FaseYArea } from './comun/checkout.ts';
 import { OBJETIVO_POR_FASE } from './comun/fases.ts';
-import { faseYAreaDeLaRama } from './comun/ramas.ts';
+import { faseYAreaDeLaRama, numeroDeLote } from './comun/ramas.ts';
 import { RAIZ } from './comun/raiz.ts';
 
 /** La fase y el área de la rama `nombre`, tras imprimirlas; undefined, tras imprimir por qué no valen. */
@@ -30,7 +32,7 @@ function rama(nombre: string): number {
 }
 
 function ajustes(nombre: string): number {
-  if (nombre === '') return 0;
+  if (nombre === '' || numeroDeLote(nombre) !== undefined) return 0;
   const deLaRama = faseYAreaImpresas(nombre);
   if (deLaRama === undefined) return 1;
   fijarFase(RAIZ, deLaRama);

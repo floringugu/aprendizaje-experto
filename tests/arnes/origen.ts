@@ -3,6 +3,7 @@
 import { realpathSync } from 'node:fs';
 import path from 'node:path';
 import { git } from '../../scripts/arnes/comun/git.ts';
+import { fijarLoteDeLaRama } from '../../scripts/arnes/comun/ramas.ts';
 import { directorioTemporal, escribirFicheros } from './temporal.ts';
 
 /** git con una identidad (la máquina que pasa los tests puede no tener una). Lanza si falla. */
@@ -42,21 +43,51 @@ function clonDelOrigen(checkout: string): string {
   return clon;
 }
 
-/** GitHub fusiona en main el PR de otro carril: `checkout` no se entera hasta que traiga origin. */
-export function otroPrFusionado(checkout: string): void {
+/** GitHub fusiona en `base` (main o una rama de lote) el PR de otro carril: `checkout` no se entera hasta que traiga origin. */
+export function otroPrFusionado(checkout: string, base = 'main'): void {
   const github = clonDelOrigen(checkout);
-  gitBien(github, ['commit', '--quiet', '--allow-empty', '-m', 'otro PR']);
-  gitBien(github, ['push', '--quiet', 'origin', 'main']);
+  gitBien(github, ['switch', '--quiet', base]);
+  // En un lote lleva otro mensaje: con el mismo, y en el mismo segundo, sería el mismo commit que el de main.
+  const mensaje = base === 'main' ? 'otro PR' : `otro PR de ${base}`;
+  gitBien(github, ['commit', '--quiet', '--allow-empty', '-m', mensaje]);
+  gitBien(github, ['push', '--quiet', 'origin', base]);
 }
 
 /**
- * GitHub fusiona con rebase el PR de `rama`, que se sube desde `checkout`, después del de otro carril:
- * main recibe una copia de cada commit de la rama, con otro SHA.
+ * GitHub fusiona con rebase en `base` (main o una rama de lote) el PR de `rama`, que se sube desde
+ * `checkout`, después del de otro carril: la base recibe una copia de cada commit de la rama, con otro SHA.
  */
-export function fusionarComoGitHub(checkout: string, rama: string): void {
-  otroPrFusionado(checkout);
+export function fusionarComoGitHub(checkout: string, rama: string, base = 'main'): void {
+  otroPrFusionado(checkout, base);
   gitBien(checkout, ['push', '--quiet', 'origin', rama]);
+  copiarEnLaBase(checkout, rama, base);
+}
+
+/** GitHub fusiona con rebase en main el PR de la rama de lote `lote`, que ya está en origin, después del de otro carril. */
+export function fusionarLoteComoGitHub(checkout: string, lote: string): void {
+  otroPrFusionado(checkout);
+  copiarEnLaBase(checkout, lote, 'main');
+}
+
+function copiarEnLaBase(checkout: string, rama: string, base: string): void {
   const github = clonDelOrigen(checkout);
-  gitBien(github, ['cherry-pick', `origin/main..origin/${rama}`]);
-  gitBien(github, ['push', '--quiet', 'origin', 'main']);
+  gitBien(github, ['switch', '--quiet', base]);
+  // --allow-empty: un lote lleva los commits vacíos de otroPrFusionado.
+  gitBien(github, ['cherry-pick', '--allow-empty', `origin/${base}..origin/${rama}`]);
+  gitBien(github, ['push', '--quiet', 'origin', base]);
+}
+
+/**
+ * La noche fusiona en `lote` (que origin ya tiene) un PR con `ficheros`: crea `rama` desde el lote en
+ * `checkout`, que queda en ella, le apunta su lote, commitea, GitHub la fusiona y `checkout` trae origin.
+ */
+export function prFusionadoEnLote(
+  checkout: string,
+  { rama, lote, ficheros }: { rama: string; lote: string; ficheros: Readonly<Record<string, string>> },
+): void {
+  gitBien(checkout, ['switch', '--quiet', '--no-track', '-c', rama, `origin/${lote}`]);
+  fijarLoteDeLaRama(checkout, rama, lote);
+  commit(checkout, `trabajo de ${rama}`, ficheros);
+  fusionarComoGitHub(checkout, rama, lote);
+  gitBien(checkout, ['fetch', '--quiet', 'origin']);
 }

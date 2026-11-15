@@ -13,7 +13,13 @@ import {
   nombreDelCarril,
   raizDelCheckout,
 } from '../../scripts/arnes/comun/checkout.ts';
-import { directorioTemporal, escribirFicheros, gitEn, repositorioConCommit, repositorioConWorktree } from './temporal.ts';
+import {
+  directorioTemporal,
+  escribirFicheros,
+  gitEn,
+  repositorioConCommit,
+  repositorioConWorktree,
+} from './temporal.ts';
 
 function conAjustes(env: Record<string, unknown>): string {
   const raiz = directorioTemporal();

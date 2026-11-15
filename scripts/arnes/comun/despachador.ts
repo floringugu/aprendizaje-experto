@@ -6,6 +6,10 @@
 // El código de salida de «claude -p» no dice nada (es 0 también cuando lo cortan), y el «subtype»
 // del resultado tampoco (sigue en «success» tras un corte de red): se decide con la parada que anotó
 // el hook Stop, con el PR de la rama según GitHub y con «is_error» del resultado.
+import type { Estado } from './estado-tickets.ts';
+import type { Fase } from './fases.ts';
+import { numeroDeLote } from './ramas.ts';
+import type { Ticket } from './tickets.ts';
 
 export const MAXIMO_DE_RELEVOS = 4;
 export const MAXIMO_DE_REANUDACIONES = 2;
@@ -17,6 +21,8 @@ export type ParadaDeSesion = (typeof PARADAS_DE_SESION)[number];
 export interface PrDelCarril {
   readonly numero: number;
   readonly estado: 'abierto' | 'fusionado' | 'cerrado';
+  /** La rama a la que va: «main» o, en un carril que sale de un lote, «lote/N». */
+  readonly base: string;
   /** De sus comprobaciones, ya esperadas: «pendiente» si no terminaron a tiempo. */
   readonly ci: 'verde' | 'rojo' | 'pendiente';
 }
@@ -40,8 +46,11 @@ export interface Observacion {
 }
 
 export type Accion =
-  /** GitHub ha fusionado el PR: se retira el carril y se pasa al ticket siguiente. */
-  | { readonly tipo: 'hecho'; readonly pr: number }
+  /**
+   * GitHub ha fusionado el PR en `base` («main» o «lote/N»): se retira el carril y se pasa al ticket
+   * siguiente. Las anotaciones del diario anteriores al lote no llevan `base`: eran de main.
+   */
+  | { readonly tipo: 'hecho'; readonly pr: number; readonly base?: string }
   /** Tras un relevo: otra sesión en el mismo carril, que empieza por leerlo. */
   | { readonly tipo: 'sesion-nueva' }
   /** La misma sesión, con «--resume» y «sigue». */
@@ -60,7 +69,7 @@ export type Accion =
  */
 export function queHacer(observacion: Observacion): Accion {
   const { pr, parada } = observacion;
-  if (pr?.estado === 'fusionado') return { tipo: 'hecho', pr: pr.numero };
+  if (pr?.estado === 'fusionado') return { tipo: 'hecho', pr: pr.numero, base: pr.base };
   const porError = accionPorError(observacion);
   if (porError !== undefined) return porError;
   if (parada === 'relevo') return trasUnRelevo(observacion);
@@ -100,12 +109,54 @@ function sinCambiosNiPr({ reanudaciones, ahora, fin }: Observacion): Accion {
   return { tipo: 'reanudar' };
 }
 
-function motivoDelPr({ numero, estado, ci }: PrDelCarril): string {
+function motivoDelPr({ numero, estado, ci, base }: PrDelCarril): string {
   const pr = `el PR #${String(numero)}`;
   if (estado === 'cerrado') return `${pr} está cerrado sin fusionar`;
   if (ci === 'rojo') return `${pr} tiene la CI en rojo`;
   if (ci === 'pendiente') return `${pr} sigue con la CI sin terminar`;
+  // En un lote no hay visto bueno que esperar: o la sesión no le activó la fusión automática o GitHub no la ha hecho.
+  if (numeroDeLote(base) !== undefined) return `${pr} tiene la CI en verde y sigue sin fusionar en ${base}`;
   return `${pr} tiene la CI en verde y espera tu visto bueno`;
+}
+
+// ---------------------------------------------------------------------------
+// El ticket siguiente
+// ---------------------------------------------------------------------------
+
+export interface TicketListo {
+  readonly id: string;
+  readonly fase: Fase;
+}
+
+type TicketConEstado = Readonly<{ ticket: Ticket; estado: Estado }>;
+
+export interface Candidatos {
+  /** Los ids que el dueño aprobó, en el orden en que la noche los toma. */
+  readonly aprobados: readonly string[];
+  /** Los que ya se han intentado esta noche. */
+  readonly intentados: ReadonlySet<string>;
+  /** Los tickets con su estado según origin/main. */
+  readonly enMain: readonly TicketConEstado[];
+  /** Los tickets con su estado según la rama de lote de la noche; los de main si aún no existe. */
+  readonly enLote: readonly TicketConEstado[];
+}
+
+/**
+ * El primer ticket aprobado que está listo y no se ha intentado esta noche. Un ticket specs está
+ * listo según main, adonde va su PR. Uno de aceptación o de impl, según el lote, de donde sale su
+ * carril: allí cuentan como cumplidas las dependencias que la noche ya ha fusionado en él.
+ */
+export function elegirTicket({ aprobados, intentados, enMain, enLote }: Candidatos): TicketListo | undefined {
+  const candidatos = [
+    ...enMain.filter(({ ticket }) => ticket.fase === 'specs'),
+    ...enLote.filter(({ ticket }) => ticket.fase !== 'specs'),
+  ];
+  const listos = candidatos.filter(({ estado }) => estado.tipo === 'listo').map(({ ticket }) => ticket);
+  for (const id of aprobados) {
+    const ticket = listos.find((listo) => listo.id === id);
+    if (ticket !== undefined && !intentados.has(id)) return { id, fase: ticket.fase };
+  }
+  return undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -195,7 +246,7 @@ function reinicioDe(evento: Evento | undefined): Date | undefined {
 }
 
 // ---------------------------------------------------------------------------
-// El PR según GitHub («gh pr list --json number,state,autoMergeRequest,statusCheckRollup»)
+// El PR según GitHub («gh pr list --json» con CAMPOS_DEL_PR)
 // ---------------------------------------------------------------------------
 
 export interface PrSegunGitHub extends PrDelCarril {
@@ -203,19 +254,23 @@ export interface PrSegunGitHub extends PrDelCarril {
   readonly fusionAutomatica: boolean;
 }
 
+/** Los campos de «gh pr list --json» que lee leerPr. */
+export const CAMPOS_DEL_PR = 'number,state,baseRefName,autoMergeRequest,statusCheckRollup';
+
 const ESTADOS_DE_PR = { OPEN: 'abierto', MERGED: 'fusionado', CLOSED: 'cerrado' } as const;
 const VERDES = ['SUCCESS', 'NEUTRAL', 'SKIPPED'];
 const SIN_TERMINAR = ['PENDING', 'EXPECTED', 'QUEUED', 'IN_PROGRESS', 'WAITING', 'REQUESTED'];
 
-/** El PR de una entrada de la lista de gh, o undefined si no tiene la forma esperada. */
+/** El PR de una entrada de la lista de gh, o undefined si no tiene la forma esperada. Sin «baseRefName», va a main. */
 export function leerPr(valor: unknown): PrSegunGitHub | undefined {
   if (typeof valor !== 'object' || valor === null) return undefined;
-  const { number: numero, state, autoMergeRequest, statusCheckRollup } = valor as Record<string, unknown>;
+  const { number: numero, state, baseRefName, autoMergeRequest, statusCheckRollup } = valor as Record<string, unknown>;
   const estado = typeof state === 'string' ? ESTADOS_DE_PR[state as keyof typeof ESTADOS_DE_PR] : undefined;
   if (typeof numero !== 'number' || estado === undefined) return undefined;
   const comprobaciones = Array.isArray(statusCheckRollup) ? (statusCheckRollup as unknown[]) : [];
   const fusionAutomatica = autoMergeRequest !== null && autoMergeRequest !== undefined;
-  return { numero, estado, ci: ciDe(comprobaciones), fusionAutomatica };
+  const base = typeof baseRefName === 'string' ? baseRefName : 'main';
+  return { numero, estado, base, ci: ciDe(comprobaciones), fusionAutomatica };
 }
 
 /**

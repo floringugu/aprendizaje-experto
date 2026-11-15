@@ -1,11 +1,14 @@
-// make manana (docs/plan.md §6, «Noche desatendida»): qué hizo el Despachador en su última noche.
-// Lee su diario (comun/diario-noche.ts) y pregunta a GitHub cómo está ahora el PR de cada ticket de
-// la cola. No guarda nada.
+// make manana (docs/plan.md §6, «Noche desatendida»): qué hizo el Despachador en su última noche y
+// qué lotes esperan al dueño. Lee su diario (comun/diario-noche.ts) y pregunta a GitHub cómo está
+// ahora el PR de cada ticket de la cola. De cada lote que main aún no tiene (comun/lote.ts), tras
+// traer origin, dice sus tickets, sus ficheros, su PR hacia main y los comandos para fusionarlo. No
+// guarda nada.
 import { spawnSync } from 'node:child_process';
 import { carpetaPrincipal } from './comun/checkout.ts';
 import { leerDiario, textoDeLaManana, ultimaNoche } from './comun/diario-noche.ts';
+import { lotesVivos, prDelLote, resumenDelLote, textoDelLote } from './comun/lote.ts';
 import { RAIZ } from './comun/raiz.ts';
-import { ramasDelCarril } from './comun/ramas.ts';
+import { ramasDelCarril, traerOrigen } from './comun/ramas.ts';
 
 const PRINCIPAL = carpetaPrincipal(RAIZ);
 
@@ -32,6 +35,11 @@ function principal(): number {
   console.log(
     noche === undefined ? 'El Despachador no ha anotado ninguna noche.' : textoDeLaManana(noche, estadoDelPr),
   );
+  const problema = traerOrigen(PRINCIPAL);
+  if (problema !== undefined) console.error(`Sigo con lo último que se trajo de origin. ${problema}`);
+  for (const lote of lotesVivos(PRINCIPAL)) {
+    console.log(`\n${textoDelLote(resumenDelLote(PRINCIPAL, lote), prDelLote(PRINCIPAL, lote), PRINCIPAL)}`);
+  }
   return 0;
 }
 

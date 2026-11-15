@@ -9,7 +9,8 @@
 // avisa si la conversación usa otro modelo, y señala los checkouts del repositorio (la carpeta
 // principal y los carriles) que tienen un relevo pendiente (scripts/arnes/comun/relevo.ts). En la
 // carpeta principal, también los tickets listos para abrir (scripts/arnes/comun/tablero.ts), con lo
-// último que se trajo de origin: sin fetch, para no depender de la red.
+// último que se trajo de origin: sin fetch, para no depender de la red. En un carril cuya rama sale de
+// un lote (scripts/arnes/comun/lote.ts), adónde va su PR.
 import { leerAlcance } from '../../scripts/arnes/comun/alcance.ts';
 import {
   checkoutDeLaEntrada,
@@ -24,12 +25,19 @@ import {
   OBJETIVO_POR_FASE,
   PROPOSITO_POR_FASE,
 } from '../../scripts/arnes/comun/fases.ts';
+import { avisoDeLote } from '../../scripts/arnes/comun/lote.ts';
 import { RAIZ } from '../../scripts/arnes/comun/raiz.ts';
 import { avisoDeRelevoPendiente, carrilesConRelevo } from '../../scripts/arnes/comun/relevo.ts';
 import { avisoDeListos } from '../../scripts/arnes/comun/tablero.ts';
 
 function lista(elementos: readonly string[]): string {
   return elementos.length === 0 ? 'ninguna' : elementos.join(', ');
+}
+
+/** El aviso del lote del que sale la rama del checkout, si sale de uno: una sesión del Despachador empieza ya en su carril, sin EnterWorktree. */
+function lineasDelLote(checkout: string): string[] {
+  const aviso = avisoDeLote(checkout);
+  return aviso === undefined ? [] : [aviso];
 }
 
 ejecutarHook('anunciar-fase', async () => {
@@ -66,6 +74,7 @@ ejecutarHook('anunciar-fase', async () => {
         'La fase la elige el dueño antes de abrir la conversación; no se cambia desde aquí.',
         ...(relevos.length === 0 ? [] : [avisoDeRelevoPendiente(relevos)]),
         ...(listos === undefined ? [] : [`${listos}.`]),
+        ...lineasDelLote(checkout),
       ].join('\n'),
     },
   });

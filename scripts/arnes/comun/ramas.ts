@@ -1,10 +1,12 @@
 // Las ramas de un carril (worktrees.ts): «<fase>/<ÁREA>/<carril>» la primera, y «-2», «-3»… las
 // siguientes, una por PR. Llevan la fase y el área que tenía el carril al crearlas, y salen de
-// origin/main.
+// origin/main o, las que abre el Despachador para aceptación e impl, de la rama de lote de la noche
+// (lote.ts). El lote de una rama se apunta en su configuración de git, en la clave que lee
+// «gh pr create» para elegir la base del PR: así el PR de la rama va a su lote sin que nadie lo diga.
 //
 // GitHub fusiona los PR con rebase, que crea commits nuevos: main no contiene los de la rama
 // (merge-base --is-ancestor falla). Una rama cuenta como fusionada cuando cada uno de sus commits
-// tiene en origin/main otro con el mismo cambio. No vale git cherry: compara el parche con sus
+// tiene en su origen otro con el mismo cambio. No vale git cherry: compara el parche con sus
 // líneas de contexto, y el rebase las cambia si antes entró otro commit que toca las de al lado
 // (pasa con config/alcance.json, que escriben casi todos los carriles).
 import { problemaDeArea } from './alcance.ts';
@@ -72,7 +74,7 @@ export function siguienteRama(raiz: string, { fase, area, carril }: Omit<Rama, '
   return nombreDeRama({ fase, area, carril, numero: Math.max(0, ...numeros) + 1 });
 }
 
-/** Trae origin (git fetch) para que estaFusionada y RAMA_DE_ORIGEN estén al día. Devuelve el motivo si falla. */
+/** Trae origin (git fetch) para que estaFusionada, RAMA_DE_ORIGEN y las ramas de lote estén al día. Devuelve el motivo si falla. */
 export function traerOrigen(raiz: string): string | undefined {
   const traer = git(raiz, ['fetch', '--quiet', 'origin']);
   if (traer.codigo !== 0) return `git fetch origin ha fallado:\n${traer.errores}`;
@@ -82,15 +84,59 @@ export function traerOrigen(raiz: string): string | undefined {
   return undefined;
 }
 
+const LOTE = /^lote\/([1-9][0-9]*)$/;
+
+/** El número de la rama de lote `nombre` («lote/3» → 3), o undefined si no es una rama de lote. */
+export function numeroDeLote(nombre: string): number | undefined {
+  const numero = LOTE.exec(nombre)?.[1];
+  return numero === undefined ? undefined : Number(numero);
+}
+
+function claveDelLote(rama: string): string {
+  return `branch.${rama}.gh-merge-base`;
+}
+
+/** Apunta que la rama local `rama` sale de la rama de lote `lote` («lote/N») y que su PR va a ella. */
+export function fijarLoteDeLaRama(raiz: string, rama: string, lote: string): void {
+  git(raiz, ['config', claveDelLote(rama), lote]);
+}
+
 /**
- * ¿Está cada commit de la rama en RAMA_DE_ORIGEN, con el mismo cambio? Se buscan entre los commits
- * de RAMA_DE_ORIGEN que la rama no tiene, comparando las líneas que quitan y añaden, sin contexto.
- * Una rama sin commits propios, o con solo commits vacíos, también. Usa lo último que trajo
- * traerOrigen. No, si git no puede compararlas.
+ * La rama de lote de la que sale `rama` («lote/N»), si fijarLoteDeLaRama la apuntó y origin la tiene
+ * (con lo último que trajo traerOrigen); undefined si sale de origin/main.
+ */
+export function loteDeLaRama(raiz: string, rama: string): string | undefined {
+  const lote = git(raiz, ['config', '--get', claveDelLote(rama)]).salida.trim();
+  if (numeroDeLote(lote) === undefined) return undefined;
+  return git(raiz, ['rev-parse', '--verify', '--quiet', `origin/${lote}`]).codigo === 0 ? lote : undefined;
+}
+
+/** De dónde sale `rama` y adónde va su PR: «origin/lote/N» si tiene lote (loteDeLaRama); si no, RAMA_DE_ORIGEN. */
+export function origenDeLaRama(raiz: string, rama: string): string {
+  const lote = loteDeLaRama(raiz, rama);
+  return lote === undefined ? RAMA_DE_ORIGEN : `origin/${lote}`;
+}
+
+/**
+ * ¿Está fusionada la rama? Sí, si lo está en su origen (origenDeLaRama) o en RAMA_DE_ORIGEN: una rama
+ * de un lote que ya entró en main tiene allí sus commits, aunque no llegara a entrar en el lote.
  */
 export function estaFusionada(raiz: string, rama: string): boolean {
-  const deLaRama = idsDeParche(raiz, `${RAMA_DE_ORIGEN}..${rama}`);
-  const deOrigen = idsDeParche(raiz, `${rama}..${RAMA_DE_ORIGEN}`);
+  const origen = origenDeLaRama(raiz, rama);
+  return (
+    estaFusionadaEn(raiz, rama, origen) || (origen !== RAMA_DE_ORIGEN && estaFusionadaEn(raiz, rama, RAMA_DE_ORIGEN))
+  );
+}
+
+/**
+ * ¿Está cada commit de `rama` en `origen`, con el mismo cambio? Se buscan entre los commits de
+ * `origen` que la rama no tiene, comparando las líneas que quitan y añaden, sin contexto. Una rama
+ * sin commits propios, o con solo commits vacíos, también. Usa lo último que trajo traerOrigen. No,
+ * si git no puede compararlas. `rama` puede ser cualquier ref: también dice si un lote ya está en main.
+ */
+export function estaFusionadaEn(raiz: string, rama: string, origen: string): boolean {
+  const deLaRama = idsDeParche(raiz, `${origen}..${rama}`);
+  const deOrigen = idsDeParche(raiz, `${rama}..${origen}`);
   if (deLaRama === undefined || deOrigen === undefined) return false;
   const enOrigen = new Set(deOrigen);
   return deLaRama.every((id) => enOrigen.has(id));

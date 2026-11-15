@@ -99,7 +99,7 @@ function ultimaDecision(anotaciones: readonly Anotacion[]): Accion | undefined {
 }
 
 /**
- * El texto de «make manana»: lo fusionado y la cola, cada ticket con su motivo. `estadoDelPr` dice
+ * El texto de «make manana» sobre la noche: lo fusionado (en main o en el lote) y la cola, cada ticket con su motivo. `estadoDelPr` dice
  * cómo está ahora en GitHub el PR de un ticket de la cola (pudo cambiar desde la noche); '' si no se sabe.
  */
 export function textoDeLaManana(noche: Noche, estadoDelPr: (ticket: string) => string): string {
@@ -132,7 +132,10 @@ function lineaDelTicket({ accion, sesiones, avisos }: TicketDeLaNoche): string {
 
 function queQuedo(accion: Accion | undefined): string {
   if (accion === undefined) return 'la noche se cortó con su sesión a medias';
-  if (accion.tipo === 'hecho') return `PR #${String(accion.pr)} fusionado`;
+  if (accion.tipo === 'hecho') {
+    const enLote = accion.base === undefined || accion.base === 'main' ? '' : ` en ${accion.base}`;
+    return `PR #${String(accion.pr)} fusionado${enLote}`;
+  }
   if (accion.tipo === 'cola' || accion.tipo === 'fin') return accion.motivo;
   return `quedó a medias (${accion.tipo})`;
 }

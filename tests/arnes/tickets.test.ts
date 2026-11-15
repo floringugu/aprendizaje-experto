@@ -6,8 +6,10 @@ import {
   solapesDelCarril,
 } from '../../scripts/arnes/comun/estado-tickets.ts';
 import type { Situacion } from '../../scripts/arnes/comun/estado-tickets.ts';
+import { crearLote } from '../../scripts/arnes/comun/lote.ts';
+import { fijarLoteDeLaRama } from '../../scripts/arnes/comun/ramas.ts';
 import { apartado, leerTicket, problemasDeLosTickets, ticketsDe } from '../../scripts/arnes/comun/tickets.ts';
-import { commit, gitBien, principalConOrigen } from './origen.ts';
+import { commit, gitBien, prFusionadoEnLote, principalConOrigen } from './origen.ts';
 import { escribirFicheros, repositorioConCommit } from './temporal.ts';
 import { carril, situacion, texto, ticket } from './tickets-de-prueba.ts';
 
@@ -255,5 +257,29 @@ describe('situacionDelRepositorio', () => {
     expect(datos.pendientes).toEqual(['DIAG-1.1']);
     expect(datos.carriles).toEqual([{ nombre: 'uno', rama: 'impl/MATE/uno', commiteados: ['src/b.ts'], pr: 7 }]);
     expect(datos.ficheros).toContain('docs/tickets/uno.md');
+  });
+
+  it('con una rama de lote como origen, lee de ella los tickets y el árbol; un carril del lote solo cuenta lo suyo', () => {
+    const raiz = principalConOrigen({ 'docs/tickets/uno.md': texto({ fase: 'aceptacion' }) });
+    expect(crearLote(raiz, 'lote/1')).toBeUndefined();
+    const ficheros = { 'docs/tickets/uno.md': texto({ fase: 'aceptacion', estado: 'hecho' }), 'tests/pasos.ts': '' };
+    prFusionadoEnLote(raiz, { rama: 'aceptacion/MATE/uno', lote: 'lote/1', ficheros });
+    gitBien(raiz, ['switch', '--quiet', 'main']);
+    gitBien(raiz, ['worktree', 'add', '--quiet', '--no-track', '-b', 'impl/MATE/dos', `${raiz}-dos`, 'origin/lote/1']);
+    fijarLoteDeLaRama(raiz, 'impl/MATE/dos', 'lote/1');
+    commit(`${raiz}-dos`, 'trabajo', { 'src/b.ts': '' });
+
+    const enLote = situacionDelRepositorio(raiz, new Map(), 'origin/lote/1');
+    expect(enLote.tickets.map(({ id, estado }) => [id, estado])).toEqual([['uno', 'hecho']]);
+    expect(enLote.ficheros).toContain('tests/pasos.ts');
+    // Comparada con main, la rama contaría también lo que el lote ya tiene.
+    expect(enLote.carriles).toEqual([
+      { nombre: 'dos', rama: 'impl/MATE/dos', commiteados: ['src/b.ts'], pr: undefined },
+    ]);
+
+    const enMain = situacionDelRepositorio(raiz, new Map());
+    expect(enMain.tickets.map(({ id, estado }) => [id, estado])).toEqual([['uno', 'abierto']]);
+    expect(enMain.ficheros).not.toContain('tests/pasos.ts');
+    expect(enMain.carriles).toEqual(enLote.carriles);
   });
 });

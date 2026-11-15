@@ -3,6 +3,9 @@
 // cada uno, lanza en él «claude -p» con el modelo y el esfuerzo de su fase, y cuando la sesión
 // termina aplica las reglas de comun/despachador.ts: otra sesión, reanudar, esperar al límite, dejar
 // el ticket en la cola de la mañana o, si GitHub ha fusionado su PR, retirar el carril.
+// Los carriles de aceptación e impl salen de la rama de lote de la noche (comun/lote.ts), que crea
+// cuando hace falta, y sus PR se fusionan en ella; tras cada uno se asegura de que el lote tiene su
+// PR hacia main, que fusiona el dueño. Los de specs salen de main, como de día.
 // Lo lanza el dueño, no Claude Code: las sesiones corren sin permisos que pedir (bypassPermissions),
 // con los hooks del arnés como única guardia. Deja el diario y los streams en reports/noche/ de la
 // carpeta principal; «make manana» los lee.
@@ -15,6 +18,8 @@ import { setTimeout as esperar } from 'node:timers/promises';
 import { leerAprobados, rutaDeAprobados } from './comun/aprobados.ts';
 import { carpetaPrincipal } from './comun/checkout.ts';
 import {
+  CAMPOS_DEL_PR,
+  elegirTicket,
   hayQueEsperarAlPr,
   leerPr,
   leerStream,
@@ -22,13 +27,14 @@ import {
   queHacer,
   ventanaDesde,
 } from './comun/despachador.ts';
-import type { Accion, ParadaDeSesion, PrSegunGitHub, Ventana } from './comun/despachador.ts';
+import type { Accion, ParadaDeSesion, PrSegunGitHub, TicketListo, Ventana } from './comun/despachador.ts';
 import { anotarEnElDiario, carpetaDeLaNoche } from './comun/diario-noche.ts';
 import type { Suceso } from './comun/diario-noche.ts';
 import { estadoDeLosTickets, prsAbiertos, situacionDelRepositorio } from './comun/estado-tickets.ts';
 import { MODELO_POR_FASE } from './comun/fases.ts';
-import type { Fase } from './comun/fases.ts';
 import { git } from './comun/git.ts';
+import { asegurarPrDelLote, crearLote, loteDeLaNoche } from './comun/lote.ts';
+import type { LoteDeLaNoche } from './comun/lote.ts';
 import { traerOrigen } from './comun/ramas.ts';
 import { RAIZ } from './comun/raiz.ts';
 import { leerRegistro } from './comun/registro-stop.ts';
@@ -56,26 +62,31 @@ function decir(texto: string): void {
   console.log(`${new Date().toLocaleTimeString('es-ES')} ${texto}`);
 }
 
-interface TicketListo {
-  readonly id: string;
-  readonly fase: Fase;
+interface TicketDeLaNoche extends TicketListo {
+  /** El lote del que sale su carril; undefined en specs, que sale de main. */
+  readonly lote: LoteDeLaNoche | undefined;
 }
 
-/** El primer ticket aprobado, en el orden de la lista, que está listo y no se ha intentado esta noche. */
-function siguienteTicket(intentados: ReadonlySet<string>): TicketListo | undefined {
+/**
+ * El primer ticket aprobado, en el orden de la lista, que está listo y no se ha intentado esta noche
+ * (elegirTicket), con el lote de la noche si es de aceptación o de impl.
+ */
+function siguienteTicket(intentados: ReadonlySet<string>): TicketDeLaNoche | undefined {
   const problema = traerOrigen(PRINCIPAL);
   if (problema !== undefined) decir(`Sigo con lo último que se trajo de origin. ${problema}`);
-  const estados = estadoDeLosTickets(situacionDelRepositorio(PRINCIPAL, prsAbiertos(PRINCIPAL)));
-  const listos = estados.filter(({ estado }) => estado.tipo === 'listo').map(({ ticket }) => ticket);
-  for (const id of leerAprobados(rutaDeAprobados())) {
-    const ticket = listos.find((listo) => listo.id === id);
-    if (ticket !== undefined && !intentados.has(id)) return { id, fase: ticket.fase };
-  }
-  return undefined;
+  const prs = prsAbiertos(PRINCIPAL);
+  const lote = loteDeLaNoche(PRINCIPAL);
+  const enMain = estadoDeLosTickets(situacionDelRepositorio(PRINCIPAL, prs));
+  const enLote = lote.existe
+    ? estadoDeLosTickets(situacionDelRepositorio(PRINCIPAL, prs, `origin/${lote.rama}`))
+    : enMain;
+  const aprobados = leerAprobados(rutaDeAprobados());
+  const ticket = elegirTicket({ aprobados, intentados, enMain, enLote });
+  return ticket === undefined ? undefined : { ...ticket, lote: ticket.fase === 'specs' ? undefined : lote };
 }
 
 interface Sesion {
-  readonly ticket: TicketListo;
+  readonly ticket: TicketDeLaNoche;
   /** El session_id de la sesión que se reanuda con «--resume»; undefined en una sesión nueva. */
   readonly reanuda: string | undefined;
 }
@@ -119,8 +130,7 @@ async function lanzarSesion({ ticket, reanuda }: Sesion): Promise<string> {
 
 /** El PR más reciente de la rama, según gh; undefined si no tiene o gh falla. */
 function prDeLaRama(directorio: string, rama: string): PrSegunGitHub | undefined {
-  const campos = 'number,state,autoMergeRequest,statusCheckRollup';
-  const argumentos = ['pr', 'list', '--head', rama, '--state', 'all', '--limit', '1', '--json', campos];
+  const argumentos = ['pr', 'list', '--head', rama, '--state', 'all', '--limit', '1', '--json', CAMPOS_DEL_PR];
   const resultado = spawnSync('gh', argumentos, { cwd: directorio, encoding: 'utf8' });
   if (resultado.status !== 0) return undefined;
   return leerPr((JSON.parse(resultado.stdout) as unknown[])[0]);
@@ -167,11 +177,25 @@ function esParadaDeSesion(resultado: string): resultado is ParadaDeSesion {
   return (PARADAS_DE_SESION as readonly string[]).includes(resultado);
 }
 
-/** Retira el carril del ticket hecho, con lo mismo que «make retirar». Si no se deja, lo avisa en el diario. */
-function retirar(ticket: string, pr: number): void {
-  const { ok, mensajes } = retirarWorktree(PRINCIPAL, ticket);
-  decir(`${ticket}: PR #${String(pr)} fusionado; ${ok ? 'carril retirado' : 'el carril no se ha podido retirar'}.`);
-  if (!ok) anotar({ tipo: 'aviso', ticket, texto: `El carril no se ha retirado: ${mensajes.join(' ')}` });
+/**
+ * Retira el carril del ticket hecho, con lo mismo que «make retirar», y, si su PR entró en un lote, se
+ * asegura de que el lote tiene su PR hacia main. Lo que no se deja hacer lo avisa en el diario.
+ */
+function cerrar({ id, lote }: TicketDeLaNoche, pr: number): void {
+  const { ok, mensajes } = retirarWorktree(PRINCIPAL, id);
+  decir(`${id}: PR #${String(pr)} fusionado; ${ok ? 'carril retirado' : 'el carril no se ha podido retirar'}.`);
+  if (!ok) anotar({ tipo: 'aviso', ticket: id, texto: `El carril no se ha retirado: ${mensajes.join(' ')}` });
+  if (lote === undefined) return;
+  const problema = asegurarPrDelLote(PRINCIPAL, lote.rama);
+  if (problema !== undefined) anotar({ tipo: 'aviso', ticket: id, texto: `${problema}.` });
+}
+
+/** Crea en origin el lote del ticket si aún no existe. Devuelve el motivo si no se puede. */
+function problemaDelLote({ id, lote }: TicketDeLaNoche): string | undefined {
+  if (lote === undefined || lote.existe) return undefined;
+  const problema = crearLote(PRINCIPAL, lote.rama);
+  if (problema === undefined) decir(`${id}: creada la rama ${lote.rama} desde main.`);
+  return problema;
 }
 
 /**
@@ -188,9 +212,21 @@ async function siguienteSesion(marcha: Marcha, { accion, sesion }: Final): Promi
   return { ...marcha, reanuda: sesion, reanudaciones: marcha.reanudaciones + 1 };
 }
 
-/** Lleva un ticket hasta que queda hecho o en la cola. Devuelve el motivo si la noche tiene que terminar. */
-async function despachar(ticket: TicketListo, fin: Date): Promise<string | undefined> {
-  const abierto = abrirWorktree(PRINCIPAL, { nombre: ticket.id, fase: undefined, area: undefined });
+/**
+ * Lleva un ticket hasta que queda hecho o en la cola. Devuelve el motivo si la noche tiene que
+ * terminar: también si no se puede crear su lote, porque el ticket siguiente acabaría igual.
+ */
+async function despachar(ticket: TicketDeLaNoche, fin: Date): Promise<string | undefined> {
+  const sinLote = problemaDelLote(ticket);
+  if (sinLote !== undefined) {
+    anotar({ tipo: 'decision', ticket: ticket.id, accion: { tipo: 'fin', motivo: sinLote } });
+    return sinLote;
+  }
+  const peticion = { nombre: ticket.id, fase: undefined, area: undefined };
+  const abierto = abrirWorktree(
+    PRINCIPAL,
+    ticket.lote === undefined ? peticion : { ...peticion, lote: ticket.lote.rama },
+  );
   if (!abierto.ok) {
     const motivo = `no se ha podido abrir su carril: ${abierto.mensajes.join(' ')}`;
     anotar({ tipo: 'decision', ticket: ticket.id, accion: { tipo: 'cola', motivo } });
@@ -201,7 +237,7 @@ async function despachar(ticket: TicketListo, fin: Date): Promise<string | undef
     const final = await alTerminar(marcha, await lanzarSesion(marcha));
     const { accion } = final;
     if (accion.tipo === 'hecho') {
-      retirar(ticket.id, accion.pr);
+      cerrar(ticket, accion.pr);
       return undefined;
     }
     if (accion.tipo === 'cola' || accion.tipo === 'fin') {
