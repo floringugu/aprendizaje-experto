@@ -2,8 +2,8 @@
 fase: impl
 area: MAST
 depende: [mast-pasos-reintentos, recu-reintentos]
-toca: [src/dominio/criterio-dominio.ts, src/aplicacion/criterio-dominio.ts, src/aplicacion/estado.ts, tests/unidad/criterio-dominio.test.ts, config/alcance.json, docs/areas/MAST.md, docs/deuda-diseno.md]
-estado: abierto
+toca: [src/dominio/criterio-dominio.ts, src/aplicacion/criterio-dominio.ts, src/aplicacion/estado.ts, src/aplicacion/progreso.ts, tests/unidad/criterio-dominio.test.ts, config/alcance.json, docs/areas/MAST.md, docs/deuda-diseno.md]
+estado: hecho
 ---
 # El dominio cuenta el primer intento de cada sesión (MAST-1.2, 1.8 y 4.2)
 

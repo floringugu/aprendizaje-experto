@@ -1,5 +1,5 @@
 {
-  "areas_cerradas": ["RECU", "DIAG", "MATE"],
+  "areas_cerradas": ["RECU", "DIAG", "MATE", "MAST"],
   "escenarios_en_rojo": {
     "RECU": [
       "RECU-2.2",
@@ -22,7 +22,6 @@
       "RECU-6.10"
     ],
     "MATE": ["MATE-2.12", "MATE-2.13"],
-    "MAST": ["MAST-1.8", "MAST-4.2"],
     "INTE": ["INTE-1.1", "INTE-1.2", "INTE-2.1", "INTE-2.2", "INTE-4.1", "INTE-5.1"]
   }
 }

@@ -153,3 +153,39 @@ Los pasos de MAST-1.2, 1.8 y 4.2 son del ticket `mast-pasos-reintentos`. Los imp
 - **MAST-1.2 pasa** y salió de `escenarios_en_rojo`: el intento de la sesión posterior es el primero de su sesión y el último del ítem, y la aplicación ya cuenta el último. El motivo está en el ticket.
 - **MAST-4.2:** el ítem al que la persona vuelve es el último que se le presentó (`mundo.presentado`), el del repaso fallado.
 - `reintentar` no cambia `mundo.intentos`, que guarda el intento que cuenta de cada ítem.
+
+## Reintentos (ticket `mast-reintentos`, 15-11-2026)
+
+Cierra MAST: MAST-1.8 y 4.2 pasan, `escenarios_en_rojo.MAST` queda vacía y MAST entra en `areas_cerradas`. MAST-1.2 sigue pasando. `make cerrar-area A=MAST` da verde con los 48 escenarios del área.
+
+**Cómo funciona:** `ultimoIntentoDeCadaItem()` sin contexto (`src/aplicacion/estado.ts`) deja fuera, además de la exploración y las prepreguntas, los reintentos. El conjunto se llama ahora `NO_SON_INTENTOS_DEL_ITEM`. En una sesión, lo que sigue al primer intento de un ítem son sus reintentos (RECU-6), así que el último intento que queda es el primero de la última sesión en que se respondió, que es lo que pide la cabecera de `features/dominio.feature`. Lo usan igual el dominio (`reevaluarObjetivo`), el progreso, la transferencia y las sesiones de repaso y de práctica intercalada. El dominio (`evaluarDominio`) no cambia: solo su comentario.
+
+**Interfaces descartadas y por qué:**
+
+- **Descartada:** guardar en cada intento la sesión de la que sale y que `evaluarDominio` tome el primero de cada sesión, como lo dice la spec. Motivo: la sesión no se guarda (la sesión en curso se olvida al terminarla, @RECU-6.7), haría falta un campo nuevo en el registro y en respuestas.csv (INST), y el resultado es el mismo, porque el reintento ya lleva su contexto (INST-1.3). Además, `reintentar` de `tests/aceptacion/soporte/acciones.ts`, que usan MAST-1.8 y 4.2, responde con el contexto `reintento` sin pasar por la sesión.
+- **Descartada:** un método aparte, `intentoQueCuentaDeCadaItem()`, para el dominio, y que `ultimoIntentoDeCadaItem()` siguiera contando los reintentos. Motivo: ningún llamador necesita el reintento como último intento, y el progreso y el dominio deben medir el mismo acierto (la cabecera lo pide también para AYUD-2 y BUCL-2). Con dos métodos casi iguales, cada llamador tendría que elegir, y uno equivocado enseñaría un acierto distinto del que decide el dominio.
+
+**Lo que no cambia, aunque se deje fuera el reintento:** un reintento siempre sigue a un intento que sí cuenta, así que `itemsSinIntento` (MAST-1.3) y los ítems que entran en un repaso no cambian. El intento de un reservado se registra siempre como `transferencia`, también si llega como reintento (`corregirYRegistrar`, MAST-8.4), así que el reservado gastado (MAST-8.5) tampoco cambia. Un reintento de un ítem sin intento anterior, que la aplicación acepta sin mirar la sesión (cabecera de `src/aplicacion/sesion-en-curso.ts`), no le da intento al ítem.
+
+**Mutación** (`npx stryker run --force`): 97,74 % en total (2153 eliminados, 13 por tiempo, 45 supervivientes, 5 sin cobertura), lo mismo que dio RECU-6 en `lote/1`: el cambio no toca código de `src/dominio/`, solo un comentario. `criterio-dominio.ts`, 100 % (26 eliminados). `estado.ts` y `progreso.ts` no entran en la mutación: los cubren MAST-1.2, 1.8 y 4.2.
+
+**Deuda:** no paga ninguna: es un cambio de comportamiento de pocas líneas. Según `revisor-codigo`:
+
+- **D36 crece:** `reintento` está ahora en los dos conjuntos de contextos con sentidos distintos (no es intento del ítem y sí cuenta para la cola), y los reservados escapan del filtro solo porque `respuestas.ts` les cambia el contexto. Pagarla es la tabla única por contexto que propone la partida.
+- **Sin partidas nuevas.** Las líneas de D2, D5, D8, D9, D19, D20, D21, D27, D36 y D37 en `estado.ts`, `criterio-dominio.ts` y `progreso.ts` se han puesto al día; algunas ya venían movidas de antes.
+- **No se añade un test unitario de `EstadoDominio`**, que el revisor propuso: `estado.ts` no entra en la mutación, y MAST-1.4 a 1.8 y 4.2, ya en la regresión con MAST cerrada, fallan si el filtro deja de quitar alguno de sus contextos.
+
+**Bloqueos de los hooks** (`make bloqueos A=MAST`, desde la carpeta principal, 15-11-2026):
+
+```text
+MAST: 119 anotaciones en 34 conversaciones, desde 2026-10-22T23:38:54.780Z.
+  - Carriles: mast-cierre, mast-transferencia, principal.
+  - Push: 4 en verde y 1 bloqueos (unidad 1); la comprobación tarda 45 s de mediana.
+  - Implementador: 0 bloqueos.
+  - Paradas del hook Stop: 48 con [DECISIÓN PENDIENTE], 41 con [RELEVO], 0 esperando a subagentes, 6 sin cambios y 0 con cambios sin commitear.
+  - Comprobación en el Stop, ya retirada: 7 en verde y 12 bloqueos (aceptacion 10, codigo-muerto 2).
+```
+
+El registro de la carpeta principal aún no recoge este carril. En esta conversación, ningún bloqueo: el cambio se hizo sin el implementador, porque son dos líneas.
+
+**Pendiente, para aceptación (cuando un ticket toque esos ficheros):** con `'reintento'` ya en `ContextoRespuesta` (desde `recu-reintentos`), sobra el molde `REINTENTO` de `tests/aceptacion/soporte/acciones.ts:24`, y su comentario, que dice que el tipo aún no lo tiene. Es lo mismo que la nota de `exploracion.ts` y `prepreguntas.ts` de «Transferencia y exploración».
