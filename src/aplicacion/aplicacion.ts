@@ -27,6 +27,7 @@ import { consultarRepasos } from './repasos.ts';
 import type { Resultado } from './resultado.ts';
 import { crearRevisionDelMaterial, verFuente } from './revision-del-material.ts';
 import { declararConfianza, presentarItem, responderItem } from './respuestas.ts';
+import { consultarSesion, terminarSesion } from './sesion-en-curso.ts';
 import { sinImplementar } from './sin-implementar.ts';
 import type { CasosDeSesiones } from './sesiones.ts';
 import type { CasosDeTareas } from './tareas.ts';
@@ -47,11 +48,13 @@ export type Aplicacion = CasosDeDominio &
   CasosDePreferencias &
   CasosDePantallas;
 
-/** Lo que falta del reaprendizaje sucesivo (RECU-6). */
-const CASOS_DE_REINTENTOS: Pick<CasosDeSesiones, 'consultarSesion' | 'terminarSesion'> = {
-  consultarSesion: sinImplementar,
-  terminarSesion: sinImplementar,
-};
+/** La sesión en curso y lo que queda por presentar de ella, con los ítems que vuelven (RECU-6). */
+function casosDeSesionEnCurso(entorno: Entorno): Pick<CasosDeSesiones, 'consultarSesion' | 'terminarSesion'> {
+  return {
+    consultarSesion: (peticion) => consultarSesion(entorno, peticion),
+    terminarSesion: (peticion) => terminarSesion(entorno, peticion),
+  };
+}
 
 /** Lo que falta del servidor y las pantallas (PANT). */
 const CASOS_DE_PANTALLAS: CasosDeEmparejamiento & CasosDePreferencias & CasosDePantallas = {
@@ -77,7 +80,7 @@ export const crearAplicacion: (dependencias: Dependencias) => Aplicacion = (depe
     evaluarFase: (peticion) => evaluarFase(entorno, peticion),
     iniciarSesion: (peticion) => iniciarSesion(entorno, peticion),
     presentarItem: (peticion) => presentarItem(entorno, peticion),
-    ...CASOS_DE_REINTENTOS,
+    ...casosDeSesionEnCurso(entorno),
     estudiarEjemplo: sinImplementar,
     responderItem: (peticion) => responderItem(entorno, peticion),
     declararConfianza: (peticion) => declararConfianza(entorno, peticion),

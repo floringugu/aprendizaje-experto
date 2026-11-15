@@ -37,6 +37,19 @@ function sesionDeDiagnostico(contenido: ContenidoDominio): Sesion {
   };
 }
 
+/**
+ * Lo que queda del diagnóstico pendiente: sus ítems sin responder, en el mismo orden. Un ítem fallado no
+ * vuelve, porque el diagnóstico mide y no enseña (@RECU-6.8).
+ */
+export function loQueQuedaDelDiagnostico(situacion: Situacion): Sesion {
+  const sesion = sesionDeDiagnostico(situacion.contenido);
+  const respondidos = situacion.estado.ultimoIntentoDeCadaItem('diagnostico');
+  const elementos = sesion.elementos.filter(
+    (elemento) => elemento.tipo === 'item' && !respondidos.has(elemento.item.id),
+  );
+  return { ...sesion, elementos };
+}
+
 /** Al abrir un dominio nuevo, lo primero es el diagnóstico (@DIAG-1.1). */
 export function abrirDominio(entorno: Entorno, peticion: PeticionDominio): Resultado<AperturaDominio> {
   return enDominio<AperturaDominio>(entorno, peticion.dominio, ({ contenido, estado }) => {

@@ -9,12 +9,14 @@ import { parametroListaNumerica } from './parametros.ts';
 import { presentar } from './presentacion.ts';
 import type { Resultado } from './resultado.ts';
 import { aceptar, rechazar } from './resultado.ts';
-import type { CasosDeSesiones, EjemploPresentado, Sesion } from './sesiones.ts';
+import type { CasosDeSesiones, EjemploPresentado, ElementoSesion, Sesion } from './sesiones.ts';
+import { sesionEnCursoDe } from './sesion-en-curso.ts';
 import { sinImplementar } from './sin-implementar.ts';
 
-// La petición, sacada de la firma del caso de uso, y un elemento cualquiera de una sesión.
+// La petición, sacada de la firma del caso de uso.
 type PeticionSesion = Parameters<CasosDeSesiones['iniciarSesion']>[0];
-type ElementoSesion = Sesion['elementos'][number];
+// La petición de un tipo que se inicia aquí: el diagnóstico aún no se inicia con `iniciarSesion`.
+type PeticionQueSeInicia = PeticionSesion & { readonly tipo: 'practica' | 'repaso' | 'retencion' };
 
 /**
  * El primer ejemplo resuelto del objetivo, si le queda algún paso a la vista. Un objetivo dominado en
@@ -136,9 +138,25 @@ function pruebaDeRetencion(entorno: Entorno, situacion: Situacion, idObjetivo: s
   return aceptar({ tipo: 'retencion', intercalada: false, elementos: comoElementos(items) });
 }
 
+/** La sesión que pide cada tipo de petición. */
+function sesionDelTipo(entorno: Entorno, situacion: Situacion, peticion: PeticionQueSeInicia): Resultado<Sesion> {
+  switch (peticion.tipo) {
+    case 'practica':
+      return peticion.grupo === undefined
+        ? sesionDePractica(situacion, peticion.objetivo)
+        : sesionIntercalada(situacion, peticion.grupo);
+    case 'repaso':
+      return sesionDeRepaso(situacion, peticion.objetivo);
+    case 'retencion':
+      return pruebaDeRetencion(entorno, situacion, peticion.objetivo);
+  }
+}
+
 /**
  * Hasta terminar el diagnóstico no se empieza ninguna sesión (@DIAG-1.1). Un reservado solo se
  * presenta donde se mide la transferencia: en la mezcla y en las pruebas de retención (@MAST-8.1).
+ * La sesión que se acepta pasa a ser la sesión en curso y sustituye a la anterior: lo que quedaba por
+ * volver de ella no pasa a la nueva (@RECU-6.7). Un rechazo no guarda nada, y la anterior sigue.
  */
 export function iniciarSesion(entorno: Entorno, peticion: PeticionSesion): Resultado<Sesion> {
   const { tipo } = peticion;
@@ -149,15 +167,10 @@ export function iniciarSesion(entorno: Entorno, peticion: PeticionSesion): Resul
     if (diagnosticoPendiente(situacion.estado)) {
       return rechazar(MOTIVO_DIAGNOSTICO_PENDIENTE);
     }
-    switch (tipo) {
-      case 'practica':
-        return peticion.grupo === undefined
-          ? sesionDePractica(situacion, peticion.objetivo)
-          : sesionIntercalada(situacion, peticion.grupo);
-      case 'repaso':
-        return sesionDeRepaso(situacion, peticion.objetivo);
-      case 'retencion':
-        return pruebaDeRetencion(entorno, situacion, peticion.objetivo);
+    const sesion = sesionDelTipo(entorno, situacion, { ...peticion, tipo });
+    if (sesion.ok) {
+      situacion.estado.cambiarSesion(sesionEnCursoDe(sesion.valor));
     }
+    return sesion;
   });
 }

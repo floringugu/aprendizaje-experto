@@ -54,7 +54,7 @@ export interface EjemploPresentado {
   readonly instruccionesAutoexplicacion: readonly string[];
 }
 
-type ElementoSesion =
+export type ElementoSesion =
   /** `reintento`: el ítem vuelve en esta sesión y se presenta y se responde con el contexto `reintento` (RECU-6). */
   | { readonly tipo: 'item'; readonly item: ItemPresentado; readonly reintento?: true }
   | { readonly tipo: 'ejemplo'; readonly ejemplo: EjemploPresentado };
@@ -80,7 +80,7 @@ export interface Feedback {
 }
 
 /** Lo que sigue a una respuesta: declarar la confianza o, en un reintento, el feedback (RECU-6.3). */
-type RespuestaRecogida =
+export type RespuestaRecogida =
   | { readonly esperandoConfianza: true }
   | { readonly esperandoConfianza: false; readonly feedback: Feedback };
 
@@ -114,8 +114,8 @@ export interface CasosDeSesiones {
   /**
    * Lo que queda por presentar de la sesión en curso, en el orden en que se presenta: lo que la persona
    * aún no ha respondido y, en su sitio, los ítems que vuelven (RECU-6), marcados con `reintento`. La
-   * sesión en curso es la última que se inició, o el diagnóstico mientras esté pendiente. Sin elementos,
-   * la sesión ha terminado.
+   * sesión en curso es la última que se inició, o el diagnóstico mientras esté pendiente. Sin ítems por
+   * presentar, la sesión ha terminado; sus ejemplos siguen ahí hasta que se estudien (`estudiarEjemplo`).
    */
   consultarSesion(peticion: PeticionDominio): Resultado<Sesion>;
   /**
