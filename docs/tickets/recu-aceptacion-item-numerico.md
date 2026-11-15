@@ -3,7 +3,7 @@ fase: aceptacion
 area: RECU
 depende: [specs-item-numerico]
 toca: [tests/aceptacion/pasos/recuperacion.ts, tests/aceptacion/soporte/contenido.ts, tests/aceptacion/soporte/mundo.ts]
-estado: abierto
+estado: hecho
 ---
 # Los escenarios del ítem numérico de RECU tienen pasos y fallan en rojo
 
