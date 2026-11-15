@@ -1,3 +1,4 @@
+import type { FalloNumerico } from '../dominio/correccion.ts';
 import type { PeticionDominio } from './peticiones.ts';
 import type { Resultado } from './resultado.ts';
 
@@ -32,6 +33,11 @@ export interface ItemPresentado {
   readonly enunciado: string;
   /** Solo en los ítems en que se elige entre opciones. */
   readonly opciones?: readonly string[];
+  /**
+   * Solo en los ítems numéricos, que no llevan `opciones`: qué escribe la persona. `numero_con_unidad` si
+   * el ítem tiene unidades y `numero` si no (RECU-4.2, RECU-5.8).
+   */
+  readonly entrada?: 'numero_con_unidad' | 'numero';
   /** Ausentes cuando mostrarlos daría una pista del tipo de problema (DIAG-1.3, INTE-3.1). */
   readonly objetivo?: string;
   readonly categoria?: string;
@@ -63,8 +69,14 @@ export interface Sesion {
 /** El feedback habla solo de la tarea (RECU-2.2). */
 export interface Feedback {
   readonly correcta: boolean;
+  /** En un ítem numérico, el valor con coma decimal y la primera unidad: «9,81 m/s²» (RECU-5.11). */
   readonly respuestaCorrecta: string;
   readonly explicacion: string;
+  /**
+   * Solo en un ítem numérico incorrecto: qué parte de la respuesta falla, el margen que se acepta si
+   * falla el valor y cómo se escribe un número si no se entendió (RECU-5.7, RECU-5.9 a RECU-5.13).
+   */
+  readonly numerico?: FalloNumerico;
 }
 
 /** Lo que sigue a una respuesta: declarar la confianza o, en un reintento, el feedback (RECU-6.3). */

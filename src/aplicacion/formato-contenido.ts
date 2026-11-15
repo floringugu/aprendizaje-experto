@@ -46,6 +46,11 @@ export function lugarDelFallo(fallo: FalloDeFormato): string {
  *   escrita sin ninguna aceptada no tendría qué enseñar en el feedback (@RECU-2.1). `correcta` tiene que
  *   ser una de las `opciones`, y `nivel` es un número. Dos `opciones` que solo cambian en espacios o
  *   mayúsculas son la misma opción (MATE-2.5) y el fallo es `opciones`.
+ * - Una respuesta numérica (RECU-5) es la que trae `valor`, `unidades` o `tolerancia`. `valor` es
+ *   obligatorio y es un número; `unidades` es opcional y, si viene, es una lista no vacía de textos no
+ *   vacíos; `tolerancia` es opcional y, si viene, es un número entre 0 y 1, los dos incluidos. Un `valor`
+ *   0 no lleva `tolerancia`, porque el margen es relativo y sobre 0 no deja nada: el fallo es
+ *   `tolerancia`. Se miran en ese orden: `valor`, `unidades`, `tolerancia`.
  * - `tipo` es `hecho` o `problema`, y `diagnostico` es un booleano. `reservado` es opcional y, si viene,
  *   también es un booleano (MATE-2.9).
  * - Una categoría lleva `descripcion`, un texto no vacío (MATE-2.3); se mira antes que `grupo_parecidas`.
@@ -267,19 +272,57 @@ const REGLAS_DE_LAS_OPCIONES: readonly Regla[] = [
 ];
 const REGLAS_DE_LAS_ACEPTADAS: readonly Regla[] = [exigir('aceptadas', esListaDeTextos)];
 
+// `typeof` y no `esNumero`: así TypeScript sabe que `valor` es un número al compararlo. Y `NaN` e `Infinity`
+// quedan fuera sin más, porque ninguno de los dos está entre 0 y 1, y un texto como «0.05» tampoco cuenta.
+function esProporcion(valor: unknown): boolean {
+  return typeof valor === 'number' && valor >= 0 && valor <= 1;
+}
+
 /**
- * La respuesta lleva `opciones`, `aceptadas` o las dos. Se comprueba cada grupo que viene, porque
- * `esCorrecta` da prioridad a `aceptadas` si están las dos y una lista vacía ahí volvería a colarse.
+ * Un `valor` 0 no admite `tolerancia`, ni siquiera 0: el margen es relativo al valor, así que sobre 0 no
+ * deja nada y la `tolerancia` no serviría para nada (RECU-5, MATE-2.12). Falla en `tolerancia`. Se mira
+ * después de comprobar que `tolerancia`, si viene, es una proporción, así que aquí solo importa si viene.
+ */
+const REGLA_DE_LA_TOLERANCIA_CON_VALOR_CERO: Regla = (respuesta) =>
+  respuesta['valor'] === 0 && respuesta['tolerancia'] !== undefined ? 'tolerancia' : undefined;
+
+const REGLAS_DE_LA_NUMERICA: readonly Regla[] = [
+  exigir('valor', esNumero),
+  exigir('unidades', opcional(esListaDeTextos)),
+  exigir('tolerancia', opcional(esProporcion)),
+  REGLA_DE_LA_TOLERANCIA_CON_VALOR_CERO,
+];
+
+/**
+ * Los grupos de reglas de una respuesta, en el orden en que se comprueban. Un grupo «viene» en cuanto
+ * está alguna de sus propiedades de entrada (que no valga `undefined`): así las `unidades` sin `valor`
+ * entran en el grupo numérico y fallan en `valor`, y no en `respuesta`.
+ */
+const GRUPOS_DE_LA_RESPUESTA: readonly {
+  readonly propiedades: readonly string[];
+  readonly reglas: readonly Regla[];
+}[] = [
+  { propiedades: ['opciones'], reglas: REGLAS_DE_LAS_OPCIONES },
+  { propiedades: ['aceptadas'], reglas: REGLAS_DE_LAS_ACEPTADAS },
+  { propiedades: ['valor', 'unidades', 'tolerancia'], reglas: REGLAS_DE_LA_NUMERICA },
+];
+
+/**
+ * La respuesta lleva `opciones`, `aceptadas`, las propiedades de una numérica (`valor`, `unidades`,
+ * `tolerancia`) o varios de esos grupos. Se comprueba cada grupo que viene, en ese orden, porque la
+ * corrección da prioridad a la numérica y después a `aceptadas`, y un grupo mal formado volvería a
+ * colarse. Una respuesta sin ningún grupo falla en `respuesta`. El grupo numérico viene en cuanto está
+ * una de sus tres propiedades: así unas `unidades` sin `valor` fallan en `valor`, que es lo que le falta
+ * al autor, y no en `respuesta`.
  */
 function faltaDeLaRespuesta(item: Registro): string | undefined {
   const respuesta = item['respuesta'];
   if (!esRegistro(respuesta)) {
     return 'respuesta';
   }
-  const reglas = [
-    ...(respuesta['opciones'] === undefined ? [] : REGLAS_DE_LAS_OPCIONES),
-    ...(respuesta['aceptadas'] === undefined ? [] : REGLAS_DE_LAS_ACEPTADAS),
-  ];
+  const reglas = GRUPOS_DE_LA_RESPUESTA.filter((grupo) =>
+    grupo.propiedades.some((propiedad) => respuesta[propiedad] !== undefined),
+  ).flatMap((grupo) => grupo.reglas);
   return reglas.length === 0 ? 'respuesta' : primeraFalta(respuesta, reglas);
 }
 
