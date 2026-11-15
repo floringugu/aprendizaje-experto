@@ -35,8 +35,16 @@ export interface RespuestaNumerica {
 /** Un ítem de `BorradorContenido` cuya respuesta es numérica. */
 export type ItemNumerico = ItemDePrueba & { readonly respuesta: RespuestaNumerica };
 
+/**
+ * Se pregunta por la respuesta y no por el ítem: así, al descartarla, TypeScript deja en `respuesta`
+ * solo las otras formas, admita ya `ItemContenido` la numérica o todavía no.
+ */
+function esRespuestaNumerica(respuesta: ItemDePrueba['respuesta'] | RespuestaNumerica): respuesta is RespuestaNumerica {
+  return 'valor' in respuesta;
+}
+
 export function esNumerico(item: ItemDePrueba): item is ItemNumerico {
-  return 'valor' in item.respuesta;
+  return esRespuestaNumerica(item.respuesta);
 }
 
 /** 9.81 → «9,81»: así escribe la persona un número. */
@@ -69,18 +77,19 @@ function tareaPorDefecto(id: string): TareaContenido {
 
 /** Respuesta que la aplicación corrige como correcta (o como incorrecta) para este ítem. */
 export function respuestaPara(item: ItemDePrueba, correcta: boolean): string {
-  if (esNumerico(item)) {
-    const { valor, unidades } = item.respuesta;
+  const { respuesta } = item;
+  if (esRespuestaNumerica(respuesta)) {
+    const { valor, unidades } = respuesta;
     const escrito = correcta
       ? valor
       : Number((valor * FACTOR_DEL_VALOR_EQUIVOCADO).toPrecision(CIFRAS_DEL_VALOR_EQUIVOCADO));
     return [escribirNumero(escrito), unidades?.[0]].filter((parte) => parte !== undefined).join(' ');
   }
-  if ('aceptadas' in item.respuesta) {
-    return correcta ? (item.respuesta.aceptadas[0] ?? '') : 'respuesta equivocada';
+  if ('aceptadas' in respuesta) {
+    return correcta ? (respuesta.aceptadas[0] ?? '') : 'respuesta equivocada';
   }
-  const acertada = item.respuesta.correcta;
-  return correcta ? acertada : (item.respuesta.opciones.find((opcion) => opcion !== acertada) ?? 'z');
+  const acertada = respuesta.correcta;
+  return correcta ? acertada : (respuesta.opciones.find((opcion) => opcion !== acertada) ?? 'z');
 }
 
 /**
