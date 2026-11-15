@@ -39,7 +39,8 @@ const FICHEROS = new Map<string, FicheroCsv>([
         'pasos_retirados',
         'confianza',
       ],
-      // La latencia y si responde tras un ejemplo quedan vacías: la aplicación aún no las mide.
+      // La latencia y si responde tras un ejemplo quedan vacías: la aplicación aún no las mide. La
+      // confianza, en un reintento, que no la pide (@RECU-6.3).
       filas: (registro) =>
         registro.intentos.map((intento) => ({
           fecha: intento.fecha,
@@ -51,7 +52,7 @@ const FICHEROS = new Map<string, FicheroCsv>([
             '',
             '',
             String(intento.pasosRetirados),
-            String(intento.confianza),
+            intento.confianza === undefined ? '' : String(intento.confianza),
           ],
         })),
     },
