@@ -38,9 +38,10 @@ function leerUmbralYMomento(entorno: Entorno): UmbralYMomento {
 
 /**
  * Decide si el objetivo está dominado con el último intento de cada uno de sus ítems no reservados,
- * sea cual sea el contexto (@MAST-7.2, @MAST-8.2). Registra el cambio, si lo hay, y con él la fase: dominar el último
- * objetivo pasa de novato a intermedio (@MAST-6.1), y perder uno no devuelve a ninguna fase anterior
- * (@MAST-6.3).
+ * sea cual sea el contexto (@MAST-7.2, @MAST-8.2), salvo los que no son intentos del ítem: un
+ * reintento acertado no devuelve el dominio que quitó el fallo (@MAST-1.8, @MAST-4.2). Registra el
+ * cambio, si lo hay, y con él la fase: dominar el último objetivo pasa de novato a intermedio
+ * (@MAST-6.1), y perder uno no devuelve a ninguna fase anterior (@MAST-6.3).
  */
 function reevaluarObjetivo(situacion: Situacion, objetivo: string, momento: UmbralYMomento): EvaluacionDominio {
   const { contenido, estado } = situacion;
