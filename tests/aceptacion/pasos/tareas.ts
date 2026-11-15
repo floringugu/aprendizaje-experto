@@ -14,6 +14,11 @@ import { evaluacionValida, practicarTarea, registrarEvaluacion } from '../soport
 import { aceptado, mundo } from '../soporte/mundo.ts';
 import type { Mundo } from '../soporte/mundo.ts';
 import { MS_POR_DIA, soloFecha } from '../soporte/reloj.ts';
+import {
+  partirDeTextoProfesional,
+  practicarEnOrden,
+  textoProfesionalPresentado,
+} from '../soporte/tareas.ts';
 import type { EvaluadaExterna } from '../soporte/tipos-de-parametro.ts';
 
 // Pasos de las tareas representativas y de la evaluación externa (TARE-1 y TARE-2). La aplicación
@@ -56,6 +61,41 @@ Then('se le presenta {tarea} con su enunciado y su rúbrica', (tarea: string) =>
   assert.equal(presentada.tarea, tarea);
   assert.equal(presentada.enunciado, esperada.enunciado);
   assert.deepEqual(presentada.rubrica, esperada.rubrica);
+});
+
+Given('que ha practicado {ids}', (tareas: readonly string[]) => {
+  const actual = mundo();
+  actual.preparar(() => {
+    practicarEnOrden(actual, tareas);
+  });
+});
+
+// --- Tareas que parten de un texto profesional (TARE-1.5) -------------------------------------------
+
+Given('que {tarea} parte del texto profesional {texto}', (tarea: string, documento: string) => {
+  const actual = mundo();
+  actual.preparar(() => {
+    partirDeTextoProfesional(actual, tarea, documento);
+  });
+});
+
+// La aplicación presenta las tareas en el orden del contenido: pedir T3 es pedir tareas hasta que toca.
+When('la persona pide la tarea {tarea}', (tarea: string) => {
+  const actual = mundo();
+  actual.preparar(() => {
+    practicarTarea(actual, tarea);
+  });
+  actual.listo();
+});
+
+Then('se le presenta el texto profesional {texto}', (documento: string) => {
+  assert.equal(textoProfesionalPresentado(tareaActual()), documento);
+});
+
+Then('el enunciado de {tarea} nombra {texto}', (tarea: string, documento: string) => {
+  const presentada = tareaActual();
+  assert.equal(presentada.tarea, tarea);
+  assert.ok(presentada.enunciado.includes(documento), `El enunciado «${presentada.enunciado}» no nombra ${documento}`);
 });
 
 Then('{tarea} queda marcada como practicada', (tarea: string) => {
