@@ -17,10 +17,36 @@ const CATEGORIAS_INTERCALABLES = [
 ];
 
 /**
- * Un ítem tal como lo escribe el autor, con el campo `reservado` de MATE-2.8. `ItemContenido` aún no lo
- * tiene (lo añade el ticket mate-reservados), así que se declara aquí por intersección.
+ * Un ítem tal como lo escribe el autor. Hoy es un `ItemContenido`; los ítems numéricos (RECU-5) se
+ * crean con `agregarItemNumerico`, que es el único punto donde se declara que `respuesta` puede ser
+ * una `RespuestaNumerica`: `ItemContenido` aún no la admite (lo añade recu-impl-item-numerico).
  */
-export type ItemDePrueba = ItemContenido & { readonly reservado?: boolean };
+export type ItemDePrueba = ItemContenido;
+
+/** Respuesta de un ítem numérico tal como la escribe el autor en el contenido (RECU-5). */
+export interface RespuestaNumerica {
+  readonly valor: number;
+  /** Todas las formas de escribir la unidad, con la que se enseña en primer lugar; sin ellas, sin unidad. */
+  readonly unidades?: readonly string[];
+  /** Margen relativo (0,05 es el 5 %); sin él vale el parámetro `tolerancia_numerica_relativa`. */
+  readonly tolerancia?: number;
+}
+
+/** Un ítem de `BorradorContenido` cuya respuesta es numérica. */
+export type ItemNumerico = ItemDePrueba & { readonly respuesta: RespuestaNumerica };
+
+export function esNumerico(item: ItemDePrueba): item is ItemNumerico {
+  return 'valor' in item.respuesta;
+}
+
+/** 9.81 → «9,81»: así escribe la persona un número. */
+export function escribirNumero(valor: number): string {
+  return String(valor).replace('.', ',');
+}
+
+/** Valor equivocado con cualquier margen (hasta el 100 %): el triple, sin los decimales que sobran. */
+const FACTOR_DEL_VALOR_EQUIVOCADO = 3;
+const CIFRAS_DEL_VALOR_EQUIVOCADO = 6;
 
 /** Datos mínimos de un ítem; el resto se rellena con valores por defecto. */
 type DatosItem = Partial<ItemDePrueba> & { readonly id: string; readonly objetivo: string };
@@ -42,7 +68,14 @@ function tareaPorDefecto(id: string): TareaContenido {
 }
 
 /** Respuesta que la aplicación corrige como correcta (o como incorrecta) para este ítem. */
-export function respuestaPara(item: ItemContenido, correcta: boolean): string {
+export function respuestaPara(item: ItemDePrueba, correcta: boolean): string {
+  if (esNumerico(item)) {
+    const { valor, unidades } = item.respuesta;
+    const escrito = correcta
+      ? valor
+      : Number((valor * FACTOR_DEL_VALOR_EQUIVOCADO).toPrecision(CIFRAS_DEL_VALOR_EQUIVOCADO));
+    return [escribirNumero(escrito), unidades?.[0]].filter((parte) => parte !== undefined).join(' ');
+  }
   if ('aceptadas' in item.respuesta) {
     return correcta ? (item.respuesta.aceptadas[0] ?? '') : 'respuesta equivocada';
   }
@@ -52,7 +85,7 @@ export function respuestaPara(item: ItemContenido, correcta: boolean): string {
 
 /**
  * Contenido de un dominio de prueba, tal como lo escribiría el autor en `contenido/<dominio>.json`.
- * Los pasos lo van completando; la aplicación lo lee a través de `leerContenido`.
+ * Los pasos lo van completando; la aplicación lo lee con el puerto `Ficheros`.
  */
 export class BorradorContenido {
   readonly dominio: string;
@@ -96,6 +129,13 @@ export class BorradorContenido {
     };
     this.items = [...this.items, item];
     return item;
+  }
+
+  /** Añade un ítem cuya respuesta es un número con unidades y tolerancia opcionales (RECU-5). */
+  agregarItemNumerico(datos: { id: string; objetivo: string; respuesta: RespuestaNumerica }): ItemDePrueba {
+    // Mientras `ItemContenido` no admita la respuesta numérica, el único modo de dársela a la aplicación.
+    const respuesta = datos.respuesta as unknown as ItemContenido['respuesta'];
+    return this.agregarItem({ id: datos.id, objetivo: datos.objetivo, respuesta });
   }
 
   item(id: string): ItemDePrueba {
