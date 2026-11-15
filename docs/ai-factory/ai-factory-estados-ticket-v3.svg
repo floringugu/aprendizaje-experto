@@ -1,0 +1,262 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1576" width="1920" height="1576" font-family="Helvetica, Arial, sans-serif">
+<title>AI Factory para aprendizaje-experto: ciclo de vida del ticket (revisión 3)</title>
+<desc>Diagrama de estados del ticket con una tabla de transiciones en la que toda salida de una sesión tiene destino. Distingue lo construido, lo pedido con ticket y lo propuesto sin ticket.</desc>
+<defs>
+<marker id="ra" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="11" markerHeight="11" orient="auto"><path d="M2 1.5 L10 6 L2 10.5" fill="none" stroke="#C8451B" stroke-width="1.3"/></marker>
+<marker id="oa" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="11" markerHeight="11" orient="auto"><path d="M2 1.5 L10 6 L2 10.5" fill="none" stroke="#111" stroke-width="1.3"/></marker>
+<marker id="ba" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="11" markerHeight="11" orient="auto"><path d="M2 1.5 L10 6 L2 10.5" fill="none" stroke="#1F5FA8" stroke-width="1.3"/></marker>
+<style>
+.t{font-size:13px;fill:#111} .r{font-size:13px;fill:#1F5FA8} .g{font-size:13px;fill:#1E7A3C} .nm{font-size:15px;font-weight:bold;fill:#111} .n{font-size:13.5px;fill:#C8451B} .h1{font-size:24px;font-weight:bold;fill:#111} .h2{font-size:14px;fill:#444} .b{font-size:13px;font-weight:bold;fill:#111} .th{font-size:13px;font-weight:bold;fill:#111}
+</style></defs>
+<rect width="1920" height="1576" fill="#fff"/>
+<text class="h1" x="50" y="44">AI Factory para aprendizaje-experto: ciclo de vida del ticket (revisión 3)</text>
+<text class="h2" x="50" y="66">Revisión 3 (15-11-2026): adaptada a docs/plan.md §6, que es el que manda. Cada número del dibujo es una fila de la tabla. La tabla es total: toda salida de una sesión tiene destino, y el destino por defecto es la cola.</text>
+<text class="h2" x="50" y="85">En negro, lo construido. <tspan fill="#1F5FA8">En azul y a trazos, lo pedido, con su ticket entre paréntesis.</tspan> <tspan fill="#1E7A3C">En verde, propuesta sin ticket.</tspan></text>
+<circle cx="30" cy="235" r="7" fill="#111"/>
+<path d="M37 235 L58 235" fill="none" stroke="#111" stroke-width="1.2" marker-end="url(#oa)"/>
+<path d="M280 235 L368 235" fill="none" stroke="#111" stroke-width="1.2" marker-end="url(#oa)"/>
+<path d="M590 235 L678 235" fill="none" stroke="#111" stroke-width="1.2" marker-end="url(#oa)"/>
+<path d="M900 235 L988 235" fill="none" stroke="#1F5FA8" stroke-width="1.2" stroke-dasharray="7 5" marker-end="url(#ba)"/>
+<path d="M1210 235 L1298 235" fill="none" stroke="#1F5FA8" stroke-width="1.2" stroke-dasharray="7 5" marker-end="url(#ba)"/>
+<path d="M1520 235 L1608 235" fill="none" stroke="#111" stroke-width="1.2" marker-end="url(#oa)"/>
+<path d="M740 200 C740 115, 840 115, 840 198" fill="none" stroke="#111" stroke-width="1.2" marker-end="url(#oa)"/>
+<path d="M1060 200 C1060 85, 880 85, 880 198" fill="none" stroke="#1F5FA8" stroke-width="1.2" stroke-dasharray="7 5" marker-end="url(#ba)"/>
+<path d="M860 270 C860 325, 1340 325, 1340 272" fill="none" stroke="#111" stroke-width="1.2" marker-end="url(#oa)"/>
+<path d="M790 270 L790 418" fill="none" stroke="#111" stroke-width="1.2" marker-end="url(#oa)"/>
+<path d="M1100 270 L1100 418" fill="none" stroke="#1F5FA8" stroke-width="1.2" stroke-dasharray="7 5" marker-end="url(#ba)"/>
+<path d="M1410 270 L1410 418" fill="none" stroke="#111" stroke-width="1.2" marker-end="url(#oa)"/>
+<path d="M1650 270 L1650 460 L1522 460" fill="none" stroke="#111" stroke-width="1.2" marker-end="url(#oa)"/>
+<path d="M1760 270 L1760 558" fill="none" stroke="#111" stroke-width="1.2" marker-end="url(#oa)"/>
+<path d="M680 460 L480 460 L480 272" fill="none" stroke="#111" stroke-width="1.2" marker-end="url(#oa)"/>
+<path d="M1830 595 L1852 595" fill="none" stroke="#111" stroke-width="1.2"/>
+<circle cx="1864" cy="595" r="11" fill="#fff" stroke="#111" stroke-width="1.2"/>
+<circle cx="1864" cy="595" r="6" fill="#111"/>
+<rect x="60" y="200" width="220" height="70" rx="14" fill="#fff" stroke="#111" stroke-width="1.3"/>
+<text class="nm" x="170" y="230" text-anchor="middle">pendiente</text>
+<text class="t" x="170" y="251" text-anchor="middle">sin aprobar, o aún no listo</text>
+<rect x="370" y="200" width="220" height="70" rx="14" fill="#fff" stroke="#111" stroke-width="1.3"/>
+<text class="nm" x="480" y="230" text-anchor="middle">listo</text>
+<text class="t" x="480" y="251" text-anchor="middle">listo y en tu lista de aprobados</text>
+<rect x="680" y="200" width="220" height="70" rx="14" fill="#fff" stroke="#111" stroke-width="1.3"/>
+<text class="nm" x="790" y="230" text-anchor="middle">en carril</text>
+<text class="t" x="790" y="251" text-anchor="middle">sesiones del Builder</text>
+<rect x="990" y="200" width="220" height="70" rx="14" fill="#fff" stroke="#1F5FA8" stroke-width="1.3" stroke-dasharray="7 5"/>
+<text class="nm" x="1100" y="230" text-anchor="middle">en revisión</text>
+<text class="r" x="1100" y="251" text-anchor="middle">Aprobador (noche-aprobador)</text>
+<rect x="1300" y="200" width="220" height="70" rx="14" fill="#fff" stroke="#111" stroke-width="1.3"/>
+<text class="nm" x="1410" y="230" text-anchor="middle">PR abierto</text>
+<text class="t" x="1410" y="251" text-anchor="middle">Puerta de CI</text>
+<rect x="1610" y="200" width="220" height="70" rx="14" fill="#fff" stroke="#111" stroke-width="1.3"/>
+<text class="nm" x="1720" y="230" text-anchor="middle">en lote/N</text>
+<text class="t" x="1720" y="251" text-anchor="middle">integrado, sin revisar por ti</text>
+<rect x="680" y="420" width="840" height="80" rx="14" fill="#FFF3D1" stroke="#111" stroke-width="1.3"/>
+<text class="nm" x="1100" y="455" text-anchor="middle">cola de la mañana</text>
+<text class="t" x="1100" y="476" text-anchor="middle">make manana. Espera al Dueño: desde aquí nada avanza solo</text>
+<rect x="1610" y="560" width="220" height="70" rx="14" fill="#fff" stroke="#111" stroke-width="1.3"/>
+<text class="nm" x="1720" y="590" text-anchor="middle">hecho</text>
+<text class="t" x="1720" y="611" text-anchor="middle">en main</text>
+<circle cx="325" cy="235" r="13" fill="#fff" stroke="#111" stroke-width="1.2"/>
+<text class="b" x="325" y="239.5" text-anchor="middle">1</text>
+<circle cx="635" cy="235" r="13" fill="#fff" stroke="#111" stroke-width="1.2"/>
+<text class="b" x="635" y="239.5" text-anchor="middle">2</text>
+<circle cx="945" cy="235" r="15" fill="#fff" stroke="#1F5FA8" stroke-width="1.2"/>
+<text class="b" x="945" y="239.5" text-anchor="middle" style="fill:#1F5FA8">5b</text>
+<circle cx="1255" cy="235" r="13" fill="#fff" stroke="#1F5FA8" stroke-width="1.2"/>
+<text class="b" x="1255" y="239.5" text-anchor="middle" style="fill:#1F5FA8">7</text>
+<circle cx="1565" cy="235" r="13" fill="#fff" stroke="#111" stroke-width="1.2"/>
+<text class="b" x="1565" y="239.5" text-anchor="middle">9</text>
+<circle cx="790" cy="136" r="13" fill="#fff" stroke="#111" stroke-width="1.2"/>
+<text class="b" x="790" y="140.5" text-anchor="middle">3</text>
+<circle cx="970" cy="114" r="13" fill="#fff" stroke="#1F5FA8" stroke-width="1.2"/>
+<text class="b" x="970" y="118.5" text-anchor="middle" style="fill:#1F5FA8">6</text>
+<circle cx="980" cy="306" r="15" fill="#fff" stroke="#111" stroke-width="1.2"/>
+<text class="b" x="980" y="310.5" text-anchor="middle">5a</text>
+<circle cx="790" cy="345" r="13" fill="#fff" stroke="#111" stroke-width="1.2"/>
+<text class="b" x="790" y="349.5" text-anchor="middle">4</text>
+<circle cx="1100" cy="355" r="13" fill="#fff" stroke="#1F5FA8" stroke-width="1.2"/>
+<text class="b" x="1100" y="359.5" text-anchor="middle" style="fill:#1F5FA8">8</text>
+<circle cx="1410" cy="345" r="15" fill="#fff" stroke="#111" stroke-width="1.2"/>
+<text class="b" x="1410" y="349.5" text-anchor="middle">10</text>
+<circle cx="1650" cy="345" r="15" fill="#fff" stroke="#111" stroke-width="1.2"/>
+<text class="b" x="1650" y="349.5" text-anchor="middle">11</text>
+<circle cx="1760" cy="415" r="15" fill="#fff" stroke="#111" stroke-width="1.2"/>
+<text class="b" x="1760" y="419.5" text-anchor="middle">12</text>
+<circle cx="580" cy="460" r="15" fill="#fff" stroke="#111" stroke-width="1.2"/>
+<text class="b" x="580" y="464.5" text-anchor="middle">13</text>
+<text class="n" x="505" y="108" text-anchor="start">relevo: red de seguridad,</text>
+<text class="n" x="505" y="126" text-anchor="start">no el camino normal</text>
+<path d="M668 116 C700 116, 740 120, 772 130" fill="none" stroke="#C8451B" stroke-width="1.2" marker-end="url(#ra)"/>
+<text class="n" x="822" y="376" text-anchor="start">hoy no hay Aprobador: la sesión</text>
+<text class="n" x="822" y="394" text-anchor="start">abre ella misma el PR (fila 5a)</text>
+<path d="M930 360 C936 346, 950 334, 966 324" fill="none" stroke="#C8451B" stroke-width="1.2" marker-end="url(#ra)"/>
+<text class="n" x="1596" y="108" text-anchor="start">revisas por lote. Con el lote vivo, a main solo</text>
+<text class="n" x="1596" y="126" text-anchor="start">van specs: aceptación e impl esperan, y por</text>
+<text class="n" x="1596" y="144" text-anchor="start">la mañana se fusiona primero el lote (fila 11)</text>
+<path d="M1656 152 C1656 170, 1662 180, 1662 197" fill="none" stroke="#C8451B" stroke-width="1.2" marker-end="url(#ra)"/>
+<text class="n" x="700" y="548" text-anchor="start">todo lo que no tiene destino</text>
+<text class="n" x="700" y="566" text-anchor="start">automático acaba aquí</text>
+<path d="M690 548 C672 540, 690 520, 716 503" fill="none" stroke="#C8451B" stroke-width="1.2" marker-end="url(#ra)"/>
+<rect x="40" y="660" width="1840" height="140" fill="none" stroke="#111" stroke-width="1" stroke-dasharray="3 5"/>
+<text class="nm" x="56" y="684">Bucle de mejora: <tspan fill="#1E7A3C">propuesta, sin ticket.</tspan> Fuera del ciclo del ticket, una vez por lote</text>
+<rect x="64" y="710" width="262" height="70" rx="14" fill="#DDF0DD" stroke="#111" stroke-width="1.3"/>
+<text class="nm" x="195" y="740" text-anchor="middle">fichas del lote</text>
+<text class="t" x="195" y="761" text-anchor="middle">una por ticket, con versionFabrica</text>
+<path d="M326 745 L364 745" fill="none" stroke="#111" stroke-width="1.2" marker-end="url(#oa)"/>
+<rect x="366" y="710" width="262" height="70" rx="14" fill="#DDF0DD" stroke="#111" stroke-width="1.3"/>
+<text class="nm" x="497" y="740" text-anchor="middle">Mejorador</text>
+<text class="t" x="497" y="761" text-anchor="middle">agrupa fallos repetidos</text>
+<path d="M628 745 L666 745" fill="none" stroke="#111" stroke-width="1.2" marker-end="url(#oa)"/>
+<rect x="668" y="710" width="262" height="70" rx="14" fill="#DDF0DD" stroke="#111" stroke-width="1.3"/>
+<text class="nm" x="799" y="740" text-anchor="middle">PR a la definición</text>
+<text class="t" x="799" y="761" text-anchor="middle">nunca toca la Puerta de CI</text>
+<path d="M930 745 L968 745" fill="none" stroke="#111" stroke-width="1.2" marker-end="url(#oa)"/>
+<rect x="970" y="710" width="262" height="70" rx="14" fill="#DDF0DD" stroke="#111" stroke-width="1.3"/>
+<text class="nm" x="1101" y="740" text-anchor="middle">Banco de repetición</text>
+<text class="t" x="1101" y="761" text-anchor="middle">si hay duda: variante frente a actual</text>
+<path d="M1232 745 L1270 745" fill="none" stroke="#111" stroke-width="1.2" marker-end="url(#oa)"/>
+<rect x="1272" y="710" width="262" height="70" rx="14" fill="#fff" stroke="#111" stroke-width="1.3"/>
+<text class="nm" x="1403" y="740" text-anchor="middle">tú apruebas</text>
+<text class="t" x="1403" y="761" text-anchor="middle">o descartas el PR</text>
+<path d="M1534 745 L1572 745" fill="none" stroke="#111" stroke-width="1.2" marker-end="url(#oa)"/>
+<rect x="1574" y="710" width="262" height="70" rx="14" fill="#DDF0DD" stroke="#111" stroke-width="1.3"/>
+<text class="nm" x="1705" y="740" text-anchor="middle">versionFabrica nueva</text>
+<text class="t" x="1705" y="761" text-anchor="middle">rige los tickets siguientes</text>
+<rect x="40" y="830" width="1840" height="721" fill="#fff" stroke="#111" stroke-width="1"/>
+<text class="nm" x="56" y="856">Tabla de transiciones</text>
+<text class="th" x="60" y="886">Nº</text>
+<text class="th" x="120" y="886">De → a</text>
+<text class="th" x="400" y="886">Disparador</text>
+<text class="th" x="800" y="886">Condición</text>
+<text class="th" x="1250" y="886">Efecto</text>
+<line x1="56" y1="895" x2="1864" y2="895" stroke="#111" stroke-width="1.2"/>
+<text class="t" x="60" y="918">1</text>
+<text class="t" x="120" y="918">pendiente → listo</text>
+<text class="t" x="400" y="918">apruebas el ticket: make aprobar N=&lt;ticket&gt;</text>
+<text class="t" x="800" y="918">dependencias en hecho; «toca» sin solape con carriles abiertos</text>
+<text class="t" x="1250" y="918">entra en tu lista de aprobados, fuera del repositorio</text>
+<line x1="56" y1="926" x2="1864" y2="926" stroke="#ddd" stroke-width="1"/>
+<text class="t" x="60" y="943">2</text>
+<text class="t" x="120" y="943">listo → en carril</text>
+<text class="t" x="400" y="943">el Despachador abre carril</text>
+<text class="t" x="800" y="943">la noche no tiene otro carril abierto</text>
+<text class="t" x="1250" y="943">worktree y rama nuevos, desde main (specs) o desde lote/N (aceptación e impl)</text>
+<text class="r" x="400" y="963">pedido: hasta 3 carriles, sin solape entre sí (noche-tres-carriles), y ninguno que choque con lo que main cambió desde la base del lote (lote-choca-con-main)</text>
+<line x1="56" y1="971" x2="1864" y2="971" stroke="#ddd" stroke-width="1"/>
+<text class="t" x="60" y="988">3</text>
+<text class="t" x="120" y="988">en carril → en carril</text>
+<text class="t" x="400" y="988">la sesión acaba en [RELEVO]</text>
+<text class="t" x="800" y="988">relevos &lt; 4</text>
+<text class="t" x="1250" y="988">sesión nueva: lee el relevo y lo borra</text>
+<text class="r" x="400" y="1008">pedido: el relevo se archiva con su commit, no se pierde (relevo-archivado)</text>
+<line x1="56" y1="1016" x2="1864" y2="1016" stroke="#ddd" stroke-width="1"/>
+<text class="t" x="60" y="1033">4a</text>
+<text class="t" x="120" y="1033">en carril → cola</text>
+<text class="t" x="400" y="1033">la sesión acaba en [RELEVO]</text>
+<text class="t" x="800" y="1033">relevos = 4</text>
+<text class="t" x="1250" y="1033">ticket demasiado grande: hay que trocearlo</text>
+<line x1="56" y1="1041" x2="1864" y2="1041" stroke="#ddd" stroke-width="1"/>
+<text class="t" x="60" y="1058">4b</text>
+<text class="t" x="120" y="1058">en carril → cola</text>
+<text class="t" x="400" y="1058">la sesión acaba en [DECISIÓN PENDIENTE]</text>
+<text class="t" x="800" y="1058">—</text>
+<text class="t" x="1250" y="1058">espera tu respuesta</text>
+<line x1="56" y1="1066" x2="1864" y2="1066" stroke="#ddd" stroke-width="1"/>
+<text class="t" x="60" y="1083">4c</text>
+<text class="t" x="120" y="1083">en carril → cola</text>
+<text class="t" x="400" y="1083">la sesión acaba con-cambios</text>
+<text class="t" x="800" y="1083">cambios sin commit</text>
+<text class="t" x="1250" y="1083">el worktree se conserva tal cual</text>
+<line x1="56" y1="1091" x2="1864" y2="1091" stroke="#ddd" stroke-width="1"/>
+<text class="t" x="60" y="1108">4d</text>
+<text class="t" x="120" y="1108">en carril → cola</text>
+<text class="t" x="400" y="1108">la sesión acaba sin-cambios y sin PR</text>
+<text class="t" x="800" y="1108">tras reanudarla 2 veces con --resume y «sigue»</text>
+<text class="t" x="1250" y="1108">la sesión paró sin avisar</text>
+<line x1="56" y1="1116" x2="1864" y2="1116" stroke="#ddd" stroke-width="1"/>
+<text class="t" x="60" y="1133">4e</text>
+<text class="t" x="120" y="1133">en carril → cola</text>
+<text class="t" x="400" y="1133">se agota el límite de uso, o la sesión da un error</text>
+<text class="t" x="800" y="1133">el límite no se reinicia dentro de la ventana</text>
+<text class="t" x="1250" y="1133">la noche termina: el ticket siguiente acabaría igual</text>
+<line x1="56" y1="1141" x2="1864" y2="1141" stroke="#ddd" stroke-width="1"/>
+<text class="r" x="60" y="1158">4f</text>
+<text class="r" x="120" y="1158">en carril → cola</text>
+<text class="r" x="400" y="1158">vence el tope de duración de la noche</text>
+<text class="r" x="800" y="1158">sesión a medias</text>
+<text class="r" x="1250" y="1158">systemd corta la noche; make manana lo dice y el carril se conserva (noche-usuario-y-tapa)</text>
+<line x1="56" y1="1166" x2="1864" y2="1166" stroke="#ddd" stroke-width="1"/>
+<text class="t" x="60" y="1183">4g</text>
+<text class="t" x="120" y="1183">en carril → cola</text>
+<text class="t" x="400" y="1183">cualquier otro resultado</text>
+<text class="t" x="800" y="1183">—</text>
+<text class="t" x="1250" y="1183">regla por defecto: nada queda colgado</text>
+<line x1="56" y1="1191" x2="1864" y2="1191" stroke="#ddd" stroke-width="1"/>
+<text class="t" x="60" y="1208">5a</text>
+<text class="t" x="120" y="1208">en carril → PR abierto</text>
+<text class="t" x="400" y="1208">la sesión abre el PR</text>
+<text class="t" x="800" y="1208">make check en verde: lo exige el hook del push</text>
+<text class="t" x="1250" y="1208">activa la fusión automática: hacia lote/N, siempre; hacia main, solo si es lista blanca</text>
+<line x1="56" y1="1216" x2="1864" y2="1216" stroke="#ddd" stroke-width="1"/>
+<text class="r" x="60" y="1233">5b</text>
+<text class="r" x="120" y="1233">en carril → en revisión</text>
+<text class="r" x="400" y="1233">la sesión acaba, sin PR</text>
+<text class="r" x="800" y="1233">make check en verde</text>
+<text class="r" x="1250" y="1233">el Aprobador arranca en una sesión propia, con el contexto limpio (noche-aprobador)</text>
+<line x1="56" y1="1241" x2="1864" y2="1241" stroke="#ddd" stroke-width="1"/>
+<text class="r" x="60" y="1258">6</text>
+<text class="r" x="120" y="1258">en revisión → en carril</text>
+<text class="r" x="400" y="1258">hay hallazgos bloqueantes</text>
+<text class="r" x="800" y="1258">ronda &lt; 2</text>
+<text class="r" x="1250" y="1258">la sesión del ticket corrige y vuelve a pasar make check (noche-aprobador)</text>
+<line x1="56" y1="1266" x2="1864" y2="1266" stroke="#ddd" stroke-width="1"/>
+<text class="r" x="60" y="1283">7</text>
+<text class="r" x="120" y="1283">en revisión → PR abierto</text>
+<text class="r" x="400" y="1283">no quedan hallazgos bloqueantes</text>
+<text class="r" x="800" y="1283">—</text>
+<text class="r" x="1250" y="1283">se abre el PR; los hallazgos menores salen en make manana (noche-aprobador)</text>
+<line x1="56" y1="1291" x2="1864" y2="1291" stroke="#ddd" stroke-width="1"/>
+<text class="r" x="60" y="1308">8</text>
+<text class="r" x="120" y="1308">en revisión → cola</text>
+<text class="r" x="400" y="1308">queda algún hallazgo bloqueante</text>
+<text class="r" x="800" y="1308">ronda = 2</text>
+<text class="r" x="1250" y="1308">no se abre PR (noche-aprobador)</text>
+<line x1="56" y1="1316" x2="1864" y2="1316" stroke="#ddd" stroke-width="1"/>
+<text class="t" x="60" y="1333">9</text>
+<text class="t" x="120" y="1333">PR abierto → en lote/N</text>
+<text class="t" x="400" y="1333">Puerta de CI en verde</text>
+<text class="t" x="800" y="1333">rama, rutas de la fase, make check y mutación</text>
+<text class="t" x="1250" y="1333">GitHub lo fusiona con rebase: entran los commits del ticket, tal cual</text>
+<text class="t" x="400" y="1353">las specs no pasan por el lote: su PR va a main, una a una, y espera tu visto bueno</text>
+<text class="r" x="400" y="1373">pedido: los PR entran de uno en uno, cada uno al día con el anterior (noche-cola-de-fusion)</text>
+<line x1="56" y1="1381" x2="1864" y2="1381" stroke="#ddd" stroke-width="1"/>
+<text class="t" x="60" y="1398">10</text>
+<text class="t" x="120" y="1398">PR abierto → cola</text>
+<text class="t" x="400" y="1398">Puerta de CI en rojo, o en verde y sin fusionar</text>
+<text class="t" x="800" y="1398">—</text>
+<text class="t" x="1250" y="1398">el PR queda abierto</text>
+<text class="r" x="400" y="1418">pedido: la CI en rojo vuelve antes a la sesión del ticket, con los intentos contados (noche-fallo-vuelve-al-agente)</text>
+<line x1="56" y1="1426" x2="1864" y2="1426" stroke="#ddd" stroke-width="1"/>
+<text class="t" x="60" y="1443">11</text>
+<text class="t" x="120" y="1443">en lote/N → cola</text>
+<text class="t" x="400" y="1443">el PR lote/N → main no se puede fusionar</text>
+<text class="t" x="800" y="1443">main cambió lo mismo que el lote, o su CI está en rojo</text>
+<text class="t" x="1250" y="1443">lo ves por la mañana; pasó el 15-11-2026 con lote/1, que se trajo a mano</text>
+<line x1="56" y1="1451" x2="1864" y2="1451" stroke="#ddd" stroke-width="1"/>
+<text class="t" x="60" y="1468">12</text>
+<text class="t" x="120" y="1468">en lote/N → hecho</text>
+<text class="t" x="400" y="1468">fusionas el PR lote/N → main</text>
+<text class="t" x="800" y="1468">su CI en verde; el bloque lo da make manana</text>
+<text class="t" x="1250" y="1468">rebase con --admin; lote/N no se borra: da el número del lote siguiente</text>
+<line x1="56" y1="1476" x2="1864" y2="1476" stroke="#ddd" stroke-width="1"/>
+<text class="t" x="60" y="1493">13</text>
+<text class="t" x="120" y="1493">cola → listo</text>
+<text class="t" x="400" y="1493">resuelves la entrada de la cola</text>
+<text class="t" x="800" y="1493">—</text>
+<text class="t" x="1250" y="1493">el ticket conserva su carril y se vuelve a despachar</text>
+<line x1="56" y1="1501" x2="1864" y2="1501" stroke="#ddd" stroke-width="1"/>
+<text class="g" x="60" y="1518">∗</text>
+<text class="g" x="120" y="1518">toda transición</text>
+<text class="g" x="400" y="1518">el Despachador la ejecuta</text>
+<text class="g" x="800" y="1518">—</text>
+<text class="g" x="1250" y="1518">propuesta, sin ticket: añade una línea a la ficha del ticket, con la versionFabrica vigente</text>
+</svg>
