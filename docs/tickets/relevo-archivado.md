@@ -15,7 +15,7 @@ estado: abierto
 
 ## Motivo (principio 7)
 
-Es una petición del dueño del 15-11-2026, al contrastar con el repositorio el documento `docs/ai-factory/contexto.md` (fase A, punto 2). No hay dato de un relevo perdido ni de un `[RELEVO]` aceptado sin fichero. El plan §5 tiene que decirlo así, como hace el §6 con los tickets («Lo que motiva el cambio es, sobre todo, tu petición»).
+Es una petición del dueño del 15-11-2026, al contrastar con el repositorio el documento de traspaso «AI Factory» (fase A, punto 2; era `docs/ai-factory/contexto.md`, borrado el 15-11-2026: `git show 65ce3da:docs/ai-factory/contexto.md`). No hay dato de un relevo perdido ni de un `[RELEVO]` aceptado sin fichero. El plan §5 tiene que decirlo así, como hace el §6 con los tickets («Lo que motiva el cambio es, sobre todo, tu petición»).
 
 ## Detalle
 

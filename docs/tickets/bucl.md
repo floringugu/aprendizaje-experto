@@ -1,13 +1,13 @@
 ---
 fase: impl
 area: BUCL
-depende: [PANT, TARE, bucl-pasos]
+depende: [PANT, bucl-pasos]
 toca: [src/aplicacion/bucle.ts, src/dominio/bucle.ts, src/aplicacion/aplicacion.ts, src/interfaz/, tests/unidad/bucle*.test.ts, config/alcance.json, docs/areas/BUCL.md, docs/deuda-diseno.md]
 estado: abierto
 ---
 # BUCL: bucle semanal
 
-**Qué:** grueso: la primera conversación lo divide en tickets (plan §6, «Tickets») y este se estrecha o pasa a `descartado`. Implementa `abrirSesion`, `ejecutarBucle` y `terminarBucle`, hoy `sinImplementar` (`src/aplicacion/aplicacion.ts:66-68`), y sus pantallas sobre las de PANT. Sigue el orden de partida del plan (fila «Orden de la etapa 4», `docs/plan.md:48`). CALI depende de este ticket por `ejecutarBucle` (ver `docs/tickets/cali.md`). Antes va `bucl-pasos`, que deja con pasos los escenarios que specs añadió al área después de su etapa 3.
+**Qué:** grueso: la primera conversación lo divide en tickets (plan §6, «Tickets») y este se estrecha o pasa a `descartado`. Implementa `abrirSesion`, `ejecutarBucle` y `terminarBucle`, hoy `sinImplementar` (`src/aplicacion/aplicacion.ts:66-68`), y sus pantallas sobre las de PANT. No depende de TARE (15-11-2026): la tabla de partida ponía TARE antes, pero `features/bucle.feature` no usa nada de las tareas (fila «Orden de la etapa 4», `docs/plan.md:49`). `bucl-pasos` aún no está escrito: si sus pasos usan algo de TARE, ese ticket lo vuelve a poner en `depende`. CALI depende de este ticket por `ejecutarBucle` (ver `docs/tickets/cali.md`). Antes va `bucl-pasos`, que deja con pasos los escenarios que specs añadió al área después de su etapa 3.
 
 **Hecho cuando:** `make cerrar-area A=BUCL` da verde y el área está cerrada (plan §16), con `make check` en verde.
 
