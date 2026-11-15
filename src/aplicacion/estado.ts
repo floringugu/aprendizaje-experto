@@ -10,8 +10,12 @@ import { contenidoDeFicheros, contenidoValidado } from './mesa-guardada.ts';
 import type { Resultado } from './resultado.ts';
 import type { ContextoRespuesta, Sesion } from './sesiones.ts';
 
-/** Los contextos de lo que se responde antes de la instrucción, que no son intentos del ítem (MAST-1.4 a 1.7). */
-const ANTES_DE_LA_INSTRUCCION: ReadonlySet<ContextoRespuesta> = new Set(['exploracion', 'prepregunta']);
+/**
+ * Los contextos de las respuestas que no son intentos del ítem: lo que se responde antes de la
+ * instrucción (MAST-1.4 a 1.7) y los reintentos de la misma sesión, porque la persona ya ha visto la
+ * respuesta (MAST-1.8, MAST-4.2).
+ */
+const NO_SON_INTENTOS_DEL_ITEM: ReadonlySet<ContextoRespuesta> = new Set(['exploracion', 'prepregunta', 'reintento']);
 
 /** Respuesta recogida que espera la confianza para corregirse. */
 export interface RespuestaPendiente {
@@ -129,12 +133,14 @@ export class EstadoDominio {
 
   /**
    * Último intento de cada ítem (`true` si lo acertó); con `contexto`, solo entre los de ese contexto.
-   * Sin `contexto` no cuentan la exploración ni las prepreguntas: lo que se intenta antes de la
-   * instrucción no es un intento del ítem (@MAST-1.4, @MAST-1.5, @MAST-1.6, @MAST-1.7).
+   * Sin `contexto` no cuentan la exploración ni las prepreguntas, que se intentan antes de la
+   * instrucción (@MAST-1.4, @MAST-1.5, @MAST-1.6, @MAST-1.7), ni los reintentos. Así el último intento
+   * es el primero de la última sesión en que se respondió el ítem (@MAST-1.2, @MAST-1.8, @MAST-4.2):
+   * en una sesión, lo que sigue al primer intento de un ítem son sus reintentos (RECU-6).
    */
   ultimoIntentoDeCadaItem(contexto?: ContextoRespuesta): Map<string, boolean> {
     const contados = this.intentos.filter((intento) =>
-      contexto === undefined ? !ANTES_DE_LA_INSTRUCCION.has(intento.contexto) : intento.contexto === contexto,
+      contexto === undefined ? !NO_SON_INTENTOS_DEL_ITEM.has(intento.contexto) : intento.contexto === contexto,
     );
     return ultimoIntentoPorItem(contados);
   }
