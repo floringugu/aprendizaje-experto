@@ -15,5 +15,6 @@ estado: abierto
 
 ## Detalle
 
+- Contrato que fijan los pasos (`tests/aceptacion/pasos/redaccion-rechazos.ts`): el ítem se aparta con `apartadas[].falta` igual a `unidades`; el ítem de prueba lleva `valor: 9.81` y, en `unidades`, la lista del ejemplo («m/s» y «1/s» van juntas en la misma lista).
 - Propuesta, sin copiar la gramática del número en el formato: la unidad vale si `leerNumero('1 ' + unidad)?.resto` es la unidad sin espacios. `leerNumero('9,81 1/s')` devuelve `undefined`; `leerNumero('5 %')`, `{ valor: 5, resto: '%' }`.
 - Una unidad con espacios por dentro («m / s») se compara sin ellos, como hace la corrección.
