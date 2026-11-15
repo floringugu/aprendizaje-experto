@@ -3,7 +3,7 @@ fase: aceptacion
 area: TARE
 depende: []
 toca: [tests/aceptacion/pasos/tareas.ts, tests/aceptacion/soporte/tareas.ts, config/alcance.json]
-estado: abierto
+estado: hecho
 ---
 # Pasos del orden de las tareas y del texto profesional en TARE (TARE-1.4 y 1.5)
 
