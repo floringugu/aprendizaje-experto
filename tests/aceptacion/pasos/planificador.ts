@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { Given, Then, When } from '@cucumber/cucumber';
-import { responder, siguienteRepaso } from '../soporte/acciones.ts';
+import { reintentar, responder, siguienteRepaso } from '../soporte/acciones.ts';
 import { presente } from '../soporte/comprobar.ts';
 import { aceptado, mundo } from '../soporte/mundo.ts';
 import type { Mundo } from '../soporte/mundo.ts';
@@ -102,6 +102,34 @@ Given(
   },
 );
 
+// --- El primer intento de la sesión, antes del reintento (PLAN-1.5, 2.3 y 3.4) ------------------------
+
+Given('que la persona falla {item} en su primer intento de la sesión', (item: string) => {
+  const actual = mundo();
+  actual.preparar(() => {
+    responder(actual, { item, correcta: false });
+  });
+});
+
+Given('que la persona falla {item} el {fecha}', (item: string, fecha: string) => {
+  const actual = mundo();
+  actual.preparar(() => {
+    actual.reloj.fijar(instanteUtc(fecha, HORA_DE_LAS_RESPUESTAS));
+    responder(actual, { item, correcta: false });
+  });
+});
+
+Given(
+  'que la persona falla {item} el {instante}, en su primer intento de la sesión',
+  (item: string, instante: Date) => {
+    const actual = mundo();
+    actual.preparar(() => {
+      actual.reloj.fijar(instante);
+      responder(actual, { item, correcta: false });
+    });
+  },
+);
+
 // --- Lo que hace la persona ----------------------------------------------------------------------
 
 When('la persona responde {item} y la respuesta es {word}', (item: string, correccion: string) => {
@@ -140,6 +168,23 @@ When('la persona elige su horizonte de retención', () => {
   actual.opciones = aceptado(actual.listo().consultarHorizontes({ dominio: actual.dominio }));
 });
 
+// Un reintento de la misma sesión: `reintentar` lo presenta y responde con el contexto «reintento».
+When('acierta {item} en un reintento de esa misma sesión', (item: string) => {
+  mundo().listo();
+  reintentar(mundo(), { item, correcta: true });
+});
+
+When('acierta {item} en un reintento ese mismo día', (item: string) => {
+  mundo().listo();
+  reintentar(mundo(), { item, correcta: true });
+});
+
+When('responde {item} el {instante}, en un reintento de esa sesión', (item: string, instante: Date) => {
+  mundo().listo();
+  mundo().reloj.fijar(instante);
+  reintentar(mundo(), { item, correcta: true });
+});
+
 // --- Lo que ve la persona ------------------------------------------------------------------------
 
 Then('FSRS recibe la calificación {texto}', (calificacion: string) => {
@@ -160,6 +205,20 @@ Then(
 );
 
 Then('el siguiente repaso de {item} es el que calcula FSRS con una retención del {fraccion}', comprobarRepasoDeFsrs);
+
+Then('FSRS solo recibió la calificación {texto}, la del primer intento', (calificacion: string) => {
+  const recibidas = mundo().planificador.programaciones.map((entrada) => entrada.calificacion as string);
+  assert.deepEqual(recibidas, [calificacion]);
+});
+
+Then(
+  'el siguiente repaso de {item} es el que calculó FSRS para esa calificación con una retención del {fraccion}',
+  comprobarRepasoDeFsrs,
+);
+
+Then('el siguiente repaso de {item} sigue siendo el {instante}', (item: string, esperado: Date) => {
+  assert.equal(hastaMinutos(siguienteRepaso(mundo(), item)), hastaMinutos(esperado));
+});
 
 Then('la aplicación no le pide que califique el repaso como difícil, bien o fácil', () => {
   const presentado = presente(mundo().presentado, 'el ítem presentado');
