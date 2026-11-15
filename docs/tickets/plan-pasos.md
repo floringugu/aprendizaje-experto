@@ -3,7 +3,7 @@ fase: aceptacion
 area: PLAN
 depende: []
 toca: [tests/aceptacion/pasos/planificador.ts, tests/aceptacion/soporte/planificador.ts, config/alcance.json]
-estado: abierto
+estado: hecho
 ---
 # Pasos de los reintentos en PLAN (PLAN-1.5, 2.3 y 3.4)
 
