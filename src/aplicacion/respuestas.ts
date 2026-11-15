@@ -2,7 +2,7 @@ import { esCorrecta, respuestaMostrada } from '../dominio/correccion.ts';
 import { esReservado } from '../dominio/transferencia.ts';
 import type { ItemContenido, ItemValidado } from './contenido.ts';
 import { registrarIntentoYReevaluar } from './criterio-dominio.ts';
-import type { Entorno, Situacion } from './estado.ts';
+import type { Entorno, IntentoNuevo, RespuestaPendiente, Situacion } from './estado.ts';
 import {
   diagnosticoPendiente,
   enDominio,
@@ -12,7 +12,8 @@ import {
 import { presentar } from './presentacion.ts';
 import type { Resultado } from './resultado.ts';
 import { aceptar, rechazar } from './resultado.ts';
-import type { CasosDeSesiones, ContextoRespuesta, Feedback, ItemPresentado } from './sesiones.ts';
+import { sesionTrasElIntento } from './sesion-en-curso.ts';
+import type { CasosDeSesiones, ContextoRespuesta, Feedback, ItemPresentado, RespuestaRecogida } from './sesiones.ts';
 
 // Las peticiones de cada caso de uso, sacadas de su firma en `CasosDeSesiones`.
 type PeticionItem = Parameters<CasosDeSesiones['presentarItem']>[0];
@@ -49,7 +50,7 @@ function motivoParaNoResponder(
   return undefined;
 }
 
-function itemQueSePuedeResponder(situacion: Situacion, peticion: PeticionItem): Resultado<ItemContenido> {
+function itemQueSePuedeResponder(situacion: Situacion, peticion: PeticionItem): Resultado<ItemValidado> {
   const item = buscarItem(situacion, peticion.item);
   if (item === undefined) {
     return rechazar(`No existe el ítem ${peticion.item}.`);
@@ -75,18 +76,23 @@ export function presentarItem(entorno: Entorno, peticion: PeticionItem): Resulta
   });
 }
 
-/** Guarda la respuesta sin corregirla: la corrección llega después de declarar la confianza. */
-export function responderItem(
-  entorno: Entorno,
-  peticion: PeticionRespuesta,
-): Resultado<{ readonly esperandoConfianza: true }> {
-  return enDominio(entorno, peticion.dominio, (situacion) => {
+/**
+ * Guarda la respuesta sin corregirla: la corrección llega después de declarar la confianza. Un reintento
+ * no la pide: se corrige y se registra ya, sin confianza, y el feedback sale con la respuesta (@RECU-6.3).
+ */
+export function responderItem(entorno: Entorno, peticion: PeticionRespuesta): Resultado<RespuestaRecogida> {
+  return enDominio<RespuestaRecogida>(entorno, peticion.dominio, (situacion) => {
     const item = itemQueSePuedeResponder(situacion, peticion);
     if (!item.ok) {
       return item;
     }
+    const fecha = entorno.dependencias.reloj.ahora();
+    if (peticion.contexto === 'reintento') {
+      const respuesta = { item: item.valor, fecha, contexto: peticion.contexto, respuesta: peticion.respuesta };
+      return aceptar({ esperandoConfianza: false, feedback: corregirYRegistrar(entorno, situacion, respuesta) });
+    }
     situacion.estado.guardarRespuesta(item.valor.id, {
-      fecha: entorno.dependencias.reloj.ahora(),
+      fecha,
       contexto: peticion.contexto,
       respuesta: peticion.respuesta,
     });
@@ -94,13 +100,42 @@ export function responderItem(
   });
 }
 
+/** Una respuesta lista para corregir, con la fecha y el contexto en que se respondió. */
+interface RespuestaACorregir extends RespuestaPendiente {
+  readonly item: ItemValidado;
+  /** Solo si se pidió: un reintento no la pide (@RECU-6.3). */
+  readonly confianza?: number;
+}
+
 /**
- * Corrige la respuesta comparándola con el contenido y registra el intento. La confianza que declare
- * la persona no cambia la corrección (@DIAG-1.2) ni cuenta para el dominio: solo se guarda
- * (@MAST-3.1). El feedback sale siempre, acierte o falle (@RECU-2.1), y su explicación es el
- * `feedback` del autor tal cual (@RECU-2.2). El intento de un reservado se registra como
- * `transferencia`, sea cual sea el contexto en que se respondió (@MAST-8.4, @INTE-5.4): así se
- * gasta al declarar la confianza, no al presentarlo (@MAST-8.6).
+ * Corrige la respuesta comparándola con el contenido, registra el intento, lo cuenta en la sesión en
+ * curso (RECU-6) y devuelve el feedback. El feedback sale siempre, acierte o falle (@RECU-2.1), y su
+ * explicación es el `feedback` del autor tal cual (@RECU-2.2); en un reintento es el mismo (@RECU-6.3).
+ * El intento de un reservado se registra como `transferencia`, sea cual sea el contexto en que se
+ * respondió (@MAST-8.4, @INTE-5.4). La sesión que queda se calcula antes de tocar el estado, para que
+ * un parámetro que falte no deje el intento registrado y la sesión sin cambiar.
+ */
+function corregirYRegistrar(entorno: Entorno, situacion: Situacion, respuesta: RespuestaACorregir): Feedback {
+  const { item } = respuesta;
+  const correcta = esCorrecta(respuesta.respuesta, item.respuesta);
+  const intento: IntentoNuevo = {
+    fecha: respuesta.fecha,
+    contexto: esReservado(item) ? 'transferencia' : respuesta.contexto,
+    item: item.id,
+    objetivo: item.objetivo,
+    correcta,
+    ...(respuesta.confianza === undefined ? {} : { confianza: respuesta.confianza }),
+  };
+  const sesion = sesionTrasElIntento(entorno, situacion.estado.sesionEnCurso, intento);
+  registrarIntentoYReevaluar(entorno, situacion, intento);
+  situacion.estado.cambiarSesion(sesion);
+  return { correcta, respuestaCorrecta: respuestaMostrada(item.respuesta), explicacion: item.feedback };
+}
+
+/**
+ * Corrige la respuesta pendiente y registra el intento con la confianza declarada. La confianza no
+ * cambia la corrección (@DIAG-1.2) ni cuenta para el dominio: solo se guarda (@MAST-3.1). Un reservado
+ * se gasta al declarar la confianza, no al presentarlo (@MAST-8.6).
  */
 export function declararConfianza(entorno: Entorno, peticion: PeticionConfianza): Resultado<Feedback> {
   return enDominio(entorno, peticion.dominio, (situacion) => {
@@ -109,16 +144,6 @@ export function declararConfianza(entorno: Entorno, peticion: PeticionConfianza)
     if (pendiente === undefined || item === undefined) {
       return rechazar(`Primero hay que responder el ítem ${peticion.item}.`);
     }
-    const correcta = esCorrecta(pendiente.respuesta, item.respuesta);
-    const respuestaCorrecta = respuestaMostrada(item.respuesta);
-    registrarIntentoYReevaluar(entorno, situacion, {
-      fecha: pendiente.fecha,
-      contexto: esReservado(item) ? 'transferencia' : pendiente.contexto,
-      item: item.id,
-      objetivo: item.objetivo,
-      correcta,
-      confianza: peticion.confianza,
-    });
-    return aceptar({ correcta, respuestaCorrecta, explicacion: item.feedback });
+    return aceptar(corregirYRegistrar(entorno, situacion, { ...pendiente, item, confianza: peticion.confianza }));
   });
 }

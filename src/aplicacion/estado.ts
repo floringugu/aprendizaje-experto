@@ -1,5 +1,6 @@
 import { ultimoIntentoPorItem } from '../dominio/acierto.ts';
 import type { Fase } from '../dominio/fases.ts';
+import type { ColaDeSesion } from '../dominio/reintentos.ts';
 import type { RecorridoDeRuta } from '../dominio/ruta.ts';
 import { recorrerRuta } from '../dominio/ruta.ts';
 import type { ContenidoValidado } from './contenido.ts';
@@ -7,13 +8,13 @@ import type { Dependencias } from './dependencias.ts';
 import { dominioValido } from './dominio-valido.ts';
 import { contenidoDeFicheros, contenidoValidado } from './mesa-guardada.ts';
 import type { Resultado } from './resultado.ts';
-import type { ContextoRespuesta } from './sesiones.ts';
+import type { ContextoRespuesta, Sesion } from './sesiones.ts';
 
 /** Los contextos de lo que se responde antes de la instrucción, que no son intentos del ítem (MAST-1.4 a 1.7). */
 const ANTES_DE_LA_INSTRUCCION: ReadonlySet<ContextoRespuesta> = new Set(['exploracion', 'prepregunta']);
 
 /** Respuesta recogida que espera la confianza para corregirse. */
-interface RespuestaPendiente {
+export interface RespuestaPendiente {
   /** Cuando respondió la persona, que es la fecha del intento. */
   readonly fecha: Date;
   readonly contexto: ContextoRespuesta;
@@ -27,7 +28,8 @@ export interface IntentoNuevo {
   readonly item: string;
   readonly objetivo: string;
   readonly correcta: boolean;
-  readonly confianza: number;
+  /** La que declara la persona. Un reintento no la pide (@RECU-6.3): queda sin confianza. */
+  readonly confianza?: number;
 }
 
 /** Un intento ya registrado: se guarda al declarar la confianza. */
@@ -68,6 +70,15 @@ interface CierreDiagnostico {
 }
 
 /**
+ * La sesión que la persona tiene en curso: tal como se inició, que es de donde salen su tipo, si es
+ * intercalada, sus ejemplos y cómo se presenta cada ítem, y lo que queda por presentar de ella (RECU-6).
+ */
+export interface SesionEnCurso {
+  readonly sesion: Sesion;
+  readonly cola: ColaDeSesion;
+}
+
+/**
  * Lo que la aplicación sabe de una persona en un dominio. Los casos de uso lo leen y lo cambian solo
  * con estos métodos, así que la forma en que se guarda no sale de este módulo.
  *
@@ -82,6 +93,7 @@ export class EstadoDominio {
   private readonly cambiosDominado: CambioDominado[] = [];
   private readonly cambiosFase: CambioFase[] = [];
   private readonly pasosRetirados = new Map<string, number>();
+  private sesion: SesionEnCurso | undefined = undefined;
 
   /** Empieza en «diagnostico»: hasta terminarlo no se practica nada. */
   get fase(): Fase {
@@ -129,6 +141,16 @@ export class EstadoDominio {
 
   get registro(): RegistroDominio {
     return { intentos: this.intentos, cambiosDominado: this.cambiosDominado, cambiosFase: this.cambiosFase };
+  }
+
+  /** La última sesión que se inició, hasta que la persona la termina (@RECU-6.7). */
+  get sesionEnCurso(): SesionEnCurso | undefined {
+    return this.sesion;
+  }
+
+  /** Sustituye la sesión en curso: al iniciar otra, al responder y, con `undefined`, al terminarla. */
+  cambiarSesion(sesion: SesionEnCurso | undefined): void {
+    this.sesion = sesion;
   }
 
   respuestaPendiente(item: string): RespuestaPendiente | undefined {
