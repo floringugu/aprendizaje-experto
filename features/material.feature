@@ -98,7 +98,9 @@ Característica: Material del dominio y borradores
     Un ítem numérico (RECU-5) lleva en `respuesta` un `valor` que es un número, `unidades` con alguna
     forma si las lleva y una `tolerancia` entre 0 y 1 si la lleva. Un valor 0 no lleva tolerancia: el
     margen es relativo y sobre 0 no deja nada. Si la IA entrega uno que no lo cumple, la corrección
-    no podría leerlo, así que la aplicación lo aparta como a cualquier pieza incompleta.
+    no podría leerlo, así que la aplicación lo aparta como a cualquier pieza incompleta. Lo mismo
+    pasa con una unidad que, sin espacios, empieza por un dígito, una coma o un punto («1/s», «.5 m»):
+    detrás del número, la corrección la tomaría por parte del número y nadie podría acertar el ítem.
 
     Un objetivo o un ejemplo resuelto puede traer un diagrama, que acompaña a su texto (codificación
     dual, sección 3: «Prometedor», sin metaanálisis verificado; el campo es extrapolación). Es un SVG
@@ -219,6 +221,19 @@ Característica: Material del dominio y borradores
         | un ítem numérico de O1 con la tolerancia -0,1                     | su tolerancia no está entre 0 y 1 |
         | un ítem numérico de O1 con la tolerancia «5 %» escrita como texto | su tolerancia no está entre 0 y 1 |
         | un ítem numérico de O1 con el valor 0 y la tolerancia 0,05        | su valor es 0 y lleva tolerancia  |
+
+    @MATE-2.14 @extrapolacion
+    Esquema del escenario: Un ítem numérico con una unidad que la corrección no puede leer no entra en el borrador
+      Cuando la IA configurada entrega un borrador con un ítem de O1 completo y un ítem numérico de O1 con las unidades <unidades>
+      Entonces contenido/borradores/ficticio.json tiene ese ítem de O1 y ninguna otra pieza
+      Y la aplicación indica que ha apartado 1 pieza porque sus unidades no se pueden leer detrás de un número
+
+      Ejemplos:
+        | unidades       |
+        | «1/s»          |
+        | «.5 m»         |
+        | «,5 m»         |
+        | «m/s» y «1/s»  |
 
     @MATE-2.13 @extrapolacion
     Esquema del escenario: Un ítem numérico bien formado entra en el borrador con su fuente
