@@ -1,7 +1,7 @@
 ---
 fase: impl
 area: MAST
-depende: [mast-transferencia, mast-prepreguntas, mast-pasos-fase-avanzada]
+depende: [mast-transferencia, mast-prepreguntas, mast-pasos-fase-avanzada, mast-reintentos]
 toca: [config/alcance.json, docs/areas/MAST.md, docs/deuda-diseno.md, docs/tickets/mast-pasos-prepreguntas.md, docs/tickets/mast-prepreguntas.md, docs/tickets/mast-pasos-fase-avanzada.md]
 estado: abierto
 ---
@@ -18,4 +18,8 @@ estado: abierto
 - **Por qué espera (02-11-2026).** La primera conversación de este carril no pudo cerrar MAST, por dos motivos:
   - `make cerrar-area A=MAST` da 66 escenarios en verde y 2 sin definir: MAST-1.6 y 1.7, las prepreguntas de AYUD-8, que añadió `specs-prepreguntas-intermedio`. Sus pasos son de aceptación y no se pueden escribir en impl. Los recogen los tickets `mast-pasos-prepreguntas` y `mast-prepreguntas`.
   - Con MAST cerrada y sin pendientes, el planificador no deja abrir `mast-pasos-fase-avanzada` (aceptación de MAST): «MAST está cerrada y no tiene pendientes». Por eso el cierre va después de ese ticket.
+- **Por qué sigue esperando (15-11-2026).** La segunda conversación del carril tampoco pudo cerrar MAST:
+  - `make cerrar-area A=MAST` falla en MAST-1.8 y 4.2, los reintentos, que siguen en `escenarios_en_rojo.MAST`. Sus pasos llegaron con `mast-pasos-reintentos` cuando este ticket ya estaba escrito, y fallan porque la aplicación no registra el reintento: en respuestas.csv la última fila sigue siendo la del intento fallado.
+  - Los implementa `mast-reintentos`, que espera a `recu-reintentos`: es quien fija el contexto `reintento` y qué hace `responderItem` con él. No se arreglan aquí porque ese trabajo ya tiene sus dos tickets y toca `src/aplicacion/respuestas.ts` y `sesiones.ts`, que tiene el carril abierto `recu-impl-item-numerico`.
+  - Por eso `mast-reintentos` pasa a ser dependencia de este ticket. El carril se retira mientras tanto: abierto, bloquea a `mast-reintentos` por `docs/areas/MAST.md`.
 - **Deuda que espera al cierre:** las partidas que apunta `mast-transferencia` en `docs/areas/MAST.md` («Deuda, para `mast-cierre`»). Más las que dejen los tickets nuevos, si las hay.
