@@ -16,10 +16,7 @@
       "RECU-5.10",
       "RECU-5.11",
       "RECU-5.12",
-      "RECU-5.13",
-      "RECU-6.4",
-      "RECU-6.7",
-      "RECU-6.10"
+      "RECU-5.13"
     ],
     "MATE": ["MATE-2.12", "MATE-2.13"],
     "INTE": ["INTE-1.1", "INTE-1.2", "INTE-2.1", "INTE-2.2", "INTE-4.1", "INTE-5.1"]
