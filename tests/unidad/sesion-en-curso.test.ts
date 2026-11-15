@@ -1,5 +1,4 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { Dependencias } from '../../src/aplicacion/dependencias.ts';
 import { EstadoPersona, type Entorno, type SesionEnCurso } from '../../src/aplicacion/estado.ts';
 import { exportarCsv } from '../../src/aplicacion/csv.ts';
 import { iniciarSesion } from '../../src/aplicacion/practica.ts';
@@ -9,11 +8,11 @@ import type { Resultado } from '../../src/aplicacion/resultado.ts';
 import { consultarSesion, sesionTrasElIntento, terminarSesion } from '../../src/aplicacion/sesion-en-curso.ts';
 import type { ContextoRespuesta, Sesion } from '../../src/aplicacion/sesiones.ts';
 import { colaInicial } from '../../src/dominio/reintentos.ts';
+import { AHORA, dependenciasDePrueba } from './dependencias-de-prueba.ts';
 import { ficherosEnMemoria } from './ficheros-en-memoria.ts';
 import { ejemplo, escribirMesa, item, mesaDe, objetivo } from './revision-fabricas.ts';
 
 const DOMINIO = 'ficticio';
-const AHORA = new Date('2026-01-01T00:00:00Z');
 const SIN_SESION = { ok: false, motivo: 'No hay ninguna sesión en curso.' };
 const MOTIVO_DIAGNOSTICO = { ok: false, motivo: 'Primero hay que terminar el diagnóstico.' };
 
@@ -27,26 +26,11 @@ const PARAMETROS: ParametrosJson = {
 /** I1 a I6, todos con opciones «a» (correcta) y «b»; solo I1 e I2 son del diagnóstico. */
 const ITEMS = ['I1', 'I2', 'I3', 'I4', 'I5', 'I6'].map((id) => ({ ...item(id), diagnostico: id <= 'I2' }));
 
-const sinUso = (): never => {
-  throw new Error('Este test no usa este puerto');
-};
-
 /** Un entorno con el dominio guardado y los parámetros que devuelva `leer` en cada llamada. */
 function crearEntorno(leer: () => ParametrosJson = () => PARAMETROS): Entorno {
   const { ficheros } = ficherosEnMemoria();
   escribirMesa(ficheros, mesaDe({}, { objetivos: [objetivo('O1', [ejemplo('E1')])], items: ITEMS }), DOMINIO);
-  const dependencias: Dependencias = {
-    ficheros,
-    reloj: { ahora: () => AHORA },
-    leerParametros: leer,
-    direccion: 'http://192.168.1.20:3000',
-    planificadorFsrs: { programar: sinUso, recalcular: sinUso },
-    leerIa: () => undefined,
-    libreOffice: { instalado: () => Promise.resolve(false), convertirAPdf: sinUso },
-    web: { descargar: () => Promise.resolve(undefined) },
-    claudeCode: { iniciarSesion: sinUso, estado: () => Promise.resolve({ iniciada: false }) },
-    temporizador: { programar: () => () => undefined },
-  };
+  const dependencias = dependenciasDePrueba(ficheros, leer);
   return { dependencias, persona: new EstadoPersona() };
 }
 
