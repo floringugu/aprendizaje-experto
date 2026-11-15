@@ -3,7 +3,7 @@ fase: aceptacion
 area: MAST
 depende: [mast-transferencia, mast-pasos-prepreguntas]
 toca: [tests/aceptacion/soporte/acciones.ts, tests/aceptacion/pasos/contenido.ts, docs/areas/MAST.md]
-estado: abierto
+estado: hecho
 ---
 # Llegar a la fase avanzada en los pasos pasa también la transferencia
 

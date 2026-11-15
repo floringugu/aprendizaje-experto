@@ -1,5 +1,6 @@
 import type { ItemContenido } from '../../../src/aplicacion/contenido.ts';
 import type { Fase, Progreso, ProgresoObjetivo } from '../../../src/aplicacion/dominio.ts';
+import { parametroNumerico } from '../../../src/aplicacion/parametros.ts';
 import type { ContextoRespuesta, Feedback } from '../../../src/aplicacion/sesiones.ts';
 import { presente } from './comprobar.ts';
 import { respuestaPara } from './contenido.ts';
@@ -135,10 +136,9 @@ export function fallosParaPerderElDominio(total: number, umbral: number): number
   return total - aciertosQueLlegan + 1;
 }
 
-/** Problemas de categorías intercalables, que son los que decide el paso a la fase avanzada. */
+/** Problemas intercalables que la persona practica (sin los reservados): los que decide el paso a la fase avanzada. */
 export function problemasIntercalables(mundo: Mundo): readonly ItemContenido[] {
-  const contenido = mundo.contenido();
-  return contenido.items.filter((item) => item.tipo === 'problema' && contenido.esIntercalable(item));
+  return mundo.contenido().problemasIntercalables();
 }
 
 /** Acierta en sesiones intercaladas todos los problemas intercalables y evalúa la fase. */
@@ -149,8 +149,20 @@ export function superarProblemasIntercalados(mundo: Mundo): void {
 }
 
 /**
+ * Añade los problemas reservados de categorías con grupo que exige la transferencia (al menos
+ * `minimo_problemas_reservados`, leído de la configuración del mundo) y los acierta en la mezcla.
+ */
+export function superarProblemasReservados(mundo: Mundo): void {
+  const minimo = parametroNumerico(mundo.parametros, 'minimo_problemas_reservados');
+  const reservados = mundo.contenido().agregarReservadosIntercalables(minimo);
+  responderItems(mundo, { items: reservados, aciertos: reservados.length, contexto: 'intercalado' });
+}
+
+/**
  * Lleva a la persona a la fase indicada por el camino de verdad: diagnóstico, dominar todos los
- * objetivos y acertar los problemas intercalados. El contenido tiene que estar ya completo.
+ * objetivos, acertar los problemas intercalados y, para la fase avanzada, los reservados de la
+ * transferencia (MAST-6.7). El contenido tiene que estar ya completo. Si la aplicación no deja a la
+ * persona en esa fase, falla aquí y no más tarde.
  */
 export function llegarAFase(mundo: Mundo, fase: Fase): void {
   mundo.terminarDiagnosticoSinItems();
@@ -166,7 +178,12 @@ export function llegarAFase(mundo: Mundo, fase: Fase): void {
     dominarObjetivo(mundo, objetivo.id);
   });
   if (fase === 'avanzado_experto') {
+    superarProblemasReservados(mundo);
     superarProblemasIntercalados(mundo);
+  }
+  const alcanzada = progresoCompleto(mundo).fase;
+  if (alcanzada !== fase) {
+    throw new Error(`La persona debería estar en la fase «${fase}» y está en «${alcanzada}»`);
   }
 }
 
