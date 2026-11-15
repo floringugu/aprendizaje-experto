@@ -5,10 +5,22 @@ import type { Resultado } from './resultado.ts';
  * De dónde sale una respuesta. Es la columna `contexto` de respuestas.csv (INST-1.3). La respuesta a
  * un ítem reservado se registra siempre como `transferencia`, se haya presentado donde se haya
  * presentado (MAST-8.4, INTE-5.4). `exploracion` (AYUD-5) y `prepregunta` (AYUD-8) se responden antes
- * de la instrucción y no son intentos del ítem para el dominio (MAST-1.4 a 1.7).
+ * de la instrucción y no son intentos del ítem para el dominio (MAST-1.4 a 1.7). `reintento` es la
+ * vuelta, en la misma sesión, de un ítem que aún no está cerrado en ella (RECU-6): no pide confianza.
+ * `experimento_estudio` y `experimento_prueba` son los de los experimentos de CALI-12 y CALI-13.
  */
 export type ContextoRespuesta =
-  'diagnostico' | 'practica' | 'repaso' | 'intercalado' | 'retencion' | 'exploracion' | 'prepregunta' | 'transferencia';
+  | 'diagnostico'
+  | 'practica'
+  | 'repaso'
+  | 'intercalado'
+  | 'retencion'
+  | 'exploracion'
+  | 'prepregunta'
+  | 'transferencia'
+  | 'reintento'
+  | 'experimento_estudio'
+  | 'experimento_prueba';
 
 type TipoSesion = 'diagnostico' | 'practica' | 'repaso' | 'retencion';
 
@@ -37,7 +49,8 @@ export interface EjemploPresentado {
 }
 
 type ElementoSesion =
-  | { readonly tipo: 'item'; readonly item: ItemPresentado }
+  /** `reintento`: el ítem vuelve en esta sesión y se presenta y se responde con el contexto `reintento` (RECU-6). */
+  | { readonly tipo: 'item'; readonly item: ItemPresentado; readonly reintento?: true }
   | { readonly tipo: 'ejemplo'; readonly ejemplo: EjemploPresentado };
 
 export interface Sesion {
@@ -53,6 +66,11 @@ export interface Feedback {
   readonly respuestaCorrecta: string;
   readonly explicacion: string;
 }
+
+/** Lo que sigue a una respuesta: declarar la confianza o, en un reintento, el feedback (RECU-6.3). */
+type RespuestaRecogida =
+  | { readonly esperandoConfianza: true }
+  | { readonly esperandoConfianza: false; readonly feedback: Feedback };
 
 export interface Repaso {
   /** «repaso» de un ítem, o «retencion»: prueba diferida de un objetivo dominado (MAST-7). */
@@ -81,13 +99,28 @@ export interface CasosDeSesiones {
     readonly objetivo: string;
     readonly ejemplo: string;
   }): Resultado<EjemploPresentado>;
-  /** Recoge la respuesta. Hasta declarar la confianza no hay corrección ni feedback (CALI-1.1). */
+  /**
+   * Lo que queda por presentar de la sesión en curso, en el orden en que se presenta: lo que la persona
+   * aún no ha respondido y, en su sitio, los ítems que vuelven (RECU-6), marcados con `reintento`. La
+   * sesión en curso es la última que se inició, o el diagnóstico mientras esté pendiente. Sin elementos,
+   * la sesión ha terminado.
+   */
+  consultarSesion(peticion: PeticionDominio): Resultado<Sesion>;
+  /**
+   * La persona deja la sesión en curso. Se acepta aunque queden ítems por volver, y esos ítems no
+   * pasan a la sesión siguiente (RECU-6.7).
+   */
+  terminarSesion(peticion: PeticionDominio): Resultado<null>;
+  /**
+   * Recoge la respuesta. Hasta declarar la confianza no hay corrección ni feedback (CALI-1.1), salvo en
+   * un reintento, que no la pide: registra el intento y devuelve ya el feedback (RECU-6.3, CALI-1.4).
+   */
   responderItem(peticion: {
     readonly dominio: string;
     readonly item: string;
     readonly contexto: ContextoRespuesta;
     readonly respuesta: string;
-  }): Resultado<{ readonly esperandoConfianza: true }>;
+  }): Resultado<RespuestaRecogida>;
   /** Registra el intento y devuelve el feedback (CALI-1.2, CALI-1.3). */
   declararConfianza(peticion: {
     readonly dominio: string;

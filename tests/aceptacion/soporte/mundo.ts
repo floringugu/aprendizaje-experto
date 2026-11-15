@@ -15,7 +15,7 @@ import type {
 import type { ConsultaHoras, RegistroHoras } from '../../../src/aplicacion/horas.ts';
 import type { ParametrosJson } from '../../../src/aplicacion/puertos.ts';
 import type { Resultado } from '../../../src/aplicacion/resultado.ts';
-import type { EjemploPresentado, Feedback, ItemPresentado, Sesion } from '../../../src/aplicacion/sesiones.ts';
+import type { EjemploPresentado, Feedback, ItemPresentado, Repaso, Sesion } from '../../../src/aplicacion/sesiones.ts';
 import type {
   EvaluacionTarea,
   NivelExperto,
@@ -118,6 +118,10 @@ export class Mundo {
   presentado: ItemPresentado | undefined;
   /** Las veces que se le presentó un mismo ítem en distintos contextos (RECU-4). */
   readonly presentaciones: ItemPresentado[] = [];
+  /** Ítem que la persona falló en su primer intento de la sesión, el que vuelve (RECU-6). */
+  itemFallado: string | undefined;
+  /** Los repasos programados justo después de ese primer intento (RECU-6.7). */
+  repasosTrasElFallo: readonly Repaso[] | undefined;
   /** Último ejemplo resuelto que estudió la persona (AYUD-3). */
   ejemplo: EjemploPresentado | undefined;
   /** Opciones que la aplicación ofreció en la última consulta (por ejemplo, los horizontes). */

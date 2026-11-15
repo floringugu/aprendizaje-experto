@@ -47,6 +47,12 @@ export type Aplicacion = CasosDeDominio &
   CasosDePreferencias &
   CasosDePantallas;
 
+/** Lo que falta del reaprendizaje sucesivo (RECU-6). */
+const CASOS_DE_REINTENTOS: Pick<CasosDeSesiones, 'consultarSesion' | 'terminarSesion'> = {
+  consultarSesion: sinImplementar,
+  terminarSesion: sinImplementar,
+};
+
 /** Lo que falta del servidor y las pantallas (PANT). */
 const CASOS_DE_PANTALLAS: CasosDeEmparejamiento & CasosDePreferencias & CasosDePantallas = {
   abrirEmparejamiento: sinImplementar,
@@ -71,6 +77,7 @@ export const crearAplicacion: (dependencias: Dependencias) => Aplicacion = (depe
     evaluarFase: (peticion) => evaluarFase(entorno, peticion),
     iniciarSesion: (peticion) => iniciarSesion(entorno, peticion),
     presentarItem: (peticion) => presentarItem(entorno, peticion),
+    ...CASOS_DE_REINTENTOS,
     estudiarEjemplo: sinImplementar,
     responderItem: (peticion) => responderItem(entorno, peticion),
     declararConfianza: (peticion) => declararConfianza(entorno, peticion),
