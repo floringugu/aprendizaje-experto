@@ -1,13 +1,13 @@
 ---
 fase: specs
 area: MATE
-depende: [mate-cierre]
+depende: [mate-cierre, PANT]
 toca: [features/material.feature, features/diagnostico.feature, features/dominio.feature, features/instrumentacion.feature, config/peticion-ia.md]
 estado: abierto
 ---
 # Los objetivos llevan sus prerrequisitos, aprobados uno a uno, y un fallo señala el que flojea
 
-**Qué:** hoy los objetivos forman una lista en el orden del contenido (dominio.feature, «El objetivo siguiente se abre al dominar el actual»; diagnostico.feature, DIAG-2.1), y la aplicación no sabe de cuáles depende cada uno. Especificar que un objetivo pueda llevar sus prerrequisitos («O4 depende de O1 y de O2»), redactados por la IA desde el material como borrador y aprobados uno a uno por la persona como el resto, cada uno con la cita del material que lo respalda. Con ellos, la ruta respeta las dependencias y, cuando un objetivo se falla, la aplicación enseña cuáles de sus prerrequisitos no están dominados.
+**Qué:** hoy los objetivos forman una lista en el orden del contenido (dominio.feature, «El objetivo siguiente se abre al dominar el actual»; diagnostico.feature, DIAG-2.1), y la aplicación no sabe de cuáles depende cada uno. Especificar que un objetivo pueda llevar sus prerrequisitos («O4 depende de O1 y de O2»), redactados por la IA desde el material como borrador y aprobados uno a uno por la persona como el resto, cada uno con la cita del material que lo respalda. Con ellos, la ruta respeta las dependencias y, cuando un objetivo se falla, la aplicación enseña cuáles de sus prerrequisitos no están dominados. Aparcado hasta después del primer release (decisión del dueño del 15-11-2026): depende del área `PANT` para no salir listo antes.
 
 **Hecho cuando:** los escenarios fijan el formato de un prerrequisito en el contenido, cómo se redacta y se aprueba, qué pasa con un ciclo o con un prerrequisito que apunta a un objetivo que no existe, cómo cambia el orden de la ruta, qué enseña la aplicación tras un fallo y qué se registra en los CSV; el dominio lo siguen decidiendo solo los aciertos; y `make check-specs` está en verde.
 

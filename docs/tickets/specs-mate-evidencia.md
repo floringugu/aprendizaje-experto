@@ -3,11 +3,11 @@ fase: specs
 area: MATE
 depende: [mate-cierre]
 toca: [docs/plan.md, docs/cobertura-investigacion.md, features/material.feature]
-estado: abierto
+estado: descartado
 ---
 # Un reservado visto en la revisión cuenta como caso nuevo, y las etiquetas de MATE dicen qué escenario se apoya en el informe
 
-**Qué:** los tres hallazgos de `revisor-evidencia` al cerrar MATE (02-11-2026) que el dueño decidió arreglar. Uno: el plan §0 escribe que un reservado «nuevo» es uno que la persona no ha practicado, aunque lo haya visto en la revisión (MATE-4 y MATE-4.12), y se ajustan con eso las citas de «casos nuevos no vistos». El comportamiento no cambia. Dos: las etiquetas `@evidencia` de las Reglas MATE-3 y MATE-7 pasan a los escenarios que se apoyan en el informe. Tres: O1 del plan §17.6 y la cobertura dicen lo mismo de su respaldo.
+**Qué:** los tres hallazgos de `revisor-evidencia` al cerrar MATE (02-11-2026) que el dueño decidió arreglar. Uno: el plan §0 escribe que un reservado «nuevo» es uno que la persona no ha practicado, aunque lo haya visto en la revisión (MATE-4 y MATE-4.12), y se ajustan con eso las citas de «casos nuevos no vistos». El comportamiento no cambia. Dos: las etiquetas `@evidencia` de las Reglas MATE-3 y MATE-7 pasan a los escenarios que se apoyan en el informe. Tres: O1 del plan §17.6 y la cobertura dicen lo mismo de su respaldo. Descartado el 15-11-2026: lo sustituye `specs-mate-primer-release`, que junta en un solo cambio de MATE los tres specs que entran antes de `pant` y copia lo de este ticket.
 
 **Hecho cuando:** el plan §0 («Transferencia») dice qué es un caso nuevo; I9 (plan §17.6) y la fila 39 de la cobertura casan con eso; las Reglas MATE-3 y MATE-7 no llevan etiquetas `@evidencia` y las llevan MATE-3.5 y MATE-7.1; O1 tiene el mismo respaldo en el plan y en la cobertura; `revisor-evidencia` no da hallazgos sobre esto y la comprobación de la fase da verde.
 

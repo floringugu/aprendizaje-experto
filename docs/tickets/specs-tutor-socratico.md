@@ -1,13 +1,13 @@
 ---
 fase: specs
 area: MATE
-depende: [mate-cierre, specs-variantes-items]
+depende: [mate-cierre, specs-variantes-items, PANT]
 toca: [features/material.feature, features/ayuda.feature, features/instrumentacion.feature, config/peticion-ia.md, config/parametros.json]
 estado: abierto
 ---
 # Un canal para preguntar sobre un ítem, con un tutor socrático acotado al contenido aprobado
 
-**Qué:** hoy quien no entiende un concepto no puede preguntar: la IA nunca interviene en las sesiones (material.feature, cabecera) y la ayuda solo cambia en el bucle semanal. Especificar un canal de preguntas sobre el ítem respondido que guíe con preguntas en vez de dar la respuesta, con las mitigaciones de Bastani et al. (2025) en el prompt: solución, pistas y errores típicos del contenido aprobado, más el fragmento de la fuente. Cambia una decisión escrita de MATE, por eso es specs.
+**Qué:** hoy quien no entiende un concepto no puede preguntar: la IA nunca interviene en las sesiones (material.feature, cabecera) y la ayuda solo cambia en el bucle semanal. Especificar un canal de preguntas sobre el ítem respondido que guíe con preguntas en vez de dar la respuesta, con las mitigaciones de Bastani et al. (2025) en el prompt: solución, pistas y errores típicos del contenido aprobado, más el fragmento de la fuente. Cambia una decisión escrita de MATE, por eso es specs. Aparcado hasta después del primer release (decisión del dueño del 15-11-2026): depende del área `PANT` para no salir listo antes.
 
 **Hecho cuando:** los escenarios fijan cuándo se abre el canal, qué recibe el modelo, cuándo cede la explicación, qué se registra y qué no cuenta para el dominio, y `make check-specs` está en verde.
 

@@ -1,13 +1,13 @@
 ---
 fase: specs
 area: MATE
-depende: [mate-cierre]
+depende: [mate-cierre, PANT]
 toca: [features/material.feature, features/planificador.feature, features/dominio.feature, config/peticion-ia.md]
 estado: abierto
 ---
 # Los problemas se repasan con variantes, no siempre con el mismo enunciado
 
-**Qué:** hoy un problema se repasa siempre con el mismo ítem, y con formatos cerrados es fácil memorizar la respuesta («la C») en vez del procedimiento. Especificar variantes de un mismo ítem (mismo objetivo y procedimiento, otros datos o contexto), redactadas por la IA desde el material y aprobadas una a una como el resto, que roten en los repasos. Los hechos no cambian: FSRS repite el mismo ítem a propósito.
+**Qué:** hoy un problema se repasa siempre con el mismo ítem, y con formatos cerrados es fácil memorizar la respuesta («la C») en vez del procedimiento. Especificar variantes de un mismo ítem (mismo objetivo y procedimiento, otros datos o contexto), redactadas por la IA desde el material y aprobadas una a una como el resto, que roten en los repasos. Los hechos no cambian: FSRS repite el mismo ítem a propósito. Aparcado hasta después del primer release (decisión del dueño del 15-11-2026): depende del área `PANT` para no salir listo antes.
 
 **Hecho cuando:** los escenarios dicen cómo se piden las variantes, cómo se aprueban, cómo rotan en los repasos y cómo cuentan para el criterio de dominio (último intento de la familia, no de cada variante), y `make check-specs` está en verde.
 

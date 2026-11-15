@@ -1,13 +1,13 @@
 ---
 fase: specs
 area: PLAN
-depende: [plan, specs-experimento-releer]
+depende: [plan, specs-experimento-releer, PANT]
 toca: [features/planificador.feature, features/ayuda.feature, features/instrumentacion.feature, config/parametros.json]
 estado: abierto
 ---
 # Los parámetros de eficiencia empiezan en la media de la evidencia y se ajustan a la persona con su retención diferida
 
-**Qué:** hoy los parámetros son fijos para todos y valen de media. Especificar que los parámetros de eficiencia empiezan en su valor de `config/parametros.json` (la media de los estudios, como prior) y se ajustan a la persona con el tiempo, a partir de su retención diferida y no del acierto inmediato. Para no confundir causa y selección, el ajuste se apoya en variaciones pequeñas asignadas al azar alrededor del valor actual (bandido con prior), salvo donde ya hay un modelo de memoria por ítem (optimizador de FSRS para los hechos).
+**Qué:** hoy los parámetros son fijos para todos y valen de media. Especificar que los parámetros de eficiencia empiezan en su valor de `config/parametros.json` (la media de los estudios, como prior) y se ajustan a la persona con el tiempo, a partir de su retención diferida y no del acierto inmediato. Para no confundir causa y selección, el ajuste se apoya en variaciones pequeñas asignadas al azar alrededor del valor actual (bandido con prior), salvo donde ya hay un modelo de memoria por ítem (optimizador de FSRS para los hechos). Aparcado hasta después del primer release (decisión del dueño del 15-11-2026): depende del área `PANT` para no salir listo antes.
 
 **Hecho cuando:** los escenarios fijan qué parámetros se adaptan y cuáles nunca, qué medida se optimiza, cómo se asignan las variaciones, cuántos datos hacen falta para mover un valor y cuánto puede moverse, qué ve la persona y qué se registra; y `make check-specs` está en verde.
 

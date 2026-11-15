@@ -1,13 +1,13 @@
 ---
 fase: specs
 area: MATE
-depende: [mate-cierre]
+depende: [mate-cierre, PANT]
 toca: [features/material.feature]
 estado: abierto
 ---
 # La app enseña qué partes del material no cita ninguna pieza aprobada
 
-**Qué:** el progreso se mide por objetivos dominados, y nada mide cuánto del material se ha convertido en piezas. Si la IA saca pocos objetivos de un documento largo, la persona los domina y la app da el dominio por terminado aunque muchas páginas no tengan ninguna pieza. Cada pieza aprobada ya guarda su fuente (documento, página y fragmento), así que la cobertura sale de ahí sin juicio de la IA: por documento, qué páginas no cita ninguna pieza aprobada.
+**Qué:** el progreso se mide por objetivos dominados, y nada mide cuánto del material se ha convertido en piezas. Si la IA saca pocos objetivos de un documento largo, la persona los domina y la app da el dominio por terminado aunque muchas páginas no tengan ninguna pieza. Cada pieza aprobada ya guarda su fuente (documento, página y fragmento), así que la cobertura sale de ahí sin juicio de la IA: por documento, qué páginas no cita ninguna pieza aprobada. Aparcado hasta después del primer release (decisión del dueño del 15-11-2026): depende del área `PANT` para no salir listo antes.
 
 **Hecho cuando:** los escenarios dicen dónde ve la persona la cobertura de cada documento, qué cuenta como página cubierta, que las páginas sin texto (ver specs-paginas-sin-texto) se distinguen de las no cubiertas, y que la persona puede descartar a conciencia una página (índice, bibliografía, portada) para que no cuente como hueco; y `make check-specs` está en verde.
 

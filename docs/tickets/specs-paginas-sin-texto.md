@@ -3,11 +3,11 @@ fase: specs
 area: MATE
 depende: [mate-cierre]
 toca: [features/material.feature]
-estado: abierto
+estado: descartado
 ---
 # Un PDF con páginas sin texto no entra en silencio en el material
 
-**Qué:** la app saca el texto con `pdftotext` (src/aplicacion/texto-pdf.ts), y una página escaneada sin capa de texto da `''`. Ningún escenario trata ese caso: un PDF escaneado entra en el material y falla después en silencio, porque la IA no recibe texto o porque sus citas no se pueden comprobar (G1) y todo sale con «Cita no encontrada». Especificar qué pasa al añadir un PDF con páginas sin texto y si la app hace OCR.
+**Qué:** la app saca el texto con `pdftotext` (src/aplicacion/texto-pdf.ts), y una página escaneada sin capa de texto da `''`. Ningún escenario trata ese caso: un PDF escaneado entra en el material y falla después en silencio, porque la IA no recibe texto o porque sus citas no se pueden comprobar (G1) y todo sale con «Cita no encontrada». Especificar qué pasa al añadir un PDF con páginas sin texto y si la app hace OCR. Descartado el 15-11-2026: lo sustituye `specs-mate-primer-release`, que junta en un solo cambio de MATE los tres specs que entran antes de `pant` y copia lo de este ticket.
 
 **Hecho cuando:** los escenarios dicen qué se considera página sin texto, qué ve la persona al añadir un PDF con todas o con algunas páginas así (aviso con la lista de páginas, o rechazo) y, si se decide hacer OCR, con qué programa del PC y qué pasa si no está instalado (como MATE-1.3 con LibreOffice); y `make check-specs` está en verde.
 

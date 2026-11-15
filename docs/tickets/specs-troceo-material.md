@@ -1,13 +1,13 @@
 ---
 fase: specs
 area: MATE
-depende: [mate-cierre, specs-paginas-sin-texto]
+depende: [mate-cierre, specs-mate-primer-release, PANT]
 toca: [features/material.feature, config/peticion-ia.md, config/parametros.json]
 estado: abierto
 ---
 # Un documento largo se redacta por trozos de páginas, en orden y por tandas
 
-**Qué:** hoy la petición a la IA recibe el documento entero (config/peticion-ia.md). Con un libro de cientos de páginas eso puede no caber en el contexto, degrada la calidad y deja una cobertura superficial, y la revisión de golpe de cientos de piezas no se hace bien. Especificar que la app parte el PDF cada N páginas, sin depender de un índice, redacta los borradores trozo a trozo en el orden de las páginas y pide el siguiente trozo por tandas, para que la revisión se reparta.
+**Qué:** hoy la petición a la IA recibe el documento entero (config/peticion-ia.md). Con un libro de cientos de páginas eso puede no caber en el contexto, degrada la calidad y deja una cobertura superficial, y la revisión de golpe de cientos de piezas no se hace bien. Especificar que la app parte el PDF cada N páginas, sin depender de un índice, redacta los borradores trozo a trozo en el orden de las páginas y pide el siguiente trozo por tandas, para que la revisión se reparta. Aparcado hasta después del primer release (decisión del dueño del 15-11-2026): depende del área `PANT` para no salir listo antes.
 
 **Hecho cuando:** los escenarios fijan cómo se parte el documento, qué recibe la IA en cada trozo, cuándo se redacta el siguiente y que el orden de los objetivos nuevos sigue el de las páginas; N está en `config/parametros.json` con su nivel de evidencia; y `make check-specs` está en verde.
 
