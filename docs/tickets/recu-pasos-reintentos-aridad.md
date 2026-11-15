@@ -3,7 +3,7 @@ fase: aceptacion
 area: RECU
 depende: [recu-reintentos]
 toca: [tests/aceptacion/pasos/reintentos.ts, config/alcance.json]
-estado: abierto
+estado: hecho
 ---
 # Los pasos de RECU-6.4, 6.7 y 6.10 reciben el ítem que nombran
 

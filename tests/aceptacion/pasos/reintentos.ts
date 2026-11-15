@@ -159,22 +159,23 @@ When('se le presenta {item} otra vez', (item: string) => {
 });
 
 /** La persona llega a cada reintento del ítem fallado y lo acierta o lo falla, en el orden de `resultados`. */
-function responderReintentos(resultados: readonly boolean[]): void {
+function responderReintentos(resultados: readonly boolean[], nombrado?: string): void {
   const actual = mundo();
   actual.listo();
   const item = itemFallado();
+  if (nombrado !== undefined) assert.equal(nombrado, item, 'El ítem que el escenario nombra no es el que falló la persona');
   resultados.forEach((correcta) => {
     llegarAlReintento(actual, item);
     responderReintento(actual, { item, correcta });
   });
 }
 
-When('acierta {item} en su primer reintento', () => {
-  responderReintentos([true]);
+When('acierta {item} en su primer reintento', (item: string) => {
+  responderReintentos([true], item);
 });
 
-When('acierta {item} en su primer reintento, falla en el segundo y acierta en el tercero', () => {
-  responderReintentos([true, false, true]);
+When('acierta {item} en su primer reintento, falla en el segundo y acierta en el tercero', (item: string) => {
+  responderReintentos([true, false, true], item);
 });
 
 When('falla también su primer reintento y responde tres ítems de otros', () => {
@@ -215,7 +216,8 @@ Then(
   },
 );
 
-Then('la aplicación la deja terminar sin pedirle que acierte {item} antes', () => {
+Then('la aplicación la deja terminar sin pedirle que acierte {item} antes', (item: string) => {
+  assert.equal(item, itemFallado(), 'El ítem que el escenario nombra no es el que falló la persona');
   aceptado(presente(mundo().ultimoResultado, 'el resultado de terminar la sesión'));
 });
 
