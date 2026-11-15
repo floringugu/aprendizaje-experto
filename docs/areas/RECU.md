@@ -91,6 +91,6 @@ Mini área con RECU ya cerrada. Sin pantalla: `src/interfaz` aún no existe.
 
 ### Pendiente del área
 
-- RECU-6.4, 6.7 y 6.10 siguen en `escenarios_en_rojo.RECU`: tres pasos de `tests/aceptacion/pasos/reintentos.ts` no reciben el `{item}` que declaran, y Cucumber los rechaza antes de llegar a la aplicación. El arreglo es de la fase aceptacion: ticket `recu-pasos-reintentos-aridad`. Con el arreglo, en una copia fuera del repositorio, pasan los 20 escenarios de RECU-6.
-- `make cerrar-area A=RECU` falla solo en esos tres escenarios (4 ejemplos de 246), por la aridad de los pasos. RECU-6 se hizo de noche en `lote/1`, que no tenía el ítem numérico; el carril `traer-lote-recu` lo trajo a `main` el 15-11-2026 con cherry-pick. En la unión, `corregirYRegistrar` corrige con `corregir`: un reintento de un ítem numérico usa el margen y su feedback dice qué parte falla (`tests/unidad/reintento-numerico.test.ts`).
+- RECU-6.4, 6.7 y 6.10 ya pasan: el ticket `recu-pasos-reintentos-aridad` dio a tres pasos de `tests/aceptacion/pasos/reintentos.ts` el `{item}` que declaran, y `escenarios_en_rojo.RECU` queda vacía.
+- `make cerrar-area A=RECU` da verde desde ese ticket (15-11-2026). RECU-6 se hizo de noche en `lote/1`, que no tenía el ítem numérico; el carril `traer-lote-recu` lo trajo a `main` el 15-11-2026 con cherry-pick. En la unión, `corregirYRegistrar` corrige con `corregir`: un reintento de un ítem numérico usa el margen y su feedback dice qué parte falla (`tests/unidad/reintento-numerico.test.ts`).
 - Los ejemplos de la sesión siguen delante en `consultarSesion` hasta que la persona pueda estudiarlos (`estudiarEjemplo`, AYUD).

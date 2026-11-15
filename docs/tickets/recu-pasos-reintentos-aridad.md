@@ -2,7 +2,7 @@
 fase: aceptacion
 area: RECU
 depende: [recu-reintentos]
-toca: [tests/aceptacion/pasos/reintentos.ts, config/alcance.json]
+toca: [tests/aceptacion/pasos/reintentos.ts, config/alcance.json, docs/areas/RECU.md, docs/tickets/noche-lote-traido-a-mano.md, docs/tickets/noche-marca-citada.md]
 estado: hecho
 ---
 # Los pasos de RECU-6.4, 6.7 y 6.10 reciben el ítem que nombran
