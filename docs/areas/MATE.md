@@ -297,3 +297,21 @@ MATE: 191 anotaciones en 87 conversaciones, desde 2026-10-22T23:07:13.581Z.
 ```
 
 Los cuatro bloqueos del implementador fueron en el carril `mate-reservados`, el 01-11-2026: dos de `tipos` en una conversación y dos de `lint` en la siguiente, y los arregló cada encargo antes de volver. El push no se bloqueó nunca. Las 87 conversaciones incluyen las de los carriles del arnés que se abrieron mientras MATE era el área en curso de la carpeta principal.
+
+## Ítem numérico en el borrador (MATE-2.12 y 2.13, ticket `mate-num-borrador`, 15-11-2026)
+
+Mini área con MATE ya cerrada. Sin paso de mecanismo y sin interfaces descartadas: no cambia código.
+
+- **Qué hace falta:** nada nuevo en `src/`. `incorporarEntrega` valida cada ítem con `falloDeLaPiezaSuelta`, y las reglas de la respuesta numérica que dejó `recu-impl-item-numerico` en `formato-contenido.ts` (`REGLAS_DE_LA_NUMERICA`) ya dan el `falta` que fijan los pasos: `valor`, `unidades` o `tolerancia`. Los 14 ejemplos de los dos escenarios pasaban antes de tocar nada. El borrador no exige nada de más: el motivo de cada rechazo es ese `falta`.
+- **Qué cambia:** los comentarios de interfaz de `incorporarEntrega` y `revisarEntrega` citan los dos escenarios, y `tests/unidad/redaccion-numerico.test.ts` (nuevo) prueba que la regla llega a `apartadas` con los 8 casos de MATE-2.12 y que el ítem entra tal cual, con su `fuente`, en los 6 de MATE-2.13. Las reglas mismas las prueba `formato-contenido-respuesta.test.ts`.
+- **Cierre:** `escenarios_en_rojo.MATE` queda vacío y `make cerrar-area A=MATE` da verde.
+
+### Mutación
+
+- **Puntuación** (`npx stryker run --force`): 97,92 % en total (2205 eliminados, 13 por tiempo, 42 supervivientes, 5 sin cobertura). `formato-contenido.ts`, 98,79 %; `redaccion-formato.ts`, 96,84 %; `redaccion.ts`, 97,39 %; `redaccion-ids.ts`, 91,67 %.
+- Ningún superviviente nuevo, y ninguno en las reglas de la respuesta numérica. Los de estos cuatro ficheros son los ya aceptados en «Mutación», con la línea movida: `formato-contenido.ts:261:24`, `:261:56`, `:262:25` y `:380:50`; `redaccion-formato.ts:138:20`, `:145:10` y `:148:21`; `redaccion.ts:240:19`, `:241:18` y `:247:29`; y `redaccion-ids.ts:31:23`, `:53:22` y `:53:63`.
+
+### Deuda
+
+- Anotada: D35 (el comentario de interfaz de `incorporarEntrega` cuenta el cómo), y D22 agravada: `falta` suma `valor`, `unidades` y `tolerancia` (`docs/deuda-diseno.md`). No paga ninguna.
+- Del revisor de código, arreglado en el mismo PR: el test nuevo se queda con los casos de la feature (las filas que repetían `formato-contenido-respuesta.test.ts` con un `@ID` que no era el suyo se quitaron), y se borra una frase repetida del comentario de `faltaDeLaRespuesta`.

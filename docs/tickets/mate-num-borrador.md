@@ -3,7 +3,7 @@ fase: impl
 area: MATE
 depende: [mate-pasos-num-borrador, recu-impl-item-numerico]
 toca: [src/aplicacion/formato-contenido.ts, src/aplicacion/redaccion*.ts, tests/unidad/formato-contenido*.ts, tests/unidad/redaccion*.ts, config/alcance.json, docs/areas/MATE.md, docs/deuda-diseno.md]
-estado: abierto
+estado: hecho
 ---
 # La aplicación aparta del borrador un ítem numérico mal formado
 
