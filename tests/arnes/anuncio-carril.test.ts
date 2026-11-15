@@ -2,6 +2,8 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { fijarFase } from '../../scripts/arnes/comun/ajustes-locales.ts';
 import { anuncioDelCarril } from '../../scripts/arnes/comun/anuncio-carril.ts';
+import { crearLote } from '../../scripts/arnes/comun/lote.ts';
+import { fijarLoteDeLaRama } from '../../scripts/arnes/comun/ramas.ts';
 import { commit, gitBien, principalConOrigen } from './origen.ts';
 import { escribirFicheros, repositorioConCommit, repositorioConWorktree } from './temporal.ts';
 import { texto } from './tickets-de-prueba.ts';
@@ -81,6 +83,18 @@ describe('anuncioDelCarril', () => {
     const anuncio = anuncioDelCarril(principal, entrarEn(principal, carril));
     expect(anuncio?.paraElDueno).toMatch(/ · relevo pendiente\.$/);
     expect(anuncio?.paraClaude).toContain(`Relevo pendiente en ${path.join(carril, 'reports/relevo.md')}`);
+  });
+
+  it('en un carril cuya rama sale de un lote, dice que su PR va al lote y se fusiona solo; en los demás, nada', () => {
+    const principal = principalConOrigen({});
+    expect(crearLote(principal, 'lote/1')).toBeUndefined();
+    const carril = `${principal}-pasos`;
+    gitBien(principal, ['worktree', 'add', '--quiet', '--no-track', '-b', 'impl/MATE/pasos', carril, 'origin/lote/1']);
+    const sinLote = anuncioDelCarril(principal, entrarEn(principal, carril));
+    expect(sinLote?.paraClaude).not.toContain('rama de lote');
+    fijarLoteDeLaRama(principal, 'impl/MATE/pasos', 'lote/1');
+    const conLote = anuncioDelCarril(principal, entrarEn(principal, carril));
+    expect(conLote?.paraClaude).toContain('Este carril sale de la rama de lote lote/1, no de main');
   });
 
   it('resuelve una ruta relativa contra el cwd de la entrada', () => {

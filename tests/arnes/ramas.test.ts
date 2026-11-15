@@ -1,18 +1,32 @@
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { git } from '../../scripts/arnes/comun/git.ts';
+import { crearLote } from '../../scripts/arnes/comun/lote.ts';
 import {
   esNombreDeCarril,
   estaFusionada,
+  estaFusionadaEn,
   faseYAreaDeLaRama,
+  fijarLoteDeLaRama,
   leerNombreDeRama,
+  loteDeLaRama,
   nombreDeRama,
+  numeroDeLote,
+  origenDeLaRama,
   RAMA_DE_ORIGEN,
   ramasDelCarril,
   siguienteRama,
   traerOrigen,
 } from '../../scripts/arnes/comun/ramas.ts';
-import { commit, fusionarComoGitHub, gitBien, otroPrFusionado, principalConOrigen } from './origen.ts';
+import {
+  commit,
+  fusionarComoGitHub,
+  fusionarLoteComoGitHub,
+  gitBien,
+  otroPrFusionado,
+  prFusionadoEnLote,
+  principalConOrigen,
+} from './origen.ts';
 import { directorioTemporal, escribirFicheros, repositorioConCommit } from './temporal.ts';
 
 describe('esNombreDeCarril', () => {
@@ -179,5 +193,72 @@ describe('estaFusionada', () => {
     gitBien(principal, ['branch', RAMA]);
     expect(estaFusionada(principal, RAMA)).toBe(true);
     expect(estaFusionada(principal, 'impl/MATE/nada')).toBe(false);
+  });
+});
+
+describe('las ramas que salen de un lote', () => {
+  const RAMA = 'impl/MATE/pasos';
+  const LOTE = 'lote/1';
+
+  /** Carpeta principal con lote/1 en origin y, en RAMA, que sale de él, un commit sin subir. */
+  function conRamaDelLote(): string {
+    const principal = principalConOrigen({ 'a.txt': 'a\n' });
+    expect(crearLote(principal, LOTE)).toBeUndefined();
+    gitBien(principal, ['switch', '--quiet', '--no-track', '-c', RAMA, `origin/${LOTE}`]);
+    fijarLoteDeLaRama(principal, RAMA, LOTE);
+    commit(principal, 'uno', { 'b.txt': 'b\n' });
+    return principal;
+  }
+
+  it('numeroDeLote lee el número de «lote/N», y nada de lo demás', () => {
+    expect([numeroDeLote('lote/3'), numeroDeLote('lote/12')]).toEqual([3, 12]);
+    const otras = ['lote/0', 'lote/03', 'lote/x', 'lote/1/x', 'xlote/1', 'lote/', 'main', ''];
+    expect(otras.filter((nombre) => numeroDeLote(nombre) !== undefined)).toEqual([]);
+  });
+
+  it('sin lote apuntado, con uno que origin no tiene o con algo que no es un lote, la rama sale de origin/main', () => {
+    const principal = principalConOrigen({});
+    gitBien(principal, ['branch', RAMA]);
+    expect(loteDeLaRama(principal, RAMA)).toBeUndefined();
+    fijarLoteDeLaRama(principal, RAMA, 'main');
+    expect(loteDeLaRama(principal, RAMA)).toBeUndefined();
+    fijarLoteDeLaRama(principal, RAMA, LOTE);
+    expect(loteDeLaRama(principal, RAMA)).toBeUndefined();
+    expect(origenDeLaRama(principal, RAMA)).toBe(RAMA_DE_ORIGEN);
+  });
+
+  it('con el lote apuntado y en origin, la rama sale de él', () => {
+    const principal = conRamaDelLote();
+    expect(loteDeLaRama(principal, RAMA)).toBe(LOTE);
+    expect(origenDeLaRama(principal, RAMA)).toBe('origin/lote/1');
+    // La clave es la que lee «gh pr create» para elegir la base del PR.
+    expect(gitBien(principal, ['config', '--get', `branch.${RAMA}.gh-merge-base`]).trim()).toBe(LOTE);
+  });
+
+  it('está fusionada cuando el lote tiene sus commits, aunque main no los tenga', () => {
+    const principal = conRamaDelLote();
+    expect(estaFusionada(principal, RAMA)).toBe(false);
+    fusionarComoGitHub(principal, RAMA, LOTE);
+    expect(traerOrigen(principal)).toBeUndefined();
+    expect(estaFusionadaEn(principal, RAMA, RAMA_DE_ORIGEN)).toBe(false);
+    expect(estaFusionada(principal, RAMA)).toBe(true);
+  });
+
+  it('está fusionada cuando sus commits llegaron a main, aunque no entraran en su lote', () => {
+    const principal = conRamaDelLote();
+    fusionarComoGitHub(principal, RAMA);
+    expect(traerOrigen(principal)).toBeUndefined();
+    expect(estaFusionadaEn(principal, RAMA, 'origin/lote/1')).toBe(false);
+    expect(estaFusionada(principal, RAMA)).toBe(true);
+  });
+
+  it('estaFusionadaEn también dice si un lote ya está en main', () => {
+    const principal = principalConOrigen({});
+    expect(crearLote(principal, LOTE)).toBeUndefined();
+    prFusionadoEnLote(principal, { rama: RAMA, lote: LOTE, ficheros: { 'b.txt': 'b\n' } });
+    expect(estaFusionadaEn(principal, 'origin/lote/1', RAMA_DE_ORIGEN)).toBe(false);
+    fusionarLoteComoGitHub(principal, LOTE);
+    expect(traerOrigen(principal)).toBeUndefined();
+    expect(estaFusionadaEn(principal, 'origin/lote/1', RAMA_DE_ORIGEN)).toBe(true);
   });
 });

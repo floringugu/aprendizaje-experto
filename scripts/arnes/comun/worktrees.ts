@@ -3,11 +3,13 @@
 // lo fusiona, la conversación siguiente del carril sigue en la rama siguiente. Cuatro operaciones,
 // que lanzan los objetivos de make (scripts/arnes/worktrees.ts y fijar-fase.ts):
 //   abrir (make abrir, el dueño): crea el carril y su primera rama desde origin/main, con su fase y su área,
-//     que salen de su ticket (docs/tickets/<carril>.md) si lo tiene;
+//     que salen de su ticket (docs/tickets/<carril>.md) si lo tiene. El Despachador abre así los de
+//     aceptación e impl, pero desde la rama de lote de la noche (lote.ts);
 //   rama (make rama, la conversación): pasa el carril a la rama siguiente, fusionada la actual;
 //   fase (make fase N=, el dueño): cambia la fase y el área del carril, fusionada su rama;
 //   retirar (make retirar, el dueño): al acabar la línea de trabajo, borra el carril y todas sus ramas.
-// Las tres últimas se niegan con cambios sin commitear o con una rama sin fusionar. fase y retirar,
+// Las tres últimas se niegan con cambios sin commitear o con una rama sin fusionar en su origen (su
+// lote o main; ramas.ts). fase y retirar,
 // también con un relevo pendiente: es de la conversación siguiente del carril.
 // Cada función devuelve lo que hay que decir.
 import { existsSync, symlinkSync } from 'node:fs';
@@ -19,10 +21,14 @@ import { detalle, estadoDelTicket, situacionDelRepositorio } from './estado-tick
 import type { Situacion } from './estado-tickets.ts';
 import type { Fase } from './fases.ts';
 import { git, hayCambiosSinCommitear } from './git.ts';
+import { estadoDelLote } from './lote.ts';
 import {
   esNombreDeCarril,
   estaFusionada,
+  fijarLoteDeLaRama,
+  loteDeLaRama,
   nombreDeRama,
+  origenDeLaRama,
   RAMA_DE_ORIGEN,
   ramasDelCarril,
   siguienteRama,
@@ -71,27 +77,34 @@ export interface PeticionDeCarril {
   readonly area: string | undefined;
   /** FORZAR=1: abre aunque el ticket no esté listo. Nunca uno hecho o descartado. */
   readonly forzar?: boolean;
+  /**
+   * La rama de lote («lote/N», que origin ya tiene) de la que sale el carril, en vez de origin/main:
+   * su ticket se lee de ella y se evalúa contra ella, y los PR de su rama van a ella. Solo la da el Despachador.
+   */
+  readonly lote?: string;
 }
 
 /**
- * Trae origin, crea el carril y su primera rama desde origin/main, enlaza node_modules y le fija la
- * fase y el área. Si origin/main tiene el ticket del carril (docs/tickets/<nombre>.md), la fase y el
- * área salen de él, y se niega si no está listo. Sus ajustes locales empiezan sin los permisos del
- * directorio principal.
+ * Trae origin, crea el carril y su primera rama desde su origen (origin/main o, con `peticion.lote`,
+ * esa rama de lote), enlaza node_modules y le fija la fase y el área. Si el origen tiene el ticket del
+ * carril (docs/tickets/<nombre>.md), la fase y el área salen de él, y se niega si no está listo. Sus
+ * ajustes locales empiezan sin los permisos del directorio principal.
  */
 export function abrirWorktree(raiz: string, peticion: PeticionDeCarril): Resultado {
   const { nombre } = peticion;
   const previo = problemaDeNombre(nombre) ?? traerOrigen(raiz);
   if (previo !== undefined) return falla(previo);
-  const delCarril = faseYAreaDelCarril(raiz, peticion);
+  const origen = peticion.lote === undefined ? RAMA_DE_ORIGEN : `origin/${peticion.lote}`;
+  const delCarril = faseYAreaDelCarril(raiz, peticion, origen);
   if ('problema' in delCarril) return falla(delCarril.problema);
   const { fase, area, avisos } = delCarril;
   const directorio = directorioDeWorktree(raiz, nombre);
   const problema = problemaDeFaseYArea(raiz, fase, area) ?? problemaDeCarrilNuevo(raiz, nombre);
   if (problema !== undefined) return falla(problema);
   const rama = nombreDeRama({ fase, area, carril: nombre, numero: 1 });
-  const crear = git(raiz, ['worktree', 'add', '--quiet', '--no-track', '-b', rama, directorio, RAMA_DE_ORIGEN]);
+  const crear = git(raiz, ['worktree', 'add', '--quiet', '--no-track', '-b', rama, directorio, origen]);
   if (crear.codigo !== 0) return falla(`git worktree add ha fallado:\n${crear.errores}`);
+  if (peticion.lote !== undefined) fijarLoteDeLaRama(raiz, rama, peticion.lote);
   // node_modules está en .gitignore: cada carril usa el del directorio principal.
   if (existsSync(path.join(raiz, 'node_modules'))) {
     symlinkSync(path.join(raiz, 'node_modules'), path.join(directorio, 'node_modules'));
@@ -101,7 +114,7 @@ export function abrirWorktree(raiz: string, peticion: PeticionDeCarril): Resulta
     ok: true,
     mensajes: [
       ...avisos,
-      `Carril ${directorio}, en la rama ${rama} (desde ${RAMA_DE_ORIGEN}), con la fase ${fase} y el área ${area}.`,
+      `Carril ${directorio}, en la rama ${rama} (desde ${origen}), con la fase ${fase} y el área ${area}.`,
       'Pega esto en una conversación nueva de Claude Code en la ventana principal:',
       `Entra en el carril ${nombre}.`,
     ],
@@ -115,10 +128,14 @@ interface FaseYAreaDelCarril {
   readonly avisos: readonly string[];
 }
 
-/** La fase y el área del carril, del ticket de origin/main si lo hay o de la petición; o por qué no se abre. */
-function faseYAreaDelCarril(raiz: string, peticion: PeticionDeCarril): FaseYAreaDelCarril | { problema: string } {
+/** La fase y el área del carril, del ticket de `origen` si lo hay o de la petición; o por qué no se abre. */
+function faseYAreaDelCarril(
+  raiz: string,
+  peticion: PeticionDeCarril,
+  origen: string,
+): FaseYAreaDelCarril | { problema: string } {
   const { nombre, fase, area } = peticion;
-  const situacion = situacionDelRepositorio(raiz, new Map());
+  const situacion = situacionDelRepositorio(raiz, new Map(), origen);
   const ticket = situacion.tickets.find(({ id }) => id === nombre);
   if (ticket !== undefined) {
     const problema = problemaDelTicket(ticket, situacion, peticion);
@@ -128,9 +145,8 @@ function faseYAreaDelCarril(raiz: string, peticion: PeticionDeCarril): FaseYArea
     return { fase: ticket.fase, area: ticket.area, avisos };
   }
   if (area === undefined) return { problema: SIN_AREA };
-  if (fase === undefined)
-    return { problema: `Sin ticket ${rutaDelTicket(nombre)} en ${RAMA_DE_ORIGEN}: hace falta F=<fase>.` };
-  const sinTicket = `Sin ticket ${rutaDelTicket(nombre)} en ${RAMA_DE_ORIGEN}: para los solapes, el carril solo cuenta por lo que commitee.`;
+  if (fase === undefined) return { problema: `Sin ticket ${rutaDelTicket(nombre)} en ${origen}: hace falta F=<fase>.` };
+  const sinTicket = `Sin ticket ${rutaDelTicket(nombre)} en ${origen}: para los solapes, el carril solo cuenta por lo que commitee.`;
   return { fase, area, avisos: [sinTicket] };
 }
 
@@ -158,8 +174,9 @@ function problemaDeCarrilNuevo(raiz: string, nombre: string): string | undefined
 }
 
 /**
- * make rama: pasa el carril de `checkout` a su rama siguiente, desde origin/main recién traído y con
- * la fase y el área que tiene ahora. Solo si la rama actual ya está fusionada.
+ * make rama: pasa el carril de `checkout` a su rama siguiente, con la fase y el área que tiene ahora.
+ * Solo si la rama actual ya está fusionada. La nueva sale de origin/main recién traído, salvo que la
+ * actual saliera de un lote que main aún no tiene: entonces sale de ese lote y su PR va a él.
  */
 export function pasarALaRamaSiguiente(checkout: string): Resultado {
   const carril = nombreDelCarril(checkout);
@@ -170,9 +187,19 @@ export function pasarALaRamaSiguiente(checkout: string): Resultado {
   const problema = problemaParaDejarLasRamas(checkout, checkout, [actual]);
   if (problema !== undefined) return falla(problema);
   const rama = siguienteRama(checkout, { fase, area, carril });
-  const cambiar = git(checkout, ['switch', '--quiet', '--no-track', '-c', rama, RAMA_DE_ORIGEN]);
+  const lote = loteEnUso(checkout, actual);
+  const origen = lote === undefined ? RAMA_DE_ORIGEN : `origin/${lote}`;
+  const cambiar = git(checkout, ['switch', '--quiet', '--no-track', '-c', rama, origen]);
   if (cambiar.codigo !== 0) return falla(`git switch ha fallado:\n${cambiar.errores}`);
-  return { ok: true, mensajes: [`El carril ${carril} deja ${actual}, ya fusionada, y sigue en ${rama}.`] };
+  if (lote !== undefined) fijarLoteDeLaRama(checkout, rama, lote);
+  const desde = lote === undefined ? '' : `, que sale de ${origen}: su PR va a ${lote}`;
+  return { ok: true, mensajes: [`El carril ${carril} deja ${actual}, ya fusionada, y sigue en ${rama}${desde}.`] };
+}
+
+/** El lote del que sale `rama`, si main aún no lo tiene; undefined si sale de main o su lote ya está fusionado. */
+function loteEnUso(raiz: string, rama: string): string | undefined {
+  const lote = loteDeLaRama(raiz, rama);
+  return lote === undefined || estadoDelLote(raiz, lote) === 'fusionado' ? undefined : lote;
 }
 
 /**
@@ -192,7 +219,7 @@ export function problemaParaCambiarLaFase(raiz: string, peticion: PeticionDeWork
   );
 }
 
-/** make retirar: borra el carril y todas sus ramas locales, fusionadas en origin/main (no en main: branch -D). */
+/** make retirar: borra el carril y todas sus ramas locales, fusionadas en su origen (no en la rama local main: branch -D). */
 export function retirarWorktree(raiz: string, nombre: string): Resultado {
   const directorio = directorioDeWorktree(raiz, nombre);
   const ramas = ramasDelCarril(raiz, nombre);
@@ -226,7 +253,7 @@ function problemaDeRelevo(directorio: string): string | undefined {
     : undefined;
 }
 
-/** Cambios sin commitear en el carril, o alguna de `ramas` sin fusionar en origin/main (recién traído). */
+/** Cambios sin commitear en el carril, o alguna de `ramas` sin fusionar en su origen (recién traído): su lote o origin/main. */
 function problemaParaDejarLasRamas(raiz: string, directorio: string, ramas: readonly string[]): string | undefined {
   if (existsSync(directorio) && hayCambiosSinCommitear(directorio)) {
     return `${directorio} tiene cambios sin commitear: commitéalos y que se fusione su PR, o deshazlos.`;
@@ -235,5 +262,10 @@ function problemaParaDejarLasRamas(raiz: string, directorio: string, ramas: read
   if (problema !== undefined) return problema;
   const sinFusionar = ramas.filter((rama) => !estaFusionada(raiz, rama));
   if (sinFusionar.length === 0) return undefined;
-  return `Sin fusionar en ${RAMA_DE_ORIGEN}: ${sinFusionar.join(', ')}. Espera a que GitHub fusione su PR.`;
+  const origenes = [...new Set(sinFusionar.map((rama) => origenDeLaRama(raiz, rama)))];
+  const porOrigen = origenes.map((origen) => {
+    const suyas = sinFusionar.filter((rama) => origenDeLaRama(raiz, rama) === origen);
+    return `Sin fusionar en ${origen}: ${suyas.join(', ')}.`;
+  });
+  return `${porOrigen.join(' ')} Espera a que GitHub fusione su PR.`;
 }

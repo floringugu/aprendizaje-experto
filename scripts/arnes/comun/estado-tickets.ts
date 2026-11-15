@@ -1,5 +1,6 @@
 // El estado de los tickets (tickets.ts), que no se guarda: sale de lo que hay en origin/main y de los
-// carriles abiertos (docs/plan.md §6, «Tickets»).
+// carriles abiertos (docs/plan.md §6, «Tickets»). El Despachador lo calcula también contra la rama
+// de lote de la noche (lote.ts), donde un ticket puede estar hecho antes de llegar a main.
 //   hecho, descartado: el «estado» del ticket en origin/main;
 //   en revisión: su carril está abierto y su rama tiene un PR abierto;
 //   en curso: su carril está abierto;
@@ -16,14 +17,14 @@ import { areaCumplida, areasCerradasDe, problemaDeAreaCerrada, tienePendientes }
 import type { AreasCerradas } from './alcance.ts';
 import { carrilesConRama, esArea, nombreDelCarril } from './checkout.ts';
 import { git } from './git.ts';
-import { estaFusionada, RAMA_DE_ORIGEN } from './ramas.ts';
+import { estaFusionada, origenDeLaRama, RAMA_DE_ORIGEN } from './ramas.ts';
 import { ticketsDe } from './tickets.ts';
 import type { Ticket } from './tickets.ts';
 
 export interface CarrilAbierto {
   readonly nombre: string;
   readonly rama: string | undefined;
-  /** Los ficheros que ha cambiado su rama y aún no están en origin/main. */
+  /** Los ficheros que ha cambiado su rama y aún no están en su origen (origin/main o su lote). */
   readonly commiteados: readonly string[];
   /** El número del PR abierto de su rama, si lo tiene. */
   readonly pr: number | undefined;
@@ -166,11 +167,16 @@ export function detalle(estado: Estado): string {
 
 /**
  * Lo que hay ahora, con lo último que trajo git fetch: tickets, áreas cerradas con sus pendientes y
- * árbol de origin/main, y los carriles abiertos de `raiz`, con lo que ha commiteado cada rama sin
- * fusionar. `prs` son los PR abiertos por rama (prsAbiertos). Lo lee por refs, sin entrar en los carriles.
+ * árbol de `origen` (origin/main, o la rama de lote contra la que el Despachador evalúa aceptación e
+ * impl), y los carriles abiertos de `raiz`, con lo que ha commiteado cada rama sin fusionar. `prs` son
+ * los PR abiertos por rama (prsAbiertos). Lo lee por refs, sin entrar en los carriles.
  */
-export function situacionDelRepositorio(raiz: string, prs: ReadonlyMap<string, number>): Situacion {
-  const { tickets, problemas } = ticketsDe(raiz, RAMA_DE_ORIGEN);
+export function situacionDelRepositorio(
+  raiz: string,
+  prs: ReadonlyMap<string, number>,
+  origen: string = RAMA_DE_ORIGEN,
+): Situacion {
+  const { tickets, problemas } = ticketsDe(raiz, origen);
   const carriles = carrilesConRama(raiz)
     .filter(({ ruta }) => existsSync(ruta))
     .map(({ ruta, rama }) => ({
@@ -179,21 +185,22 @@ export function situacionDelRepositorio(raiz: string, prs: ReadonlyMap<string, n
       commiteados: rama === undefined ? [] : commiteadosSinFusionar(raiz, rama),
       pr: rama === undefined ? undefined : prs.get(rama),
     }));
-  const ficheros = lineas(git(raiz, ['ls-tree', '-r', '--name-only', RAMA_DE_ORIGEN]).salida);
-  return { tickets, problemas, ...areasCerradasDeOrigen(raiz), carriles, ficheros };
+  const ficheros = lineas(git(raiz, ['ls-tree', '-r', '--name-only', origen]).salida);
+  return { tickets, problemas, ...areasCerradasDeOrigen(raiz, origen), carriles, ficheros };
 }
 
 function lineas(texto: string): string[] {
   return texto.split('\n').filter((linea) => linea !== '');
 }
 
+/** Lo que la rama cambia desde que salió de su origen: comparada con main, una rama de un lote contaría lo del lote. */
 function commiteadosSinFusionar(raiz: string, rama: string): string[] {
   if (estaFusionada(raiz, rama)) return [];
-  return lineas(git(raiz, ['diff', '--name-only', `${RAMA_DE_ORIGEN}...${rama}`]).salida);
+  return lineas(git(raiz, ['diff', '--name-only', `${origenDeLaRama(raiz, rama)}...${rama}`]).salida);
 }
 
-function areasCerradasDeOrigen(raiz: string): AreasCerradas {
-  const { codigo, salida } = git(raiz, ['show', `${RAMA_DE_ORIGEN}:config/alcance.json`]);
+function areasCerradasDeOrigen(raiz: string, origen: string): AreasCerradas {
+  const { codigo, salida } = git(raiz, ['show', `${origen}:config/alcance.json`]);
   return areasCerradasDe(codigo === 0 ? salida : undefined);
 }
 
