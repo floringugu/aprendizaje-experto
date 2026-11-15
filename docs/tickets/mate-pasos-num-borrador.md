@@ -3,7 +3,7 @@ fase: aceptacion
 area: MATE
 depende: [specs-item-numerico-borrador, recu-aceptacion-item-numerico]
 toca: [tests/aceptacion/pasos/redaccion-rechazos.ts, tests/aceptacion/soporte/escenario-material.ts, tests/aceptacion/soporte/contenido.ts, config/alcance.json]
-estado: abierto
+estado: hecho
 ---
 # Los escenarios del ítem numérico del borrador de MATE tienen pasos y fallan en rojo
 
