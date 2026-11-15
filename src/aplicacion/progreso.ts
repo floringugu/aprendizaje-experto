@@ -10,9 +10,10 @@ import type { Resultado } from './resultado.ts';
 import { aceptar } from './resultado.ts';
 
 /**
- * Fase, ruta y estado de cada objetivo. El acierto sin ayuda sale del último intento de cada ítem
- * no reservado en cualquier contexto (@MAST-1.2, @MAST-8.2) y no se informa mientras falte alguno
- * (@MAST-1.3). Los pasos retirados salen del diagnóstico (@DIAG-2.5).
+ * Fase, ruta y estado de cada objetivo. El acierto sin ayuda es el mismo que decide el dominio: sale
+ * del último intento de cada ítem no reservado, sin los reintentos de la misma sesión (@MAST-1.2,
+ * @MAST-1.8, @MAST-8.2), y no se informa mientras falte alguno (@MAST-1.3). Los pasos retirados salen
+ * del diagnóstico (@DIAG-2.5).
  */
 export function consultarProgreso(entorno: Entorno, peticion: PeticionDominio): Resultado<Progreso> {
   return enDominio(entorno, peticion.dominio, (situacion) => {
