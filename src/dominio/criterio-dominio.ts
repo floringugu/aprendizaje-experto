@@ -8,10 +8,11 @@ interface EntradaDominio {
   /** Todos los ítems del objetivo. */
   readonly items: readonly string[];
   /**
-   * Último intento de cada ítem, sea del contexto que sea (@MAST-1.2): una prueba de retención cuenta
-   * como cualquier otro intento (@MAST-7.2), y también el de una práctica que empieza con un ejemplo
-   * resuelto. Que todos cuenten igual es extrapolación del autor: el informe mide «recuperación sin
-   * ayuda», pero no la define.
+   * Último intento de cada ítem, que es el primero de la última sesión en que se respondió: los
+   * reintentos de esa sesión no llegan aquí (@MAST-1.2, @MAST-1.8, @MAST-4.2). Fuera de eso, cuenta
+   * igual sea del contexto que sea: una prueba de retención cuenta como cualquier otro intento
+   * (@MAST-7.2), y también el de una práctica que empieza con un ejemplo resuelto. Que todos cuenten
+   * igual es extrapolación del autor: el informe mide «recuperación sin ayuda», pero no la define.
    */
   readonly ultimoIntento: ReadonlyMap<string, boolean>;
   readonly umbral: number;
