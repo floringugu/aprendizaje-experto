@@ -67,6 +67,8 @@ export function peticionDeReservados(mesa: Mesa, objetivo: string): ReservadosDe
  *
  * **Formato.** Cada pieza se valida con `falloDeLaPiezaSuelta` de su tipo; un objetivo, con los ejemplos que
  * lleva dentro. La que falla se aparta con `{ falta }`, solo eso (@MATE-2.3, @MATE-2.5, @MATE-2.7, @MATE-2.9).
+ * Un ítem numérico mal formado se aparta con la propiedad de su `respuesta` que falla: `valor`, `unidades` o
+ * `tolerancia`, mirados en ese orden (@MATE-2.12); uno bien formado entra con su `respuesta` tal cual (@MATE-2.13).
  * Un ejemplo que va aparte sin `objetivo` de texto no vacío se aparta con `falta: 'objetivo'`. Un ítem que es
  * un objeto se valida ya con `diagnostico: false` y entra así: el diagnóstico lo marca la persona, no la IA
  * (@MATE-2.6), así que el `diagnostico` de la IA no cuenta, ni para apartarlo. El `reservado` de la IA sí se

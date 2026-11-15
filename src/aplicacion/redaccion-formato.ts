@@ -40,9 +40,9 @@ interface ListasCrudas {
 }
 
 /**
- * Lee `entrega` y separa lo que cumple el formato de lo que no (@MATE-2.3, @MATE-2.5, @MATE-2.7, @MATE-2.9).
- * Con `reservadosDe` solo se leen los ítems, porque son lo único que se pidió (@MATE-2.11): las demás
- * listas se ignoran, sin fallos y sin ids.
+ * Lee `entrega` y separa lo que cumple el formato de lo que no (@MATE-2.3, @MATE-2.5, @MATE-2.7, @MATE-2.9,
+ * @MATE-2.12, @MATE-2.13). Con `reservadosDe` solo se leen los ítems, porque son lo único que se pidió
+ * (@MATE-2.11): las demás listas se ignoran, sin fallos y sin ids.
  */
 export function revisarEntrega(entrega: unknown, reservadosDe?: string): EntregaRevisada {
   const crudas = leerListas(entrega, reservadosDe !== undefined);
