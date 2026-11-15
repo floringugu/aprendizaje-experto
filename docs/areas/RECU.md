@@ -59,3 +59,38 @@ Mini área con RECU ya cerrada. Dominio puro: sin paso de mecanismo.
 ### Pendiente del área
 
 `make cerrar-area A=RECU` no da verde todavía: fallan solo los escenarios RECU-6.1 a 6.10, que siguen en `escenarios_en_rojo.RECU` y son del ticket `recu-reintentos`. Sin ellos, los 62 escenarios de RECU pasan (`--profile area --tags "@RECU and not @RECU-6"`).
+
+## Reaprendizaje sucesivo (RECU-6, ticket `recu-reintentos`, 15-11-2026)
+
+Mini área con RECU ya cerrada. Sin pantalla: `src/interfaz` aún no existe.
+
+### Cómo funciona
+
+- **La cola, en el dominio** (`src/dominio/reintentos.ts`): `colaInicial` y `colaTrasResponder` dicen qué queda por presentar de la sesión y qué ítems vuelven. Un ítem fallado en una sesión que enseña vuelve detrás de `separacion` ítems, o al final si no quedan tantos, hasta acertar `aciertosParaCerrar` reintentos, seguidos o no. No lee la configuración ni el estado.
+- **La sesión en curso, en `EstadoDominio`** (`sesionEnCurso` y `cambiarSesion` de `estado.ts`): `iniciarSesion` la sustituye con la sesión que acepta, cada intento que cuenta la hace avanzar y `terminarSesion` la olvida. Lo que quedaba por volver no pasa a la siguiente (@RECU-6.7). Mientras el diagnóstico está pendiente, `consultarSesion` da lo que queda de él (`loQueQuedaDelDiagnostico`), calculado con lo registrado.
+- **La clase, por el contexto registrado** (`CLASE_POR_CONTEXTO` en `src/aplicacion/sesion-en-curso.ts`): `reintento`; `ensena` para la práctica, el repaso y la mezcla; `mide` para el diagnóstico, la retención y la transferencia; y nada para la exploración, las prepreguntas y los experimentos, que no cambian la cola.
+- **El reintento se corrige en `responderItem`**, sin pedir confianza: el intento se registra sin ella (`confianza?` en `IntentoNuevo` y vacía en el CSV) y el feedback sale con la respuesta (`RespuestaRecogida`). `corregirYRegistrar` es lo común con `declararConfianza`, y calcula la sesión que queda antes de tocar el estado, para que un parámetro que falte no deje el intento registrado a medias.
+
+### Interfaces descartadas y por qué
+
+- **Descartada:** rechazar el reintento de un ítem al que no le toca volver. Motivo: `reintentar` de `tests/aceptacion/soporte/acciones.ts:77-89`, que usan MAST-1.8 y 4.2 y PLAN-1.5, 2.3 y 3.4, responde con el contexto `reintento` sin sesión. Ese intento se registra y no cambia la sesión.
+- **Descartada:** guardar el diagnóstico como sesión en curso. Motivo: obligaría a leer los parámetros del reintento en el diagnóstico, y el entorno de `tests/unidad/ver-fuente.test.ts:63` solo da `umbral_dominio`. Lo que queda del diagnóstico se calcula con lo registrado.
+- **Descartada:** decidir si un ítem vuelve por el tipo de sesión. Motivo: el reservado de una mezcla (registrado como `transferencia`) y la exploración y las prepreguntas dentro de una práctica no deben volver, y el tipo de la sesión no los distingue.
+
+### Mutación
+
+- **Puntuación** (`npx stryker run --force`): 97,74 % en total (2153 eliminados, 13 por tiempo, 45 supervivientes, 5 sin cobertura). `reintentos.ts`, 100 % (52 eliminados); `sesion-en-curso.ts`, 96,20 % (76 eliminados, 3 supervivientes).
+- **Supervivientes aceptados**, los tres equivalentes: `sesion-en-curso.ts:31-33`, `'mide'` por `""` en `diagnostico`, `retencion` y `transferencia`. `colaTrasResponder` solo distingue `reintento` y `ensena`, así que cualquier otra clase cuenta como `mide`.
+- `respuestas.ts`, `estado.ts`, `practica.ts`, `diagnostico.ts`, `csv.ts` y `aplicacion.ts` no entran en la mutación: los cubren los escenarios de RECU-6 y, la sesión en curso, `tests/unidad/sesion-en-curso.test.ts`.
+
+### Deuda
+
+- No paga ninguna: es comportamiento nuevo con el área cerrada.
+- Anotada (`docs/deuda-diseno.md`): D36 (qué hace cada contexto, repartido en tres sitios), D37 (lo que queda por presentar, en dos representaciones) y D38 (el rechazo sin sesión en curso). D9, D14 y D21 crecen con copias nuevas, y D15 queda para revisar si se retira, porque `responderItem` ya devuelve un valor que informa.
+- Arreglado en el mismo PR, tras la revisión: `ElementoSesion` se declara una sola vez, en `sesiones.ts`; `RespuestaACorregir` extiende `RespuestaPendiente`; fuera una rama muerta de `loQueQuedaDelDiagnostico`; y el comentario de `consultarSesion` ya no dice que una sesión sin elementos ha terminado, porque los ejemplos siguen ahí.
+
+### Pendiente del área
+
+- RECU-6.4, 6.7 y 6.10 siguen en `escenarios_en_rojo.RECU`: tres pasos de `tests/aceptacion/pasos/reintentos.ts` no reciben el `{item}` que declaran, y Cucumber los rechaza antes de llegar a la aplicación. El arreglo es de la fase aceptacion: ticket `recu-pasos-reintentos-aridad`. Con el arreglo, en una copia fuera del repositorio, pasan los 20 escenarios de RECU-6.
+- `make cerrar-area A=RECU` no da verde en `lote/1`: RECU-2.2, 4.2 y 5.x siguen en rojo porque el ítem numérico está en `main` y no en el lote.
+- Los ejemplos de la sesión siguen delante en `consultarSesion` hasta que la persona pueda estudiarlos (`estudiarEjemplo`, AYUD).
